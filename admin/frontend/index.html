@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOMAD — Админ-панель</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Login -->
+    <div id="login-screen" class="screen">
+        <div class="login-card">
+            <div class="login-logo">NOMAD</div>
+            <p class="login-subtitle">Панель управления автошколой</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Логин</label>
+                    <input type="text" id="username" placeholder="Введите логин" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" placeholder="Введите пароль" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Войти</button>
+            </form>
+            <div id="login-error" class="alert alert-error hidden"></div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard-screen" class="screen">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">NOMAD</div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">📊</span><span class="nav-label">Дашборд</span>
+                </button>
+                <button class="nav-item" data-page="bookings">
+                    <span class="nav-icon">📋</span><span class="nav-label">Записи</span>
+                </button>
+                <button class="nav-item" data-page="instructors">
+                    <span class="nav-icon">👨‍🏫</span><span class="nav-label">Инструкторы</span>
+                </button>
+                <button class="nav-item" data-page="analytics">
+                    <span class="nav-icon">📈</span><span class="nav-label">Аналитика</span>
+                </button>
+                <button class="nav-item" data-page="packages">
+                    <span class="nav-icon">📦</span><span class="nav-label">Пакеты</span>
+                </button>
+                <button class="nav-item" data-page="faq">
+                    <span class="nav-icon">❓</span><span class="nav-label">FAQ</span>
+                </button>
+                <button class="nav-item" data-page="support">
+                    <span class="nav-icon">💬</span><span class="nav-label">Поддержка</span>
+                </button>
+                <button class="nav-item" data-page="notifications">
+                    <span class="nav-icon">🔔</span><span class="nav-label">Уведомления</span>
+                </button>
+                <button class="nav-item" data-page="audit">
+                    <span class="nav-icon">📜</span><span class="nav-label">Логи</span>
+                </button>
+                <button class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span><span class="nav-label">Настройки</span>
+                </button>
+            </nav>
+            <button class="nav-item nav-logout" id="logout-btn">
+                <span class="nav-icon">🚪</span><span class="nav-label">Выход</span>
+            </button>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+                <h1 class="page-title" id="page-title">Дашборд</h1>
+            </header>
+
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page active">
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card"><div class="stat-label">Загрузка...</div></div>
+                </div>
+                <div class="section-header">
+                    <h2>Быстрые действия</h2>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn btn-outline" onclick="navigateTo('bookings')">Перейти к записям</button>
+                    <button class="btn btn-outline" onclick="exportBookings()">📥 Экспорт записей (CSV)</button>
+                    <button class="btn btn-outline" onclick="exportClients()">📥 Экспорт клиентов (CSV)</button>
+                </div>
+            </div>
+
+            <!-- Bookings Page -->
+            <div id="page-bookings" class="page">
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label>С</label>
+                        <input type="date" id="filter-date-from">
+                    </div>
+                    <div class="filter-group">
+                        <label>По</label>
+                        <input type="date" id="filter-date-to">
+                    </div>
+                    <div class="filter-group">
+                        <label>Статус</label>
+                        <select id="filter-status">
+                            <option value="">Все</option>
+                            <option value="planned">Запланирована</option>
+                            <option value="confirmed">Подтверждена</option>
+                            <option value="completed">Завершена</option>
+                            <option value="cancelled">Отменена</option>
+                            <option value="no_show">Не явился</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Площадка</label>
+                        <select id="filter-location">
+                            <option value="">Все</option>
+                            <option value="Циолковского 28/1">Обучение (28/1)</option>
+                            <option value="Циолковского 30">Экзамен (30)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadBookings()">Применить</button>
+                    <button class="btn btn-outline" onclick="exportBookings()">📥 CSV</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="bookings-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Время</th>
+                                <th>Клиент</th>
+                                <th>Инструктор</th>
+                                <th>Услуга</th>
+                                <th>Площадка</th>
+                                <th>Статус</th>
+                                <th>Цена</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Instructors Page -->
+            <div id="page-instructors" class="page">
+                <div class="section-header">
+                    <button class="btn btn-success" onclick="showInstructorForm()">+ Добавить инструктора</button>
+                </div>
+                <div id="instructor-form" class="card hidden">
+                    <h3 id="instructor-form-title">Новый инструктор</h3>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Имя</label>
+                            <input type="text" id="inst-name" placeholder="ФИО инструктора">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Специализация</label>
+                            <select id="inst-trans">
+                                <option value="both">Механика и автомат</option>
+                                <option value="manual">Механика</option>
+                                <option value="automatic">Автомат</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Telegram ID</label>
+                            <input type="text" id="inst-tg-id" placeholder="Числовой ID">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Telegram username</label>
+                            <input type="text" id="inst-tg-user" placeholder="@username">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Стаж (лет)</label>
+                            <input type="number" id="inst-exp" value="0" min="0">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Начало работы</label>
+                            <input type="time" id="inst-start" value="09:00">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Конец работы</label>
+                            <input type="time" id="inst-end" value="19:00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Начало обеда</label>
+                            <input type="time" id="inst-lunch-start" value="">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Конец обеда</label>
+                            <input type="time" id="inst-lunch-end" value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <textarea id="inst-desc" placeholder="Краткое описание инструктора"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Выходные дни</label>
+                        <div class="days-off-checkboxes">
+                            <label class="checkbox-label"><input type="checkbox" value="Понедельник" class="day-off-cb"> Пн</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Вторник" class="day-off-cb"> Вт</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Среда" class="day-off-cb"> Ср</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Четверг" class="day-off-cb"> Чт</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Пятница" class="day-off-cb"> Пт</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Суббота" class="day-off-cb"> Сб</label>
+                            <label class="checkbox-label"><input type="checkbox" value="Воскресенье" class="day-off-cb"> Вс</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Аватарка инструктора</label>
+                        <input type="file" id="inst-avatar" accept="image/jpeg,image/png,image/webp" style="margin-top: 4px;">
+                        <small style="color: var(--text-secondary);">JPG, PNG или WebP, макс. 2 МБ</small>
+                        <div id="inst-avatar-preview" style="margin-top: 8px;"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="saveInstructor()">Сохранить</button>
+                        <button class="btn btn-outline" onclick="hideInstructorForm()">Отмена</button>
+                    </div>
+                </div>
+                <div id="instructors-list" class="cards-grid"></div>
+            </div>
+
+            <!-- Analytics Page -->
+            <div id="page-analytics" class="page">
+                <div class="section-header">
+                    <h2>Аналитика</h2>
+                </div>
+                <div class="analytics-grid">
+                    <div class="card">
+                        <h3>Загруженность по часам</h3>
+                        <div id="heatmap-container" class="heatmap"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Загрузка инструкторов (30 дней)</h3>
+                        <div id="instructor-load-chart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packages Page -->
+            <div id="page-packages" class="page">
+                <div class="card">
+                    <h3>Создать пакет</h3>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Название</label>
+                            <input type="text" id="pkg-name" placeholder="Например: 10 занятий">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Количество занятий</label>
+                            <input type="number" id="pkg-sessions" placeholder="10">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label>Цена (₸)</label>
+                            <input type="number" id="pkg-price" placeholder="54000">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="createPackage()">Создать</button>
+                </div>
+                <div id="packages-list" class="cards-grid" style="margin-top:16px"></div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <h3>Генерация сертификата</h3>
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label>Номинал (₸)</label>
+                            <input type="number" id="cert-nominal" placeholder="10000">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="createCertificate()">Сгенерировать</button>
+                    <div id="cert-result" class="mt-16"></div>
+                </div>
+                <div class="card" style="margin-top: 24px;">
+                    <h3>Сертификаты</h3>
+                    <div id="certificates-list"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Page -->
+            <div id="page-faq" class="page">
+                <div class="card" id="faq-form">
+                    <h3 id="faq-form-title">Добавить вопрос</h3>
+                    <div class="form-group">
+                        <label>Вопрос</label>
+                        <input type="text" id="faq-q" placeholder="Частый вопрос">
+                    </div>
+                    <div class="form-group">
+                        <label>Ответ</label>
+                        <textarea id="faq-a" placeholder="Подробный ответ"></textarea>
+                    </div>
+                    <button class="btn btn-primary" id="faq-submit-btn" onclick="createFaq()">Добавить</button>
+                </div>
+                <div id="faq-list" class="mt-24"></div>
+            </div>
+
+            <!-- Support Page -->
+            <div id="page-support" class="page">
+                <div class="support-layout">
+                    <div class="dialogs-list">
+                        <div class="section-header" style="padding: 16px; margin: 0;">
+                            <h3 style="margin: 0;">Чаты клиентов</h3>
+                        </div>
+                        <div style="padding: 0 16px 12px;">
+                            <input type="text" id="support-search" placeholder="Поиск по имени или телефону..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px;" oninput="filterDialogs()">
+                        </div>
+                        <div id="dialogs-container"></div>
+                    </div>
+                    <div class="chat-area">
+                        <div id="chat-empty" class="chat-empty">
+                            <p>💬</p>
+                            <p>Выберите диалог чтобы начать переписку</p>
+                        </div>
+                        <div id="chat-active" class="chat-active hidden">
+                            <div class="chat-header">
+                                <div class="chat-user-info">
+                                    <h3 id="chat-user-name"></h3>
+                                    <p id="chat-user-contacts"></p>
+                                </div>
+                                <button class="btn btn-outline btn-sm" onclick="showClientBookings()">Записи клиента</button>
+                            </div>
+                            <div class="chat-messages" id="chat-messages"></div>
+                            <div class="chat-input-area">
+                                <textarea id="chat-input" placeholder="Введите ответ..." rows="2"></textarea>
+                                <button class="btn btn-primary" onclick="sendReply()">Отправить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Page -->
+            <div id="page-notifications" class="page">
+                <div id="notifications-list"></div>
+            </div>
+
+            <!-- Audit Page -->
+            <div id="page-audit" class="page">
+                <div class="table-wrapper">
+                    <table id="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Событие</th>
+                                <th>Источник</th>
+                                <th>Детали</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="page-settings" class="page">
+                <div class="card">
+                    <h3>Сменить пароль</h3>
+                    <div class="form-group">
+                        <label>Текущий пароль</label>
+                        <input type="password" id="old-pass" placeholder="Введите текущий пароль">
+                    </div>
+                    <div class="form-group">
+                        <label>Новый пароль</label>
+                        <input type="password" id="new-pass" placeholder="Введите новый пароль">
+                    </div>
+                    <button class="btn btn-primary" onclick="changePassword()">Сменить пароль</button>
+                    <div id="password-result" class="mt-16"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Мои Записи | NOMAD Academy</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c5c6cf",
+                    "secondary": "#ab3500",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-container": "#8293b7",
+                    "primary-fixed-dim": "#b6c6ee",
+                    "outline": "#75777e",
+                    "surface-dim": "#cbdbf5",
+                    "background": "#f8f9ff",
+                    "on-tertiary-fixed-variant": "#43474a",
+                    "tertiary-fixed": "#e0e3e6",
+                    "surface": "#f8f9ff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#44474e",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#13181a",
+                    "primary": "#031634",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed": "#390c00",
+                    "secondary-fixed-dim": "#ffb59d",
+                    "primary-fixed": "#d8e2ff",
+                    "inverse-primary": "#b6c6ee",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#081b39",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#282c2e",
+                    "tertiary-fixed-dim": "#c3c7ca",
+                    "on-secondary-fixed-variant": "#832600",
+                    "on-tertiary-fixed": "#181c1e",
+                    "on-secondary-container": "#5d1900",
+                    "secondary-container": "#fe6a34",
+                    "surface-container-low": "#eff4ff",
+                    "surface-tint": "#4e5e80",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-container": "#8f9396",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#ffdbd0",
+                    "primary-container": "#1a2b4a",
+                    "inverse-surface": "#213145",
+                    "on-error": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "on-primary-fixed-variant": "#364767"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "inline-gutter": "16px",
+                    "stack-gap": "12px",
+                    "container-margin": "16px",
+                    "section-gap": "24px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Roboto"],
+                    "title-lg": ["Roboto"],
+                    "headline-md": ["Roboto"],
+                    "label-lg": ["Roboto"],
+                    "body-md": ["Roboto"],
+                    "headline-lg-mobile": ["Roboto"],
+                    "label-sm": ["Roboto"],
+                    "body-lg": ["Roboto"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab {
+            border-bottom: 3px solid #fe6a34;
+            color: #031634;
+        }
+        .custom-shadow {
+            box-shadow: 0px 2px 8px rgba(3, 22, 52, 0.1);
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- Top App Bar -->
+<header class="w-full top-0 sticky z-40 bg-background dark:bg-surface flex items-center px-container-margin h-touch-target">
+<button class="material-symbols-outlined text-primary dark:text-primary-fixed mr-4 active:scale-95 transition-transform" data-icon="arrow_back">arrow_back</button>
+<h1 class="font-title-lg text-title-lg font-bold text-primary dark:text-primary-fixed flex-grow">Мои Записи</h1>
+<button class="material-symbols-outlined text-primary" data-icon="more_vert">more_vert</button>
+</header>
+<main class="w-full">
+<!-- Tab Navigation -->
+<div class="flex w-full bg-surface border-b border-outline-variant sticky top-[48px] z-30">
+<button class="flex-1 py-4 font-label-lg text-label-lg font-medium active-tab transition-all" id="tab-upcoming" onclick="switchTab('upcoming')">Предстоящие</button>
+<button class="flex-1 py-4 font-label-lg text-label-lg font-medium text-on-surface-variant transition-all" id="tab-history" onclick="switchTab('history')">История</button>
+</div>
+<div class="px-container-margin py-section-gap space-y-stack-gap" id="content-area">
+<!-- Upcoming Bookings (Default) -->
+<div class="space-y-4" id="upcoming-view">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 custom-shadow flex flex-col gap-4 border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of a male driving instructor in a clean white polo shirt, smiling confidently against a soft-focus urban background. The lighting is bright and airy, reflecting a modern light-mode UI aesthetic with corporate reliability. High-resolution photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAT_8MQBn4HEJVlfAB7luMiYyZ9QUH8Yt6RxXYYsrRUAXVuMeIp19n0QorbLb6RgJlFQrZ9nIG-mTne952cyuNDnzae8uSGDv6pM3LFrSHSQUxKUTV3RxTexItBlXldS62_osrxyUrsQubA87_zhdKNdHV96F1bUdgDClDJ0DFw1BL470KTRxodI6_uMhZXNpOrG136DqnLhVn2oG4UKj51fSnHyHxORqwALWXawwITX5DEIq65iYUcykqtAo54-OlqSSf6VzVW1Rac"/>
+</div>
+<div>
+<h3 class="font-title-lg text-body-lg font-bold text-primary">Александр Петров</h3>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4.9 • Инструктор Категории B</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container-high text-primary font-label-sm text-label-sm rounded-full">Запланировано</span>
+</div>
+<div class="grid grid-cols-2 gap-4 bg-background p-3 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="calendar_month">calendar_month</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Дата</span>
+<span class="font-label-lg text-label-lg text-primary">15 Октября</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="schedule">schedule</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Время</span>
+<span class="font-label-lg text-label-lg text-primary">14:00 - 15:30</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 px-1">
+<span class="material-symbols-outlined text-outline text-[20px]" data-icon="location_on">location_on</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Центральный автодром, площадка 2</span>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="flex-1 py-3 border-2 border-primary text-primary font-bold rounded-xl active:scale-95 transition-transform">Отменить</button>
+<button class="flex-1 py-3 bg-secondary-container text-white font-bold rounded-xl active:scale-95 transition-transform shadow-lg">Перенести</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 custom-shadow flex flex-col gap-4 border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A portrait of a professional female driving instructor with a friendly and encouraging expression. She is wearing a modern navy corporate uniform jacket. The background is a brightly lit, clean driving academy classroom with glass elements. Warm, professional lighting with a focus on trust and mastery." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2WUl8DDzJlDwpwL196IFBfYlqH04wA0ktLF0AJpRSbRlX-TrgoSGPRLkGO6YIWa9zjzrRNgsRO70MdqDTnbNVQqKf4qfDRA5rdVV1MIMQpPfvLriGqoKZ48ibtLFM3V_YxbMaxUUd9FSue3T1DCU4abIH36w70-XmmTNkq2UX41p2PCvm7Y5vLCkX5Jr2B_bHLJP-QF3d_E-uXmAgCW8YeGOuD8bc3iOwyJ0M1bI8Gz8LQ1SPIk2aLNtBw61zao9RF-DObEeIZmRl"/>
+</div>
+<div>
+<h3 class="font-title-lg text-body-lg font-bold text-primary">Елена Сидорова</h3>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5.0 • ПДД и Теория</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-variant text-primary font-label-sm text-label-sm rounded-full">Подтверждено</span>
+</div>
+<div class="grid grid-cols-2 gap-4 bg-background p-3 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="calendar_month">calendar_month</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Дата</span>
+<span class="font-label-lg text-label-lg text-primary">18 Октября</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="schedule">schedule</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Время</span>
+<span class="font-label-lg text-label-lg text-primary">10:00 - 11:30</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 px-1">
+<span class="material-symbols-outlined text-outline text-[20px]" data-icon="school">school</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Филиал "Северный", ауд. 304</span>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="w-full py-3 border-2 border-primary text-primary font-bold rounded-xl active:scale-95 transition-transform">Отменить запись</button>
+</div>
+</div>
+</div>
+<!-- History View (Hidden by default) -->
+<div class="hidden space-y-4" id="history-view">
+<!-- History Card 1 -->
+<div class="bg-surface-container-low/50 rounded-xl p-4 flex flex-col gap-4 border border-outline-variant/20 grayscale-[0.3]">
+<div class="flex justify-between items-start opacity-70">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A focused studio portrait of a senior driving instructor with silver hair and a kind expression. He wears a dark navy polo shirt with a subtle academy logo. Professional, sharp lighting with a clean white and gray gradient background, maintaining a corporate and reliable aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTnsLN0d6V8f72xRvyAAzh3WCpGh3I1vI1xkj38gRCRsZy-pMb1PMrMrgCitoPqduUNAQExSH7xUy_JRRalOgoeAwFRtdnOIYDql4XSwL4hwvVx6EslYZ69YS2R9z0E4toVuJukWaY8ra_7pYCnz7JTm8StElEUD0TWt2Ll6c5ddIVSLY9Zy9jHarxX8PGWjNBjf_AMyfNzjJsySZjK-0zDas-T9PdS2dUoQ5U45DWjVAcul_o1sMR_nrkQ7z7IdBREgP4WDmGfsg4"/>
+</div>
+<div>
+<h3 class="font-title-lg text-body-lg font-bold text-primary">Игорь Николаев</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Категория B • Город</span>
+</div>
+</div>
+<span class="px-3 py-1 bg-on-primary-container/20 text-on-primary-container font-label-sm text-label-sm rounded-full">Завершено</span>
+</div>
+<div class="flex justify-between items-center bg-background/50 p-3 rounded-lg border border-outline-variant/20">
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Дата</span>
+<span class="font-label-lg text-label-lg text-primary/60">02 Октября</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Оценка</span>
+<div class="flex text-secondary/60">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+</div>
+<button class="text-secondary font-bold text-label-lg flex items-center gap-1 active:scale-95 transition-transform">
+                            Детали <span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- History Card 2 (Unrated) -->
+<div class="bg-surface-container-lowest rounded-xl p-4 custom-shadow flex flex-col gap-4 border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male driving instructor in his 30s, looking professional and approachable. Soft daylight lighting from a large window. He is standing next to a modern hatchback car. The background shows a clean parking area of a driving school. High-end lifestyle photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA_Kn6ZV_YKjHBLPdEdNe29ODazDTbCKZjulGB7i3AHfy6Xg2Xo2RLEvgfsbMn9P74_HAx4zH8VBZ9msYLNz1_BtdeJsybchCmrQn1A8rgwEO71_bHZKLQZl0A7Ek86qK2pa2VEP3501pAAkdVNjY0TInc9-qPcsj-QlAr6tkTaHn3H4SBQ3IjoJZDXnmEsUW9FQRRLZupzs6SqSmDG5dO1r7tKrh3YFLvJaCWXcWgO6h06IggPRezZWXzlHsdDyKzEl8nafhKBqKb"/>
+</div>
+<div>
+<h3 class="font-title-lg text-body-lg font-bold text-primary">Максим Волков</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Категория B • Площадка</span>
+</div>
+</div>
+<span class="px-3 py-1 bg-on-primary-container/20 text-on-primary-container font-label-sm text-label-sm rounded-full">Завершено</span>
+</div>
+<div class="grid grid-cols-2 gap-4 bg-background p-3 rounded-lg">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Дата</span>
+<span class="font-label-lg text-label-lg text-primary">28 Сентября</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-outline">Время</span>
+<span class="font-label-lg text-label-lg text-primary">16:00 - 17:30</span>
+</div>
+</div>
+<button class="w-full py-3 bg-secondary-container text-white font-bold rounded-xl active:scale-95 transition-transform shadow-lg flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="rate_review">rate_review</span>
+                        Оценить инструктора
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 w-full z-50 h-[80px] bg-surface dark:bg-surface-container-lowest shadow-[0px_-2px_8px_rgba(3,22,52,0.1)] flex justify-around items-center px-2 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Главная</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-container font-bold bg-secondary-container/20 rounded-xl px-3 py-1 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="font-label-sm text-label-sm">Записи</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Профиль</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+<span class="font-label-sm text-label-sm">Поддержка</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="info">info</span>
+<span class="font-label-sm text-label-sm">Инфо</span>
+</a>
+</nav>
+<script>
+        function switchTab(tab) {
+            const upcomingBtn = document.getElementById('tab-upcoming');
+            const historyBtn = document.getElementById('tab-history');
+            const upcomingView = document.getElementById('upcoming-view');
+            const historyView = document.getElementById('history-view');
+
+            if (tab === 'upcoming') {
+                upcomingBtn.classList.add('active-tab', 'text-primary');
+                upcomingBtn.classList.remove('text-on-surface-variant');
+                historyBtn.classList.remove('active-tab', 'text-primary');
+                historyBtn.classList.add('text-on-surface-variant');
+                
+                upcomingView.classList.remove('hidden');
+                historyView.classList.add('hidden');
+            } else {
+                historyBtn.classList.add('active-tab', 'text-primary');
+                historyBtn.classList.remove('text-on-surface-variant');
+                upcomingBtn.classList.remove('active-tab', 'text-primary');
+                upcomingBtn.classList.add('text-on-surface-variant');
+                
+                historyView.classList.remove('hidden');
+                upcomingView.classList.add('hidden');
+            }
+        }
+    </script>
+</body></html>

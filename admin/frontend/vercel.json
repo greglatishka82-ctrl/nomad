@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://nomad-adminbackend.onrender.com/api/$1" }
+  ]
+}

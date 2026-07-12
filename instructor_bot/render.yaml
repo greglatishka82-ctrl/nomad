@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nomad-instructor-bot
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m instructor_bot.main
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: INSTRUCTOR_BOT_TOKEN
+        sync: false

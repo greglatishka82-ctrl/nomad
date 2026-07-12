@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chat-bubble-left {
+            border-radius: 4px 20px 20px 20px;
+        }
+        .chat-bubble-right {
+            border-radius: 20px 20px 4px 20px;
+        }
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c5c6cf",
+                        "secondary": "#ab3500",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-container": "#8293b7",
+                        "primary-fixed-dim": "#b6c6ee",
+                        "outline": "#75777e",
+                        "surface-dim": "#cbdbf5",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#43474a",
+                        "tertiary-fixed": "#e0e3e6",
+                        "surface": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#44474e",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#13181a",
+                        "primary": "#031634",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#390c00",
+                        "secondary-fixed-dim": "#ffb59d",
+                        "primary-fixed": "#d8e2ff",
+                        "inverse-primary": "#b6c6ee",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#081b39",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#282c2e",
+                        "tertiary-fixed-dim": "#c3c7ca",
+                        "on-secondary-fixed-variant": "#832600",
+                        "on-tertiary-fixed": "#181c1e",
+                        "on-secondary-container": "#5d1900",
+                        "secondary-container": "#fe6a34",
+                        "surface-container-low": "#eff4ff",
+                        "surface-tint": "#4e5e80",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-container": "#8f9396",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#ffdbd0",
+                        "primary-container": "#1a2b4a",
+                        "inverse-surface": "#213145",
+                        "on-error": "#ffffff",
+                        "on-background": "#0b1c30",
+                        "on-primary-fixed-variant": "#364767"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "inline-gutter": "16px",
+                        "stack-gap": "12px",
+                        "container-margin": "16px",
+                        "section-gap": "24px",
+                        "touch-target": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Roboto"],
+                        "title-lg": ["Roboto"],
+                        "headline-md": ["Roboto"],
+                        "label-lg": ["Roboto"],
+                        "body-md": ["Roboto"],
+                        "headline-lg-mobile": ["Roboto"],
+                        "label-sm": ["Roboto"],
+                        "body-lg": ["Roboto"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-lg overflow-hidden flex flex-col h-screen">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-surface w-full top-0 sticky z-10 flex items-center px-container-margin h-touch-target">
+<div class="flex items-center gap-4 w-full">
+<button class="material-symbols-outlined text-primary dark:text-primary-fixed active:scale-95 transition-transform" data-icon="arrow_back">arrow_back</button>
+<div class="flex flex-col">
+<h1 class="font-title-lg text-title-lg font-bold text-primary dark:text-primary-fixed leading-tight">Поддержка</h1>
+<p class="text-[11px] text-on-surface-variant font-medium">Обычно отвечаем в течение пары часов</p>
+</div>
+<div class="ml-auto flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Онлайн</span>
+</div>
+</div>
+</header>
+<!-- Main Content: Chat Interface -->
+<main class="flex-grow flex flex-col relative overflow-hidden bg-surface-container-low">
+<!-- Chat History -->
+<div class="flex-grow overflow-y-auto px-container-margin py-section-gap space-y-6 scroll-hide" id="chat-container">
+<!-- Date Divider -->
+<div class="flex justify-center">
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-3 py-1 rounded-full">Сегодня</span>
+</div>
+<!-- Admin Message -->
+<div class="flex items-end gap-2 max-w-[85%]">
+<div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary text-on-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="support_agent">support_agent</span>
+</div>
+<div class="chat-bubble-left bg-white shadow-sm p-3 border border-outline-variant/30">
+<p class="font-body-md text-body-md text-on-surface">Здравствуйте! Я — ваш ассистент NOMAD Academy. Чем я могу помочь вам с обучением сегодня?</p>
+<div class="flex justify-end mt-1">
+<span class="text-[10px] text-outline">10:42</span>
+</div>
+</div>
+</div>
+<!-- Client Message -->
+<div class="flex items-end gap-2 max-w-[85%] ml-auto flex-row-reverse">
+<div class="w-8 h-8 rounded-full flex-shrink-0" data-alt="A close-up portrait of a young student with a friendly expression, soft natural lighting, modern professional photography style, shallow depth of field, warm blue and white tones to match the academy brand." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD5oHaqQ1EU0eXzkiLY7mFDG8eGnD71j3hOtBPwmdKakUAJ1a_3_NjqCLskuIpm-y51UK2RWHMJbKE7uXjHnEdDVEbaWA4ap5GZPKlnsxYS8qbYSnZc-PGphi-1DaAh2pLyCHr3YLz6SvqSlhkmzljONS1sZMftx3Pg02LgdRkRUjWoXAAQMbVMw2lYPbvZiSMkpDsVSlh6okohjsfQLLz7epLUpcLrP50RBqbvSaCX5GpQsbfqOns6dGzI7SmA9UmWwgGWfFFWNuNu')"></div>
+<div class="chat-bubble-right bg-secondary-container text-on-secondary-container shadow-sm p-3">
+<p class="font-body-md text-body-md">Добрый день. У меня возник вопрос по расписанию вождения на следующую неделю. Хочу перенести занятие с четверга на пятницу.</p>
+<div class="flex justify-end mt-1">
+<span class="text-[10px] opacity-70">10:45</span>
+<span class="material-symbols-outlined text-[12px] ml-1" data-icon="done_all">done_all</span>
+</div>
+</div>
+</div>
+<!-- Admin Message -->
+<div class="flex items-end gap-2 max-w-[85%]">
+<div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary text-on-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="support_agent">support_agent</span>
+</div>
+<div class="chat-bubble-left bg-white shadow-sm p-3 border border-outline-variant/30">
+<p class="font-body-md text-body-md text-on-surface">Минутку, я проверю доступные слоты вашего инструктора на пятницу. Обычно это занимает не более 5 минут.</p>
+<div class="flex justify-end mt-1">
+<span class="text-[10px] text-outline">10:46</span>
+</div>
+</div>
+</div>
+<!-- Typing Indicator (Simulated) -->
+<div class="flex items-center gap-2 text-outline font-label-sm text-label-sm italic">
+<div class="flex gap-1">
+<span class="w-1.5 h-1.5 bg-outline rounded-full animate-bounce"></span>
+<span class="w-1.5 h-1.5 bg-outline rounded-full animate-bounce [animation-delay:0.2s]"></span>
+<span class="w-1.5 h-1.5 bg-outline rounded-full animate-bounce [animation-delay:0.4s]"></span>
+</div>
+<span>Оператор печатает...</span>
+</div>
+</div>
+<!-- Input Area -->
+<div class="bg-surface border-t border-outline-variant/20 p-container-margin pb-[100px]">
+<div class="relative flex items-center gap-2">
+<button class="material-symbols-outlined text-outline p-2 hover:bg-surface-variant rounded-full transition-colors" data-icon="attach_file">attach_file</button>
+<div class="flex-grow bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2 flex items-center min-h-[48px]">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-body-md resize-none py-1 max-h-32 scroll-hide" placeholder="Сообщение..." rows="1"></textarea>
+<button class="material-symbols-outlined text-outline p-1 hover:bg-surface-variant rounded-full transition-colors" data-icon="sentiment_satisfied">sentiment_satisfied</button>
+</div>
+<button class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-lg active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="send" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 h-[80px] flex justify-around items-center px-2 pb-safe bg-surface dark:bg-surface-container-lowest shadow-[0px_-2px_8px_rgba(3,22,52,0.1)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Главная</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-sm text-label-sm">Записи</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Профиль</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-container font-bold bg-secondary-container/20 rounded-xl px-3 py-1 transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="support_agent" style="font-variation-settings: 'FILL' 1;">support_agent</span>
+<span class="font-label-sm text-label-sm">Поддержка</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="info">info</span>
+<span class="font-label-sm text-label-sm">Инфо</span>
+</a>
+</nav>
+<script>
+        // Simple auto-resize for textarea
+        const tx = document.getElementsByTagName("textarea");
+        for (let i = 0; i < tx.length; i++) {
+            tx[i].setAttribute("style", "height:" + (tx[i].scrollHeight) + "px;overflow-y:hidden;");
+            tx[i].addEventListener("input", OnInput, false);
+        }
+
+        function OnInput() {
+            this.style.height = 0;
+            this.style.height = (this.scrollHeight) + "px";
+        }
+
+        // Scroll to bottom of chat
+        const chatContainer = document.getElementById('chat-container');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    </script>
+</body></html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .progress-bar-fill {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#ab3500",
+                        "outline-variant": "#c5c6cf",
+                        "on-tertiary-fixed-variant": "#41474e",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "tertiary": "#11181d",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#ffb59d",
+                        "on-secondary-fixed": "#390c00",
+                        "on-tertiary-fixed": "#161c22",
+                        "on-surface-variant": "#44474e",
+                        "surface-container-low": "#eff4ff",
+                        "on-background": "#0b1c30",
+                        "inverse-primary": "#b6c6ee",
+                        "secondary-fixed": "#ffdbd0",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "inverse-surface": "#213145",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "tertiary-fixed": "#dde3eb",
+                        "tertiary-container": "#262c32",
+                        "primary": "#031634",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#8293b7",
+                        "outline": "#75777e",
+                        "surface-dim": "#cbdbf5",
+                        "on-primary-fixed": "#081b39",
+                        "background": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "surface-variant": "#d3e4fe",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#fe6a34",
+                        "primary-fixed": "#d8e2ff",
+                        "on-secondary-fixed-variant": "#832600",
+                        "surface-tint": "#4e5e80",
+                        "on-secondary-container": "#5d1900",
+                        "primary-fixed-dim": "#b6c6ee",
+                        "on-primary-fixed-variant": "#364767",
+                        "on-tertiary-container": "#8d939b",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "primary-container": "#1a2b4a",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "48px",
+                        "md": "24px",
+                        "xl": "80px",
+                        "sm": "12px",
+                        "margin-desktop": "64px",
+                        "base": "8px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "headline-xl": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "title-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-primary dark:bg-primary-container text-on-primary dark:text-on-primary-container flex justify-between items-center px-margin-mobile py-base">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile">Profile</h1>
+<button class="material-symbols-outlined text-on-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform" data-icon="settings">
+            settings
+        </button>
+</header>
+<main class="px-margin-mobile flex flex-col gap-gutter pt-base">
+<!-- Header / Identity Section -->
+<section class="flex flex-col items-center gap-base mt-base">
+<div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center border-4 border-surface-container-high shadow-sm">
+<span class="text-on-primary-container font-headline-lg text-headline-lg">JD</span>
+</div>
+<div class="text-center">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">John Doe</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">john.doe@email.com</p>
+</div>
+</section>
+<!-- Information Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-secondary" data-icon="phone">phone</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Phone</span>
+<span class="font-title-md text-title-md text-on-surface">+1 (555) 000-1234</span>
+</div>
+</div>
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-secondary" data-icon="mail">mail</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Email</span>
+<span class="font-title-md text-title-md text-on-surface">john.doe@email.com</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-base pt-xs border-t border-surface-container-high">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-secondary" data-icon="qr_code">qr_code</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Referral Code</span>
+<span class="font-title-md text-title-md text-on-surface font-bold tracking-wider">NOMAD-JD24</span>
+</div>
+</div>
+<button class="bg-surface-container text-secondary p-xs rounded-lg active:scale-90 transition-transform" onclick="navigator.clipboard.writeText('NOMAD-JD24')">
+<span class="material-symbols-outlined" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</section>
+<!-- Progress Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+<div class="flex justify-between items-end mb-base">
+<h3 class="font-title-md text-title-md text-on-surface">Your Progress</h3>
+<span class="font-label-sm text-label-sm text-secondary font-bold">40%</span>
+</div>
+<div class="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+<div class="progress-bar-fill h-full bg-secondary-container" style="width: 40%"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-sm">
+<span class="font-bold text-on-surface">8 of 20</span> lessons completed
+            </p>
+</section>
+<!-- Navigation Menu -->
+<nav class="flex flex-col gap-xs">
+<button class="flex items-center justify-between p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-primary" data-icon="notifications">notifications</span>
+<span class="font-title-md text-title-md text-on-surface">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-primary" data-icon="description">description</span>
+<span class="font-title-md text-title-md text-on-surface">My Certificates</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-primary" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-title-md text-title-md text-on-surface">Support</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</button>
+<button onclick="window.location.href='stitch_about.html'" class="flex items-center justify-between p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-primary" data-icon="info">info</span>
+<span class="font-title-md text-title-md text-on-surface">About NOMAD</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</button>
+</nav>
+<!-- Logout Action -->
+<button class="mt-base mb-8 w-full py-md px-lg bg-error text-on-error font-title-md text-title-md rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-sm">
+            Log Out
+        </button>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-surface dark:bg-inverse-surface px-xs py-base border-t border-outline-variant dark:border-on-surface-variant">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-tertiary-container hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-tertiary-container hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span class="font-label-sm text-label-sm">Lessons</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed font-bold border-t-2 border-secondary hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</button>
+</nav>
+<script>
+        // Micro-interaction for Copy button feedback
+        const copyBtn = document.querySelector('button[onclick*="clipboard"]');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const icon = copyBtn.querySelector('.material-symbols-outlined');
+                const originalIcon = icon.innerText;
+                icon.innerText = 'check';
+                setTimeout(() => {
+                    icon.innerText = originalIcon;
+                }, 2000);
+            });
+        }
+
+        // Animate progress bar on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.querySelector('.progress-bar-fill');
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = '40%';
+            }, 300);
+        });
+    </script>
+</body></html>

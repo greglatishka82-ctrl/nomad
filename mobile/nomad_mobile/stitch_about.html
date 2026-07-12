@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#ab3500",
+                        "outline-variant": "#c5c6cf",
+                        "surface-container-high": "#dce9ff",
+                        "primary": "#031634",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "outline": "#75777e",
+                        "background": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#44474e",
+                        "surface": "#f8f9ff",
+                        "primary-container": "#1a2b4a",
+                        "on-primary": "#ffffff",
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "48px",
+                        "md": "24px",
+                        "xl": "80px",
+                        "sm": "12px",
+                        "base": "8px",
+                        "gutter": "24px"
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-primary text-on-primary flex items-center px-margin-mobile py-base gap-base">
+    <button onclick="window.location.href='stitch_profile.html'" class="material-symbols-outlined text-on-primary hover:opacity-80 active:scale-95 transition-transform">
+        arrow_back
+    </button>
+    <h1 class="text-2xl font-bold">О NOMAD</h1>
+</header>
+<main class="px-margin-mobile flex flex-col gap-gutter pt-base">
+    
+    <!-- Logo & Version -->
+    <section class="flex flex-col items-center gap-base mt-base text-center">
+        <div class="w-24 h-24 rounded-2xl bg-primary flex items-center justify-center shadow-md">
+            <span class="text-on-primary text-4xl font-bold">N</span>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-on-surface mt-4">NOMAD Driving Academy</h2>
+            <p class="text-on-surface-variant">Автошкола №1 в Казахстане</p>
+        </div>
+    </section>
+
+    <!-- О нас -->
+    <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm mt-4">
+        <h3 class="text-lg font-bold">О нас</h3>
+        <p class="text-on-surface-variant leading-relaxed">
+            NOMAD Driving Academy — ведущая автошкола с государственной лицензией. 
+            Наша миссия — сделать обучение вождению комфортным, безопасным и доступным для каждого.
+        </p>
+    </section>
+
+    <!-- Контакты -->
+    <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md">
+        <h3 class="text-lg font-bold">Контакты</h3>
+        <div class="flex items-center gap-base">
+            <span class="material-symbols-outlined text-secondary">phone</span>
+            <span class="text-on-surface font-medium">+7 (777) 123 45 67</span>
+        </div>
+        <div class="flex items-center gap-base">
+            <span class="material-symbols-outlined text-secondary">location_on</span>
+            <span class="text-on-surface font-medium">ул. Циолковского, 28/1</span>
+        </div>
+        <div class="flex items-center gap-base">
+            <span class="material-symbols-outlined text-secondary">mail</span>
+            <span class="text-on-surface font-medium">info@nomad-academy.kz</span>
+        </div>
+    </section>
+
+    <!-- Мы в сети -->
+    <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-xs">
+        <h3 class="text-lg font-bold mb-2">Мы в сети</h3>
+        <a href="#" class="flex items-center gap-base py-sm hover:bg-surface-container-low transition-colors rounded-lg">
+            <span class="material-symbols-outlined text-primary">telegram</span>
+            <span class="text-on-surface font-medium">Telegram-канал</span>
+        </a>
+        <a href="#" class="flex items-center gap-base py-sm hover:bg-surface-container-low transition-colors rounded-lg">
+            <span class="material-symbols-outlined text-primary">photo_camera</span>
+            <span class="text-on-surface font-medium">Instagram</span>
+        </a>
+        <a href="#" class="flex items-center gap-base py-sm hover:bg-surface-container-low transition-colors rounded-lg">
+            <span class="material-symbols-outlined text-primary">language</span>
+            <span class="text-on-surface font-medium">Официальный сайт</span>
+        </a>
+    </section>
+
+    <!-- Оценить приложение -->
+    <button class="mt-base mb-2 w-full py-md px-lg bg-primary text-on-primary font-bold text-lg rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined">star</span>
+        Оценить приложение
+    </button>
+    
+    <p class="text-center text-sm text-outline mt-4">Версия 1.0.0</p>
+</main>
+</body></html>

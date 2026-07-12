@@ -1,0 +1,58 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ── База данных ───────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Секреты ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+!.env.example
+
+# ── Логи ─────────────────────────────────────────────────────────────────────
+*.log
+server_log.txt
+.remember/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Kiro ─────────────────────────────────────────────────────────────────────
+.kiro/
+
+# ── Flutter ───────────────────────────────────────────────────────────────────
+mobile/nomad_mobile/.dart_tool/
+mobile/nomad_mobile/build/
+mobile/nomad_mobile/.flutter-plugins
+mobile/nomad_mobile/.flutter-plugins-dependencies
+mobile/nomad_mobile/.packages
+mobile/nomad_mobile/pubspec.lock
+mobile/nomad_mobile/android/.gradle/
+mobile/nomad_mobile/android/local.properties
+mobile/nomad_mobile/android/app/debug/
+mobile/nomad_mobile/android/key.properties
+mobile/nomad_mobile/android/app/nomad-release-key.keystore
+
+# ── Разное ───────────────────────────────────────────────────────────────────
+nul
+ТЗ.txt
+*.txt
+!README.txt
+check_enum.py
+clean_db.py
+clean_instructors.py
+GIT_COMMANDS.txt

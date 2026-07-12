@@ -1,0 +1,235 @@
+﻿<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NOMAD - Ð ÐµÐ³Ð¸ÑÑÑÐ°ÑÐ¸Ñ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Work+Sans:wght@400;500&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@100..900&family=JetBrains+Mono:wght@100..900&family=Work+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<!-- Shared Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "secondary-container": "#fe6a34",
+                "surface-container": "#eceef1",
+                "on-error-container": "#93000a",
+                "primary-fixed": "#d8e2ff",
+                "on-secondary-fixed-variant": "#832600",
+                "on-tertiary": "#ffffff",
+                "surface-variant": "#e0e3e6",
+                "on-surface": "#191c1e",
+                "surface-dim": "#d8dadd",
+                "outline": "#75777e",
+                "on-primary-fixed": "#081b39",
+                "background": "#f7f9fc",
+                "primary": "#031634",
+                "error-container": "#ffdad6",
+                "tertiary-container": "#262c32",
+                "on-primary-container": "#8293b7",
+                "primary-container": "#1a2b4a",
+                "error": "#ba1a1a",
+                "surface": "#f7f9fc",
+                "on-secondary": "#ffffff",
+                "surface-tint": "#4e5e80",
+                "on-tertiary-container": "#8d939b",
+                "primary-fixed-dim": "#b6c6ee",
+                "on-secondary-container": "#5d1900",
+                "on-primary-fixed-variant": "#364767",
+                "secondary-fixed-dim": "#ffb59d",
+                "on-error": "#ffffff",
+                "on-secondary-fixed": "#390c00",
+                "tertiary": "#11181d",
+                "surface-container-high": "#e6e8eb",
+                "surface-bright": "#f7f9fc",
+                "inverse-on-surface": "#eff1f4",
+                "on-primary": "#ffffff",
+                "secondary": "#ab3500",
+                "on-tertiary-fixed-variant": "#41474e",
+                "outline-variant": "#c5c6cf",
+                "tertiary-fixed": "#dde3eb",
+                "tertiary-fixed-dim": "#c1c7cf",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-highest": "#e0e3e6",
+                "inverse-surface": "#2d3133",
+                "surface-container-low": "#f2f4f7",
+                "secondary-fixed": "#ffdbd0",
+                "on-background": "#191c1e",
+                "inverse-primary": "#b6c6ee",
+                "on-surface-variant": "#44474e",
+                "on-tertiary-fixed": "#161c22"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "gutter": "24px",
+                "margin-desktop": "64px",
+                "base": "4px",
+                "xl": "48px",
+                "md": "16px",
+                "sm": "8px",
+                "margin-mobile": "16px",
+                "lg": "24px",
+                "xs": "4px"
+            },
+            "fontFamily": {
+                "label-sm": ["JetBrains Mono"],
+                "body-md": ["Work Sans"],
+                "headline-lg-mobile": ["Hanken Grotesk"],
+                "headline-md": ["Hanken Grotesk"],
+                "body-lg": ["Work Sans"],
+                "headline-xl": ["Hanken Grotesk"],
+                "headline-lg": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .input-focus-ring:focus-within {
+        border-color: #031634; /* primary */
+        border-width: 2px;
+      }
+      .form-container {
+        box-shadow: 0 4px 20px rgba(26, 43, 74, 0.08);
+      }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface min-h-screen flex flex-col items-center justify-center py-xl px-margin-mobile">
+<!-- Top Navigation Shell (Suppressed as per rules for Transactional/Registration Screens) -->
+<main class="w-full max-w-[480px] flex flex-col items-center">
+<!-- Brand Logo -->
+<div class="mb-lg">
+<img alt="NOMAD Logo" class="h-16 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLtstaJHAGdkbVJkMnP8sAsgcOCUlyBwxare-hGZxvmC6AHrU4NdHZhVqaerMvMYi-3mvfo6JiBPkcKtk4BSWD267pdHJWQvC9g8Vh3YvRjPlH_Oi3mYyQXz4-yC-mV9xBAu-h2ko0GfqhK0BKr0rnzNYB7BZnnpvPSub_5NoQbzV3ATU5W-wyIDRJw1R1ibDaT1Jkis1JKdhha8S9w84UzLZqFGn3itkFL7PEvYplkE4MXKCQV_mVq3T2WG"/>
+</div>
+<!-- Content Card -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-lg md:p-xl form-container border border-surface-variant">
+<header class="text-center mb-xl">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-xs">Ð¡Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ Ð¿ÑÐ¾ÑÐ¸Ð»Ñ</h1>
+<p class="text-on-surface-variant font-body-md">ÐÐ°ÑÐ½Ð¸ÑÐµ ÑÐ²Ð¾Ð¹ Ð¿ÑÑÑ Ðº Ð²Ð¾Ð´Ð¸ÑÐµÐ»ÑÑÐºÐ¾Ð¼Ñ ÑÐ´Ð¾ÑÑÐ¾Ð²ÐµÑÐµÐ½Ð¸Ñ Ñ Ð¿ÑÐ¾ÑÐµÑÑÐ¸Ð¾Ð½Ð°Ð»Ð°Ð¼Ð¸.</p>
+</header>
+<form class="space-y-md" id="registration-form">
+<!-- Full Name -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Ð¤ÐÐ</label>
+<div class="relative flex items-center bg-surface-container-lowest border border-surface-variant rounded-xl transition-all duration-200 input-focus-ring">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">person</span>
+<input class="w-full bg-transparent border-none focus:ring-0 py-4 pl-12 pr-4 font-body-md placeholder:text-outline-variant text-on-surface" placeholder="ÐÐ²Ð°Ð½ ÐÐ²Ð°Ð½Ð¾Ð²" type="text"/>
+</div>
+</div>
+<!-- Phone Number -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">ÐÐ¾Ð¼ÐµÑ ÑÐµÐ»ÐµÑÐ¾Ð½Ð°</label>
+<div class="relative flex items-center bg-surface-container-lowest border border-surface-variant rounded-xl transition-all duration-200 input-focus-ring">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">phone</span>
+<input class="w-full bg-transparent border-none focus:ring-0 py-4 pl-12 pr-4 font-body-md placeholder:text-outline-variant text-on-surface" placeholder="+7 (900) 000-00-00" type="tel"/>
+</div>
+</div>
+<!-- Email -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Ð­Ð»ÐµÐºÑÑÐ¾Ð½Ð½Ð°Ñ Ð¿Ð¾ÑÑÐ°</label>
+<div class="relative flex items-center bg-surface-container-lowest border border-surface-variant rounded-xl transition-all duration-200 input-focus-ring">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">mail</span>
+<input class="w-full bg-transparent border-none focus:ring-0 py-4 pl-12 pr-4 font-body-md placeholder:text-outline-variant text-on-surface" placeholder="example@mail.ru" type="email"/>
+</div>
+</div>
+<!-- Password -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">ÐÐ°ÑÐ¾Ð»Ñ</label>
+<div class="relative flex items-center bg-surface-container-lowest border border-surface-variant rounded-xl transition-all duration-200 input-focus-ring">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">lock</span>
+<input class="w-full bg-transparent border-none focus:ring-0 py-4 pl-12 pr-12 font-body-md placeholder:text-outline-variant text-on-surface" id="password-input" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" type="password"/>
+<button class="absolute right-4 flex items-center text-on-surface-variant hover:text-primary transition-colors" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined" id="password-toggle-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Referral Code -->
+<div class="space-y-xs">
+<div class="flex justify-between items-center px-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Ð ÐµÑÐµÑÐ°Ð»ÑÐ½ÑÐ¹ ÐºÐ¾Ð´</label>
+<a class="font-label-sm text-label-sm text-secondary hover:underline transition-all" href="#">ÐÑÑÑ Ð¿ÑÐ¾Ð¼Ð¾ÐºÐ¾Ð´?</a>
+</div>
+<div class="relative flex items-center bg-surface-container-lowest border border-surface-variant rounded-xl transition-all duration-200 input-focus-ring">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">featured_seasonal_and_gifts</span>
+<input class="w-full bg-transparent border-none focus:ring-0 py-4 pl-12 pr-4 font-body-md placeholder:text-outline-variant text-on-surface" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ ÐºÐ¾Ð´ (Ð¾Ð¿ÑÐ¸Ð¾Ð½Ð°Ð»ÑÐ½Ð¾)" type="text"/>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-secondary-container text-on-tertiary font-headline-md text-headline-md py-4 rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all mt-lg" type="submit">
+                    ÐÐ°ÑÐµÐ³Ð¸ÑÑÑÐ¸ÑÐ¾Ð²Ð°ÑÑÑÑ
+                </button>
+</form>
+<div class="mt-lg text-center">
+<p class="text-on-surface-variant font-body-md">
+                    Ð£Ð¶Ðµ ÐµÑÑÑ ÑÑÐµÑÐ½Ð°Ñ Ð·Ð°Ð¿Ð¸ÑÑ? 
+                    <a class="text-primary font-bold hover:text-secondary-container transition-colors ml-1" href="#">ÐÐ¾Ð¹ÑÐ¸</a>
+</p>
+</div>
+</div>
+<footer class="mt-xl text-center">
+<p class="font-label-sm text-label-sm text-outline">
+                Â© 2024 NOMAD Driving School. ÐÑÐµ Ð¿ÑÐ°Ð²Ð° Ð·Ð°ÑÐ¸ÑÐµÐ½Ñ.
+                <br/>
+                Ð ÐµÐ³Ð¸ÑÑÑÐ¸ÑÑÑÑÑ, Ð²Ñ ÑÐ¾Ð³Ð»Ð°ÑÐ°ÐµÑÐµÑÑ Ñ ÑÑÐ»Ð¾Ð²Ð¸ÑÐ¼Ð¸ Ð¾ÑÐµÑÑÑ.
+            </p>
+</footer>
+</main>
+<script>
+        function togglePassword() {
+            const input = document.getElementById('password-input');
+            const icon = document.getElementById('password-toggle-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
+        // Micro-interaction for form focus
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('shadow-md');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('shadow-md');
+            });
+        });
+
+        document.getElementById('registration-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Animation for success simulation
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.textContent = 'ÐÐ±ÑÐ°Ð±Ð¾ÑÐºÐ°...';
+            btn.classList.add('animate-pulse');
+            setTimeout(() => {
+                btn.textContent = 'Ð£ÑÐ¿ÐµÑÐ½Ð¾!';
+                btn.classList.remove('animate-pulse');
+                btn.classList.replace('bg-secondary-container', 'bg-green-600');
+            }, 1500);
+        });
+    </script>
+</body></html>

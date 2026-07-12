@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>NOMAD Academy - Главная</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c5c6cf",
+                    "secondary": "#ab3500",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-container": "#8293b7",
+                    "primary-fixed-dim": "#b6c6ee",
+                    "outline": "#75777e",
+                    "surface-dim": "#cbdbf5",
+                    "background": "#f8f9ff",
+                    "on-tertiary-fixed-variant": "#43474a",
+                    "tertiary-fixed": "#e0e3e6",
+                    "surface": "#f8f9ff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#44474e",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#13181a",
+                    "primary": "#031634",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed": "#390c00",
+                    "secondary-fixed-dim": "#ffb59d",
+                    "primary-fixed": "#d8e2ff",
+                    "inverse-primary": "#b6c6ee",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#081b39",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#282c2e",
+                    "tertiary-fixed-dim": "#c3c7ca",
+                    "on-secondary-fixed-variant": "#832600",
+                    "on-tertiary-fixed": "#181c1e",
+                    "on-secondary-container": "#5d1900",
+                    "secondary-container": "#fe6a34",
+                    "surface-container-low": "#eff4ff",
+                    "surface-tint": "#4e5e80",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-container": "#8f9396",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#ffdbd0",
+                    "primary-container": "#1a2b4a",
+                    "inverse-surface": "#213145",
+                    "on-error": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "on-primary-fixed-variant": "#364767"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "inline-gutter": "16px",
+                    "stack-gap": "12px",
+                    "container-margin": "16px",
+                    "section-gap": "24px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Roboto"],
+                    "title-lg": ["Roboto"],
+                    "headline-md": ["Roboto"],
+                    "label-lg": ["Roboto"],
+                    "body-md": ["Roboto"],
+                    "headline-lg-mobile": ["Roboto"],
+                    "label-sm": ["Roboto"],
+                    "body-lg": ["Roboto"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .soft-shadow {
+            box-shadow: 0px 2px 8px rgba(3, 22, 52, 0.1);
+        }
+        .active-shadow {
+            box-shadow: 0px 4px 16px rgba(3, 22, 52, 0.15);
+        }
+        body {
+            background-color: #f8f9ff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-background selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-40 bg-background dark:bg-surface flex items-center px-container-margin h-touch-target">
+<div class="flex items-center justify-between w-full">
+<h1 class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary dark:text-primary-fixed">NOMAD Academy</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+</div>
+</header>
+<main class="px-container-margin pb-32 pt-4 space-y-section-gap">
+<!-- Greeting Section -->
+<section>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Привет, Иван! 👋</h2>
+<p class="text-on-surface-variant font-body-lg">Твой путь к правам продолжается.</p>
+</section>
+<!-- Balance Card -->
+<section class="bg-primary text-on-primary p-5 rounded-xl soft-shadow relative overflow-hidden">
+<div class="relative z-10 flex justify-between items-end">
+<div class="space-y-1">
+<p class="font-label-sm text-primary-fixed-dim uppercase tracking-wider">Баланс занятий</p>
+<h3 class="font-headline-md text-headline-md text-white">5 из 10 осталось</h3>
+<div class="w-48 h-2 bg-primary-container rounded-full mt-2">
+<div class="w-1/2 h-full bg-secondary-container rounded-full"></div>
+</div>
+</div>
+<button class="bg-secondary-container text-white px-4 py-2 rounded-lg font-label-lg active:scale-95 transition-transform">
+                    Пополнить
+                </button>
+</div>
+<!-- Subtle background pattern -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+</section>
+<!-- Nearest Booking Card -->
+<section class="space-y-3">
+<div class="flex justify-between items-center">
+<h4 class="font-title-lg text-on-surface">Ближайшее занятие</h4>
+<a class="text-secondary font-label-lg" href="#">Все записи</a>
+</div>
+<div class="bg-white rounded-xl p-4 soft-shadow border border-outline-variant/30">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional driving instructor portrait, a man in his 40s with a friendly smile, wearing a clean polo shirt, high-key studio lighting, modern corporate style, deep navy and white palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAg45ZJa187N-EJC0St2eHApnLKBrUSSWJS_qbnHl2DwU7PLyj0kiMHCMbFi0u4cdLDlEDFyxUkRI2t7yWlIv4-MTtbGc3gHGnOMyjVXHdG56NHMsv8ZMDp3KF6kdHrz6gPfImLUtHeGHVx44sHfRD8OX8NbZphNoTsk62hQVEdP6f12cAHPMycMYLcAGDQjbqp_pnnOJYe5quz8Tiq3v0mA1tD10uVo14ycDInm-wL-_8XsAPUvNm2FbP9YjNesTlRiA00CkwJGk6i"/>
+</div>
+<div>
+<p class="font-title-lg text-on-surface">Александр К.</p>
+<p class="text-on-surface-variant font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span> 4.9 • Инструктор
+                            </p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-primary">14:00</p>
+<p class="text-on-surface-variant font-label-sm">24 Октября, Чт</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant mb-5 bg-surface-container-low p-2 rounded-lg">
+<span class="material-symbols-outlined text-secondary">location_on</span>
+<span class="font-body-md">ул. Абая, 153 (Автодром)</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="py-3 px-4 rounded-lg border-2 border-primary text-primary font-bold active:scale-95 transition-all">Отменить</button>
+<button class="py-3 px-4 rounded-lg bg-secondary-container text-white font-bold active:scale-95 transition-all shadow-lg shadow-secondary-container/20">Подтвердить</button>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid (Bento Style) -->
+<section class="space-y-3">
+<h4 class="font-title-lg text-on-surface">Быстрые действия</h4>
+<div class="bento-grid">
+<button class="bg-surface-container-high p-4 rounded-xl flex flex-col justify-between items-start h-32 active:scale-95 transition-transform text-left group">
+<span class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">directions_car</span>
+<span class="font-title-lg leading-tight text-primary">Записаться на занятие</span>
+</button>
+<button class="bg-surface-variant p-4 rounded-xl flex flex-col justify-between items-start h-32 active:scale-95 transition-transform text-left group">
+<span class="material-symbols-outlined text-secondary text-3xl group-hover:scale-110 transition-transform">assignment_turned_in</span>
+<span class="font-title-lg leading-tight text-on-surface">Пробный экзамен</span>
+</button>
+</div>
+</section>
+<!-- Promo Banner -->
+<section>
+<div class="relative w-full h-40 rounded-2xl overflow-hidden active-shadow cursor-pointer group">
+<div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700" data-alt="A modern electric car driving through a clean, sunlit city street with glass buildings. The atmosphere is optimistic and professional, high-clarity photography, bright daylight, with a color palette of white, navy, and vibrant orange accents." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDtgrZR2yFTDdlICwPqzBNxttCvyI1KxmZh97GrZnyVVNeWAyKXMmxpKruZZsNTmJT4HoY9hu5dpJuJEII2oaG5gdTyQr1k0UfZHf4zl_98W2mExWItKM7B5BfHdPvWKTDCXqvib8XJLzVWw-yr9S8-vXQG594YkIHClZihBG2sG39aDxOhx2JQv9y9XEgENBUmNEMUDGN58yEHz23Tmbe5rCJFVw6O0G8t_hHw-z_viLAiS2GZ_510Lxvs7Hqu2QbKnzW_A78LdaOl')"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent"></div>
+<div class="relative h-full flex flex-col justify-center px-6 text-white max-w-[70%]">
+<p class="font-label-sm text-secondary-container uppercase font-bold mb-1">Акция</p>
+<h3 class="font-headline-md leading-tight">Приведи друга — получи занятие в подарок!</h3>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB for AI Assistant -->
+<button class="fixed bottom-24 right-4 w-14 h-14 bg-secondary-container text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform z-40">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 h-[80px] bg-surface dark:bg-surface-container-lowest shadow-[0px_-2px_8px_rgba(3,22,52,0.1)] flex justify-around items-center px-2 pb-safe">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-container font-bold bg-secondary-container/20 rounded-xl px-3 py-1 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm">Главная</span>
+</a>
+<!-- Bookings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-label-sm text-label-sm">Записи</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Профиль</span>
+</a>
+<!-- Support -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+<span class="font-label-sm text-label-sm">Поддержка</span>
+</a>
+<!-- Info -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined">info</span>
+<span class="font-label-sm text-label-sm">Инфо</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions and ripple-like effect
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('mousedown', function(e) {
+                this.classList.add('opacity-80');
+            });
+            elem.addEventListener('mouseup', function(e) {
+                this.classList.remove('opacity-80');
+            });
+            elem.addEventListener('mouseleave', function(e) {
+                this.classList.remove('opacity-80');
+            });
+        });
+
+        // Simple scroll behavior for header
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 10) {
+                header.classList.add('shadow-sm', 'bg-white/95', 'backdrop-blur-md');
+            } else {
+                header.classList.remove('shadow-sm', 'bg-white/95', 'backdrop-blur-md');
+            }
+        });
+    </script>
+</body></html>

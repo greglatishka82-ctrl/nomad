@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOMAD — Автошкола в Павлодаре</title>
+    <meta name="description" content="Автошкола NOMAD — профессиональное обучение вождению в Павлодаре. Механика и автомат, гибкое расписание, опытные инструкторы.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+
+    <!-- Progress Bar -->
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <span class="logo-icon">◆</span>
+                NOMAD
+            </a>
+            <nav class="nav" id="nav">
+                <a href="#services" class="nav-link">Услуги</a>
+                <a href="#buy" class="nav-link">Записаться</a>
+                <a href="#instructors" class="nav-link">Инструкторы</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#contacts" class="nav-link">Контакты</a>
+            </nav>
+            <div class="header-actions">
+                <a href="tel:+77027182233" class="header-phone">
+                    <span class="phone-pulse"></span>
+                    +7 702 718 22 33
+                </a>
+                <a href="https://t.me/drivepvlbot" class="btn btn-glow btn-sm" target="_blank">Записаться</a>
+            </div>
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Меню">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-glow hero-glow-1"></div>
+        <div class="hero-glow hero-glow-2"></div>
+        <div class="hero-grid-bg"></div>
+
+        <div class="container hero-content">
+            <div class="hero-badge reveal-up">
+                <span class="badge-dot"></span>
+                Автошкола №1 в Павлодаре
+            </div>
+            <h1 class="reveal-up" data-delay="100">
+                Научим водить<br>
+                <span class="hero-accent">
+                    <span class="typewriter" id="typewriter">уверенно</span>
+                    <span class="typewriter-cursor">|</span>
+                </span>
+            </h1>
+            <p class="hero-sub reveal-up" data-delay="200">
+                Профессиональное обучение вождению с опытными инструкторами.
+                Современные площадки, гибкое расписание, результат с первого раза.
+            </p>
+            <div class="hero-actions reveal-up" data-delay="300">
+                <a href="https://t.me/drivepvlbot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                    <span class="btn-icon">🚀</span>
+                    Записаться через Telegram
+                </a>
+                <a href="#buy" class="btn btn-glass btn-lg magnetic">
+                    Оставить заявку
+                </a>
+            </div>
+            <div class="hero-stats reveal-up" data-delay="400">
+                <div class="hero-stat">
+                    <strong class="counter" data-target="2">0</strong>
+                    <span>площадки</span>
+                </div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat">
+                    <strong>МКПП / АКПП</strong>
+                    <span>на выбор</span>
+                </div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat">
+                    <strong class="counter" data-target="3">0</strong>
+                    <span>инструктора</span>
+                </div>
+            </div>
+            <div class="hero-scroll-indicator">
+                <div class="scroll-mouse">
+                    <div class="scroll-wheel"></div>
+                </div>
+                <span>Листай вниз</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Ticker -->
+    <section class="stats-ticker">
+        <div class="container">
+            <div class="ticker-row">
+                <div class="ticker-item reveal-up">
+                    <div class="ticker-icon">🎓</div>
+                    <div class="ticker-value counter" data-target="500">0</div>
+                    <div class="ticker-label">выпускников</div>
+                </div>
+                <div class="ticker-item reveal-up" data-delay="100">
+                    <div class="ticker-icon">⭐</div>
+                    <div class="ticker-value counter" data-target="98" data-suffix="%">0</div>
+                    <div class="ticker-label">сдают с 1 раза</div>
+                </div>
+                <div class="ticker-item reveal-up" data-delay="200">
+                    <div class="ticker-icon">📅</div>
+                    <div class="ticker-value counter" data-target="5">0</div>
+                    <div class="ticker-label">лет опыта</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="section">
+        <div class="section-bg-glow"></div>
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag">Наши услуги</span>
+                <h2 class="section-title">Услуги и цены</h2>
+                <p class="section-sub">Прозрачные цены без скрытых платежей</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card tilt-card reveal-up" data-delay="0">
+                    <div class="card-shine"></div>
+                    <div class="service-icon-wrap">
+                        <div class="service-icon">🚗</div>
+                    </div>
+                    <h3>Обучение вождению</h3>
+                    <div class="service-price">
+                        <span class="price-amount">6 000</span>
+                        <span class="price-currency">₸</span>
+                        <span class="price-per">/ час</span>
+                    </div>
+                    <ul class="service-features">
+                        <li><span class="feat-icon">📍</span> Циолковского 28/1</li>
+                        <li><span class="feat-icon">⚙️</span> Механика или автомат</li>
+                        <li><span class="feat-icon">👨‍🏫</span> Индивидуальный подход</li>
+                        <li><span class="feat-icon">📅</span> Гибкое расписание</li>
+                    </ul>
+                    <a href="https://t.me/drivepvlbot" class="btn btn-outline-dark btn-full magnetic" target="_blank">Записаться</a>
+                </div>
+                <div class="service-card featured tilt-card reveal-up" data-delay="150">
+                    <div class="card-shine"></div>
+                    <div class="service-badge">
+                        <span class="badge-glow"></span>
+                        Популярное
+                    </div>
+                    <div class="service-icon-wrap featured">
+                        <div class="service-icon">🏁</div>
+                    </div>
+                    <h3>Пробный экзамен</h3>
+                    <div class="service-price featured">
+                        <span class="price-amount">5 000</span>
+                        <span class="price-currency">₸</span>
+                        <span class="price-per">/ круг</span>
+                    </div>
+                    <ul class="service-features">
+                        <li><span class="feat-icon">📍</span> Циолковского 30</li>
+                        <li><span class="feat-icon">⏱️</span> 15 минут (1 круг)</li>
+                        <li><span class="feat-icon">🎯</span> Подготовка к ГАИ</li>
+                        <li><span class="feat-icon">📋</span> Реальная трасса</li>
+                    </ul>
+                    <a href="https://t.me/drivepvlbot" class="btn btn-glow btn-full magnetic" target="_blank">Записаться</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Как это работает</span>
+                <h2 class="section-title light">3 простых шага</h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card reveal-up" data-delay="0">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3>Запишитесь</h3>
+                        <p>Через Telegram-бот или позвоните нам. Выберите удобное время и тип КПП.</p>
+                    </div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-card reveal-up" data-delay="150">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3>Обучайтесь</h3>
+                        <p>Индивидуальные занятия с опытным инструктором на современной площадке.</p>
+                    </div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-card reveal-up" data-delay="300">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3>Сдайте экзамен</h3>
+                        <p>Пробный экзамен на реальной трассе. Поддержка и рекомендации от инструктора.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Buy Online -->
+<section id="buy" class="section">
+    <div class="section-bg-glow"></div>
+    <div class="container">
+        <div class="section-header reveal-up">
+            <span class="section-tag">Запишитесь онлайн</span>
+            <h2 class="section-title">Как записаться</h2>
+            <p class="section-sub">Однако более удобно выбрать форму или написать в Telegram</p>
+        </div>
+        
+        <div class="cta-content reveal-up" id="buy-cta">
+            <h3>Безопасные варианты записи</h3>
+            <div class="cta-actions">
+                <a href="https://t.me/drivepvlbot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                    <span class="btn-icon">📩</span>
+                    Записаться в Telegram
+                </a>
+                <a href="tel:+77027182233" class="btn btn-glass btn-lg magnetic">
+                    <span class="btn-icon">📞</span>
+                    Звоним +7 702 718 22 33
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- Instructors -->
+    <section id="instructors" class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Наша команда</span>
+                <h2 class="section-title light">Наши инструкторы</h2>
+                <p class="section-sub light">Инструктор назначается автоматически по специализации и расписанию</p>
+            </div>
+            <div class="instructors-grid" id="instructors-cards">
+                <div class="instructor-placeholder">
+                    <div class="loader-dots"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+            <div class="features-row reveal-up">
+                <div class="feature-item">
+                    <span class="feature-icon">⚙️</span>
+                    <span>Механика и автомат</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📅</span>
+                    <span>Пн–Пт, 9:00–19:00</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">👨‍🏫</span>
+                    <span>Опытные инструкторы</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section">
+        <div class="section-bg-glow"></div>
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag">FAQ</span>
+                <h2 class="section-title">Частые вопросы</h2>
+            </div>
+            <div id="faq-list" class="faq-container">
+                <p style="color:var(--text-secondary);text-align:center">Загрузка...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section cta-section">
+        <div class="cta-bg"></div>
+        <div class="container">
+            <div class="cta-content reveal-up">
+                <h2>Готовы начать?</h2>
+                <p>Запишитесь прямо сейчас и получите первый урок со скидкой</p>
+                <div class="cta-actions">
+                    <a href="https://t.me/drivepvlbot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                        <span class="btn-icon">💬</span>
+                        Написать в Telegram
+                    </a>
+                    <a href="tel:+77027182233" class="btn btn-glass btn-lg magnetic">
+                        <span class="btn-icon">📞</span>
+                        Позвонить
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacts -->
+    <section id="contacts" class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Контакты</span>
+                <h2 class="section-title light">Свяжитесь с нами</h2>
+            </div>
+            <div class="contacts-grid">
+                <div class="contact-card tilt-card reveal-up" data-delay="0">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">📞</span></div>
+                    <h3>Телефон</h3>
+                    <a href="tel:+77027182233" class="contact-link">+7 702 718 22 33</a>
+                </div>
+                <div class="contact-card tilt-card reveal-up" data-delay="100">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">🤖</span></div>
+                    <h3>Telegram-бот</h3>
+                    <a href="https://t.me/drivepvlbot" class="contact-link" target="_blank">@drivepvlbot</a>
+                </div>
+                <div class="contact-card tilt-card reveal-up" data-delay="200">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">🚗</span></div>
+                    <h3>Обучение</h3>
+                    <p>Циолковского 28/1</p>
+                </div>
+                <div class="contact-card tilt-card reveal-up" data-delay="300">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">🏁</span></div>
+                    <h3>Экзамен</h3>
+                    <p>Циолковского 30</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <span class="logo-icon">◆</span> NOMAD
+                </div>
+                <nav class="footer-nav">
+                    <a href="#services">Услуги</a>
+                    <a href="#buy">Записаться</a>
+                    <a href="#instructors">Инструкторы</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="#contacts">Контакты</a>
+                </nav>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Автошкола NOMAD. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget">
+        <button id="chat-toggle" class="chat-toggle-btn" onclick="toggleChat()" aria-label="Открыть чат">
+            <span class="chat-pulse"></span>
+            <span class="chat-label">💬 Задать вопрос</span>
+        </button>
+        <div id="chat-window" class="chat-window hidden">
+            <div class="chat-header">
+                <span>🤖 Помощник NOMAD</span>
+                <button onclick="toggleChat()" class="chat-close" aria-label="Закрыть">✕</button>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Введите вопрос..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <button onclick="sendMessage()" class="chat-send" aria-label="Отправить">→</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/landing.js"></script>
+</body>
+</html>

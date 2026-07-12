@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>NOMAD Academy - Выбор даты</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Shared Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c5c6cf",
+                    "secondary": "#ab3500",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-container": "#8293b7",
+                    "primary-fixed-dim": "#b6c6ee",
+                    "outline": "#75777e",
+                    "surface-dim": "#cbdbf5",
+                    "background": "#f8f9ff",
+                    "on-tertiary-fixed-variant": "#43474a",
+                    "tertiary-fixed": "#e0e3e6",
+                    "surface": "#f8f9ff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#44474e",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#13181a",
+                    "primary": "#031634",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed": "#390c00",
+                    "secondary-fixed-dim": "#ffb59d",
+                    "primary-fixed": "#d8e2ff",
+                    "inverse-primary": "#b6c6ee",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#081b39",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#282c2e",
+                    "tertiary-fixed-dim": "#c3c7ca",
+                    "on-secondary-fixed-variant": "#832600",
+                    "on-tertiary-fixed": "#181c1e",
+                    "on-secondary-container": "#5d1900",
+                    "secondary-container": "#fe6a34",
+                    "surface-container-low": "#eff4ff",
+                    "surface-tint": "#4e5e80",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-container": "#8f9396",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#ffdbd0",
+                    "primary-container": "#1a2b4a",
+                    "inverse-surface": "#213145",
+                    "on-error": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "on-primary-fixed-variant": "#364767"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "inline-gutter": "16px",
+                    "stack-gap": "12px",
+                    "container-margin": "16px",
+                    "section-gap": "24px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Roboto"],
+                    "title-lg": ["Roboto"],
+                    "headline-md": ["Roboto"],
+                    "label-lg": ["Roboto"],
+                    "body-md": ["Roboto"],
+                    "headline-lg-mobile": ["Roboto"],
+                    "label-sm": ["Roboto"],
+                    "body-lg": ["Roboto"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Roboto', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .calendar-day-active {
+            box-shadow: 0 4px 12px rgba(254, 106, 52, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar (Based on Shared Components) -->
+<header class="w-full top-0 sticky bg-background z-30">
+<div class="flex items-center px-container-margin h-touch-target w-full">
+<button class="mr-4 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary">NOMAD Academy</h1>
+</div>
+<!-- Progress Bar (Booking Wizard Pattern) -->
+<div class="w-full h-1 bg-surface-container">
+<div class="h-full bg-secondary-container w-[60%] transition-all duration-500"></div>
+</div>
+</header>
+<main class="flex-1 px-container-margin py-stack-gap overflow-y-auto">
+<!-- Step Indicator -->
+<div class="mt-4 mb-2">
+<p class="font-label-lg text-label-lg text-on-surface-variant uppercase tracking-wider">Шаг 3 из 5</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mt-1">Выберите дату занятия</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 leading-relaxed">
+                Пожалуйста, выберите подходящий день для практического вождения. Доступные дни отмечены ярким цветом.
+            </p>
+</div>
+<!-- Instructor Card (Contextual Component) -->
+<div class="bg-surface-container-lowest rounded-xl p-4 my-section-gap shadow-[0px_2px_8px_rgba(3,22,52,0.06)] border border-outline-variant/30 flex items-center">
+<div class="w-12 h-12 rounded-full overflow-hidden mr-4 border-2 border-secondary-container">
+<img class="w-full h-full object-cover" data-alt="A professional driving instructor in his 40s with a friendly smile, wearing a neat corporate polo shirt with a small nomad academy logo. He is standing outdoors with a modern white sedan car in the soft-focus background during the golden hour. The lighting is warm and reassuring, matching a high-end educational brand aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB75zVWJiuCDo7EXPfv9yK3HVINQp5pYJwh2SvX5JvvOfTOqpr7RIJ7svKYTkdQvYOOQh2y6TL3xg5u4Z1nVzTawIlPcSjuOiAiPob1Qw7-QFPJKbVyBAY1xCZKqFZqpNn6w595FvaRW03mZgI1yCe8JG4OlBL1gnXd-HS40NLg9p8AUoGLzJrWhGgVwdJvVOxWgbkmqrCOuZjB0BJBiU2k8uFETlSKI4AwKvm8Mjt2mRudgkfw4Jxj-dRv1hJyNfCF-Rb5Es5GtPZt"/>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-primary">Александр Петров</h3>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-secondary-container text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4.9 • Инструктор кат. B</span>
+</div>
+</div>
+</div>
+<!-- Interactive Calendar -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_4px_16px_rgba(3,22,52,0.08)]">
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-title-lg text-title-lg text-primary">Октябрь 2023</h4>
+<div class="flex gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="calendar-grid mb-2">
+<div class="text-center font-label-sm text-label-sm text-outline py-2">ПН</div>
+<div class="text-center font-label-sm text-label-sm text-outline py-2">ВТ</div>
+<div class="text-center font-label-sm text-label-sm text-outline py-2">СР</div>
+<div class="text-center font-label-sm text-label-sm text-outline py-2">ЧТ</div>
+<div class="text-center font-label-sm text-label-sm text-outline py-2">ПТ</div>
+<div class="text-center font-label-sm text-label-sm text-secondary-container py-2">СБ</div>
+<div class="text-center font-label-sm text-label-sm text-secondary-container py-2">ВС</div>
+</div>
+<div class="calendar-grid gap-y-2" id="calendar-days">
+<!-- Days will be generated by JS -->
+</div>
+<!-- Legend -->
+<div class="mt-6 flex flex-wrap gap-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary-container"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Выбрано</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-surface-container-high border border-outline-variant/30"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Доступно</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-surface-container opacity-40"></div>
+<span class="font-label-sm text-label-sm text-outline">Занято</span>
+</div>
+</div>
+</div>
+<div class="h-24"></div> <!-- Spacer for fixed button -->
+</main>
+<!-- Bottom Action Container -->
+<footer class="fixed bottom-0 w-full bg-surface-container-lowest/80 backdrop-blur-md safe-area-bottom z-40 border-t border-outline-variant/10">
+<div class="p-container-margin flex gap-4">
+<button class="flex-1 h-touch-target border-2 border-primary text-primary font-bold rounded-xl active:scale-95 transition-transform flex items-center justify-center">
+                Назад
+            </button>
+<button class="flex-[2] h-touch-target bg-secondary-container text-on-secondary font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center disabled:opacity-50 disabled:grayscale" id="next-button">
+                Продолжить
+            </button>
+</div>
+</footer>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const calendarContainer = document.getElementById('calendar-days');
+            const nextButton = document.getElementById('next-button');
+            let selectedDate = 15; // Mock pre-selected
+
+            // Mock Data: 1 is available, 0 is busy, -1 is past/empty
+            const daysData = [
+                -1, -1, -1, -1, -1, 0, 0,
+                1, 1, 0, 1, 1, 0, 1,
+                1, 1, 1, 0, 1, 1, 1,
+                1, 1, 1, 1, 0, 0, 1,
+                1, 1
+            ];
+
+            function renderCalendar() {
+                calendarContainer.innerHTML = '';
+                daysData.forEach((status, index) => {
+                    const dayNum = index - 4; // Adjust for month start offset
+                    const dayEl = document.createElement('div');
+                    
+                    if (status === -1) {
+                        dayEl.className = 'h-12 flex items-center justify-center';
+                        calendarContainer.appendChild(dayEl);
+                        return;
+                    }
+
+                    const actualDay = index - 4;
+                    dayEl.className = 'h-12 flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all duration-200 relative';
+                    
+                    if (status === 0) {
+                        dayEl.classList.add('bg-surface-container/30', 'text-outline', 'cursor-not-allowed', 'opacity-50');
+                    } else {
+                        if (actualDay === selectedDate) {
+                            dayEl.classList.add('bg-secondary-container', 'text-white', 'calendar-day-active', 'font-bold');
+                        } else {
+                            dayEl.classList.add('bg-surface-container-high', 'text-primary', 'hover:bg-surface-container-highest', 'border', 'border-outline-variant/20');
+                        }
+                        
+                        dayEl.addEventListener('click', () => {
+                            selectedDate = actualDay;
+                            renderCalendar();
+                        });
+                    }
+
+                    const daySpan = document.createElement('span');
+                    daySpan.textContent = actualDay;
+                    daySpan.className = 'font-body-lg text-body-lg';
+                    dayEl.appendChild(daySpan);
+
+                    calendarContainer.appendChild(dayEl);
+                });
+
+                nextButton.disabled = !selectedDate;
+            }
+
+            renderCalendar();
+
+            // Simple click feedback for the button
+            nextButton.addEventListener('click', () => {
+                if(!nextButton.disabled) {
+                    nextButton.innerHTML = `<span class="material-symbols-outlined animate-spin">sync</span>`;
+                    setTimeout(() => {
+                        alert('Дата успешно выбрана! Переход к выбору времени...');
+                        nextButton.innerHTML = 'Продолжить';
+                    }, 800);
+                }
+            });
+        });
+    </script>
+</body></html>

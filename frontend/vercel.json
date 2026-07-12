@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://nomad-o7ct.onrender.com/api/$1" },
+    { "source": "/landing/(.*)", "destination": "/$1" }
+  ]
+}

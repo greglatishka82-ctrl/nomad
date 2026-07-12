@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NOMAD Academy - Регистрация</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c5c6cf",
+                      "secondary": "#ab3500",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-container": "#8293b7",
+                      "primary-fixed-dim": "#b6c6ee",
+                      "outline": "#75777e",
+                      "surface-dim": "#cbdbf5",
+                      "background": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#43474a",
+                      "tertiary-fixed": "#e0e3e6",
+                      "surface": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "on-primary": "#ffffff",
+                      "on-surface-variant": "#44474e",
+                      "on-secondary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary": "#13181a",
+                      "primary": "#031634",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary-fixed": "#390c00",
+                      "secondary-fixed-dim": "#ffb59d",
+                      "primary-fixed": "#d8e2ff",
+                      "inverse-primary": "#b6c6ee",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#081b39",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#282c2e",
+                      "tertiary-fixed-dim": "#c3c7ca",
+                      "on-secondary-fixed-variant": "#832600",
+                      "on-tertiary-fixed": "#181c1e",
+                      "on-secondary-container": "#5d1900",
+                      "secondary-container": "#fe6a34",
+                      "surface-container-low": "#eff4ff",
+                      "surface-tint": "#4e5e80",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-bright": "#f8f9ff",
+                      "on-surface": "#0b1c30",
+                      "surface-container": "#e5eeff",
+                      "on-tertiary-container": "#8f9396",
+                      "error": "#ba1a1a",
+                      "secondary-fixed": "#ffdbd0",
+                      "primary-container": "#1a2b4a",
+                      "inverse-surface": "#213145",
+                      "on-error": "#ffffff",
+                      "on-background": "#0b1c30",
+                      "on-primary-fixed-variant": "#364767"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "inline-gutter": "16px",
+                      "stack-gap": "12px",
+                      "container-margin": "16px",
+                      "section-gap": "24px",
+                      "touch-target": "48px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Roboto"],
+                      "title-lg": ["Roboto"],
+                      "headline-md": ["Roboto"],
+                      "label-lg": ["Roboto"],
+                      "body-md": ["Roboto"],
+                      "headline-lg-mobile": ["Roboto"],
+                      "label-sm": ["Roboto"],
+                      "body-lg": ["Roboto"]
+              },
+              "fontSize": {
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                      "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .form-input-focus:focus-within label {
+            transform: translateY(-24px) scale(0.85);
+            color: #031634;
+        }
+        .bg-mesh {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(at 0% 0%, #d8e2ff 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, #ffdbd0 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-lg min-h-screen flex flex-col">
+<!-- Top Navigation Bar (Shared Component Logic - Suppressed but Headline used as Anchor) -->
+<header class="w-full top-0 sticky z-30 bg-background/80 backdrop-blur-md">
+<div class="flex items-center px-container-margin h-touch-target w-full justify-between">
+<div class="flex items-center gap-2">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-container-low transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+</div>
+<h1 class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary">NOMAD Academy</h1>
+<div class="w-10"></div> <!-- Spacer for centering headline -->
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-start px-container-margin pt-8 pb-12 relative overflow-hidden">
+<!-- Visual Accent -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-secondary-container/10 rounded-full blur-3xl"></div>
+<div class="absolute top-1/2 -left-32 w-80 h-80 bg-primary-fixed/20 rounded-full blur-3xl"></div>
+<div class="w-full max-w-md z-10">
+<!-- Header Section -->
+<div class="mb-section-gap">
+<p class="font-label-lg text-label-lg text-secondary font-bold mb-1 uppercase tracking-wider">Регистрация</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary leading-tight">Создайте аккаунт, чтобы начать обучение</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Присоединяйтесь к сообществу профессиональных водителей NOMAD.</p>
+</div>
+<!-- Registration Form -->
+<form class="flex flex-col gap-5">
+<!-- Name Field -->
+<div class="relative flex flex-col group">
+<div class="flex items-center border-b-2 border-outline-variant focus-within:border-primary transition-all duration-300 py-2">
+<span class="material-symbols-outlined text-outline group-focus-within:text-primary mr-3">person</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-lg text-on-surface p-0 placeholder:text-outline/50" id="name" placeholder="Имя Фамилия" required="" type="text"/>
+</div>
+</div>
+<!-- Phone Field -->
+<div class="relative flex flex-col group">
+<div class="flex items-center border-b-2 border-outline-variant focus-within:border-primary transition-all duration-300 py-2">
+<span class="material-symbols-outlined text-outline group-focus-within:text-primary mr-3">call</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-lg text-on-surface p-0 placeholder:text-outline/50" id="phone" placeholder="+7 700 000 00 00" required="" type="tel"/>
+</div>
+</div>
+<!-- Email Field -->
+<div class="relative flex flex-col group">
+<div class="flex items-center border-b-2 border-outline-variant focus-within:border-primary transition-all duration-300 py-2">
+<span class="material-symbols-outlined text-outline group-focus-within:text-primary mr-3">mail</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-lg text-on-surface p-0 placeholder:text-outline/50" id="email" placeholder="Email" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="relative flex flex-col group">
+<div class="flex items-center border-b-2 border-outline-variant focus-within:border-primary transition-all duration-300 py-2">
+<span class="material-symbols-outlined text-outline group-focus-within:text-primary mr-3">lock</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-lg text-on-surface p-0 placeholder:text-outline/50" id="password" placeholder="Пароль" required="" type="password"/>
+<button class="text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Referral Code Field -->
+<div class="relative flex flex-col group">
+<div class="flex items-center border-b-2 border-outline-variant focus-within:border-primary transition-all duration-300 py-2">
+<span class="material-symbols-outlined text-outline group-focus-within:text-primary mr-3">card_giftcard</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-lg text-on-surface p-0 placeholder:text-outline/50" id="referral" placeholder="Промокод (необязательно)" type="text"/>
+</div>
+</div>
+<!-- Legal / Terms -->
+<div class="mt-2 flex items-start gap-3">
+<input class="mt-1 rounded border-outline text-secondary focus:ring-secondary w-5 h-5" id="terms" required="" type="checkbox"/>
+<label class="font-body-md text-body-md text-on-surface-variant leading-tight" for="terms">
+                        Я согласен с <a class="text-secondary font-medium hover:underline" href="#">Условиями использования</a> и <a class="text-secondary font-medium hover:underline" href="#">Политикой конфиденциальности</a>
+</label>
+</div>
+<!-- Action Button -->
+<div class="mt-6">
+<button class="w-full h-touch-target bg-secondary-container text-on-secondary-container font-bold text-title-lg rounded-xl shadow-[0px_4px_12px_rgba(254,106,52,0.3)] hover:shadow-[0px_6px_16px_rgba(254,106,52,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2" type="submit">
+                        Зарегистрироваться
+                        <span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</form>
+<!-- Secondary Action -->
+<div class="mt-8 text-center">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Уже есть аккаунт? 
+                    <a class="text-primary font-bold hover:text-secondary-container transition-colors ml-1" href="#">Войти</a>
+</p>
+</div>
+</div>
+<!-- Trust Indicator Section (Bento inspired) -->
+<div class="w-full max-w-md mt-12 grid grid-cols-2 gap-3">
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary">verified</span>
+</div>
+<h4 class="font-label-lg text-label-lg text-primary mb-1">Гос. лицензия</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">Официальное обучение с выдачей сертификата.</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30">
+<div class="w-10 h-10 rounded-full bg-secondary-container/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-secondary">history_edu</span>
+</div>
+<h4 class="font-label-lg text-label-lg text-primary mb-1">98% успех</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">Наши студенты сдают экзамены с первого раза.</p>
+</div>
+</div>
+</main>
+<!-- Footer Space -->
+<footer class="mt-auto py-6 text-center">
+<p class="font-label-sm text-label-sm text-outline opacity-60">© 2024 NOMAD Academy. Все права защищены.</p>
+</footer>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('border-primary');
+                input.parentElement.classList.remove('border-outline-variant');
+            });
+            input.addEventListener('blur', () => {
+                if (!input.value) {
+                    input.parentElement.classList.remove('border-primary');
+                    input.parentElement.classList.add('border-outline-variant');
+                }
+            });
+        });
+
+        // Simple mask for phone (concept)
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            if (!x[1] && x[0] !== '') { e.target.value = '+7'; return; }
+            if (x[1] === '7' || x[1] === '8') {
+                e.target.value = '+7' + (x[2] ? ' ' + x[2] : '') + (x[3] ? ' ' + x[3] : '') + (x[4] ? ' ' + x[4] : '') + (x[5] ? ' ' + x[5] : '');
+            }
+        });
+    </script>
+</body></html>

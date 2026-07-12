@@ -1,0 +1,279 @@
+﻿<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NOMAD Booking Wizard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=Work+Sans:wght@400;500&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#f7f9fc",
+                    "surface-container": "#eceef1",
+                    "background": "#f7f9fc",
+                    "on-primary-container": "#8293b7",
+                    "on-primary-fixed": "#081b39",
+                    "inverse-on-surface": "#eff1f4",
+                    "on-secondary-container": "#5d1900",
+                    "secondary-fixed": "#ffdbd0",
+                    "outline": "#75777e",
+                    "primary-container": "#1a2b4a",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed-dim": "#b6c6ee",
+                    "surface-container-high": "#e6e8eb",
+                    "surface-container-highest": "#e0e3e6",
+                    "on-primary": "#ffffff",
+                    "secondary": "#ab3500",
+                    "primary": "#031634",
+                    "secondary-container": "#fe6a34",
+                    "on-secondary-fixed-variant": "#832600",
+                    "surface-container-low": "#f2f4f7",
+                    "on-tertiary-fixed-variant": "#41474e",
+                    "tertiary-fixed-dim": "#c1c7cf",
+                    "surface-tint": "#4e5e80",
+                    "outline-variant": "#c5c6cf",
+                    "on-surface": "#191c1e",
+                    "on-tertiary-container": "#8d939b",
+                    "on-surface-variant": "#44474e",
+                    "inverse-surface": "#2d3133",
+                    "secondary-fixed-dim": "#ffb59d",
+                    "primary-fixed": "#d8e2ff",
+                    "tertiary-fixed": "#dde3eb",
+                    "surface-dim": "#d8dadd",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#262c32",
+                    "on-primary-fixed-variant": "#364767",
+                    "error-container": "#ffdad6",
+                    "inverse-primary": "#b6c6ee",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed": "#390c00",
+                    "on-background": "#191c1e",
+                    "tertiary": "#11181d",
+                    "on-error": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#f7f9fc",
+                    "surface-variant": "#e0e3e6",
+                    "on-tertiary-fixed": "#161c22"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "margin-desktop": "64px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "base": "4px",
+                    "xl": "48px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Hanken Grotesk"],
+                    "headline-md": ["Hanken Grotesk"],
+                    "label-sm": ["JetBrains Mono"],
+                    "headline-lg-mobile": ["Hanken Grotesk"],
+                    "body-md": ["Work Sans"],
+                    "body-lg": ["Work Sans"],
+                    "headline-lg": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #f7f9fc;
+            color: #191c1e;
+        }
+        .step-line {
+            height: 2px;
+            background: #e0e3e6;
+            flex-grow: 1;
+            margin: 0 4px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 20px rgba(26, 43, 74, 0.08);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md md:hidden">
+<!-- Top Navigation Bar -->
+<header class="w-full top-0 flex items-center justify-between px-margin-mobile h-16 bg-surface">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="directions_car">directions_car</span>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">NOMAD</h1>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant">close</button>
+</header>
+<main class="px-margin-mobile pb-32">
+<!-- Step Indicator -->
+<section class="py-lg flex items-center justify-between">
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary flex items-center justify-center font-bold">1</div>
+</div>
+<div class="step-line"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold">2</div>
+</div>
+<div class="step-line"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold">3</div>
+</div>
+<div class="step-line"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold">4</div>
+</div>
+<div class="step-line"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold">5</div>
+</div>
+</section>
+<!-- Title -->
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-xl">ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð´Ð°ÑÑ Ð¸ Ð²ÑÐµÐ¼Ñ</h2>
+<!-- Calendar Widget -->
+<section class="bg-surface-container-lowest p-lg rounded-xl custom-shadow mb-xl">
+<div class="flex justify-between items-center mb-lg">
+<h3 class="font-headline-md text-headline-md text-primary">ÐÐºÑÑÐ±ÑÑ 2023</h3>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant">chevron_left</span>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</div>
+<div class="calendar-grid text-center mb-sm">
+<div class="font-label-sm text-label-sm text-on-surface-variant">ÐÐ</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">ÐÐ¢</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Ð¡Ð </div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Ð§Ð¢</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">ÐÐ¢</div>
+<div class="font-label-sm text-label-sm text-secondary">Ð¡Ð</div>
+<div class="font-label-sm text-label-sm text-secondary">ÐÐ¡</div>
+</div>
+<div class="calendar-grid text-center">
+<!-- Empty spaces for prev month -->
+<div class="p-2 text-on-surface-variant opacity-20">26</div>
+<div class="p-2 text-on-surface-variant opacity-20">27</div>
+<div class="p-2 text-on-surface-variant opacity-20">28</div>
+<div class="p-2 text-on-surface-variant opacity-20">29</div>
+<div class="p-2 text-on-surface-variant opacity-20">30</div>
+<!-- Month days -->
+<div class="p-2 font-bold">1</div>
+<div class="p-2 font-bold">2</div>
+<div class="p-2 font-bold">3</div>
+<div class="p-2 font-bold">4</div>
+<div class="p-2 font-bold">5</div>
+<div class="p-2 font-bold">6</div>
+<div class="p-2 font-bold">7</div>
+<div class="p-2 font-bold">8</div>
+<div class="p-2 font-bold">9</div>
+<div class="p-2 font-bold">10</div>
+<div class="p-2 font-bold">11</div>
+<div class="p-2 font-bold bg-secondary-container text-on-secondary rounded-full flex items-center justify-center">12</div>
+<div class="p-2 font-bold">13</div>
+<div class="p-2 font-bold">14</div>
+<div class="p-2 font-bold">15</div>
+<div class="p-2 font-bold">16</div>
+<div class="p-2 font-bold">17</div>
+<div class="p-2 font-bold">18</div>
+<div class="p-2 font-bold">19</div>
+<div class="p-2 font-bold">20</div>
+</div>
+</section>
+<!-- Time Slots -->
+<section class="mb-xl">
+<h3 class="font-headline-md text-headline-md text-primary mb-lg">ÐÐ¾ÑÑÑÐ¿Ð½Ð¾Ðµ Ð²ÑÐµÐ¼Ñ</h3>
+<div class="time-grid">
+<button class="py-md px-lg bg-surface-container-high rounded-xl font-bold text-primary transition-all active:scale-95">09:00</button>
+<button class="py-md px-lg bg-secondary-container rounded-xl font-bold text-on-secondary transition-all active:scale-95">10:00</button>
+<button class="py-md px-lg bg-surface-container-high rounded-xl font-bold text-primary transition-all active:scale-95">11:00</button>
+<button class="py-md px-lg bg-surface-container-high rounded-xl font-bold text-primary transition-all active:scale-95">14:00</button>
+<button class="py-md px-lg bg-surface-container-high rounded-xl font-bold text-primary transition-all active:scale-95">15:00</button>
+<button class="py-md px-lg bg-surface-container-high rounded-xl font-bold text-primary transition-all active:scale-95">16:00</button>
+</div>
+</section>
+<!-- Instructor Info Card -->
+<section class="bg-surface-container-lowest p-lg rounded-xl custom-shadow flex items-center gap-lg mb-gutter">
+<div class="w-14 h-14 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of a Russian male driving instructor in his 40s, smiling warmly at the camera. He is wearing a clean navy blue polo shirt with a small driving school logo. The background is a soft-focus interior of a modern training vehicle with bright morning sunlight coming through the window. The aesthetic is clean, high-contrast, and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_D55pNJPFa1-4w3X2MqswFcWSmfh6AC20XCqxQsno37YE-BkAN0zR8j-pQxWajfDaValTlVS-UOg4QEQGIDAenF9xis-qN6oGWBy-Bwh5Wd4ky7uOUVga8lHNDN7hBIrscAECwvMFwYKiWDJjKpbntIaAZtB794SL11GM5sbPoAG8_18_247wPmC1KNCE6OlZKLgZhdlGPRH_YKjjhdOvxRlA3BfXRkfWDWQAGAYhAPGCvj-MCGt06wuGY6F8FCrs1CtxYcOIeXv-"/>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">ÐÐ½ÑÑÑÑÐºÑÐ¾Ñ</p>
+<p class="font-headline-md text-headline-md text-primary">ÐÐ»ÐµÐºÑÐ°Ð½Ð´Ñ Ð.</p>
+<div class="flex items-center gap-1 text-secondary mt-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm">4.9 (124 Ð¾ÑÐ·ÑÐ²Ð°)</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Sticky Bottom Bar -->
+<div class="fixed bottom-0 left-0 w-full bg-surface p-lg pb-10 flex gap-md shadow-[0_-4px_20px_rgba(26,43,74,0.08)]">
+<button class="flex-1 py-4 px-lg border-2 border-primary-container text-primary-container rounded-xl font-bold transition-all active:scale-95">
+            ÐÐ°Ð·Ð°Ð´
+        </button>
+<button class="flex-1 py-4 px-lg bg-secondary-container text-on-secondary rounded-xl font-bold transition-all active:scale-95">
+            ÐÐ°Ð»ÐµÐµ
+        </button>
+</div>
+<!-- Interaction Script -->
+<script>
+        document.querySelectorAll('.time-grid button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.time-grid button').forEach(b => {
+                    b.classList.remove('bg-secondary-container', 'text-on-secondary');
+                    b.classList.add('bg-surface-container-high', 'text-primary');
+                });
+                this.classList.remove('bg-surface-container-high', 'text-primary');
+                this.classList.add('bg-secondary-container', 'text-on-secondary');
+            });
+        });
+
+        // Simple vibration/haptic feedback simulation for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', () => {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+            });
+        });
+    </script>
+</body></html>

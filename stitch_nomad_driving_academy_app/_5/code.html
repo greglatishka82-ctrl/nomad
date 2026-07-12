@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c5c6cf",
+                        "secondary": "#ab3500",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-container": "#8293b7",
+                        "primary-fixed-dim": "#b6c6ee",
+                        "outline": "#75777e",
+                        "surface-dim": "#cbdbf5",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#43474a",
+                        "tertiary-fixed": "#e0e3e6",
+                        "surface": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#44474e",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#13181a",
+                        "primary": "#031634",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#390c00",
+                        "secondary-fixed-dim": "#ffb59d",
+                        "primary-fixed": "#d8e2ff",
+                        "inverse-primary": "#b6c6ee",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#081b39",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#282c2e",
+                        "tertiary-fixed-dim": "#c3c7ca",
+                        "on-secondary-fixed-variant": "#832600",
+                        "on-tertiary-fixed": "#181c1e",
+                        "on-secondary-container": "#5d1900",
+                        "secondary-container": "#fe6a34",
+                        "surface-container-low": "#eff4ff",
+                        "surface-tint": "#4e5e80",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-container": "#8f9396",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#ffdbd0",
+                        "primary-container": "#1a2b4a",
+                        "inverse-surface": "#213145",
+                        "on-error": "#ffffff",
+                        "on-background": "#0b1c30",
+                        "on-primary-fixed-variant": "#364767"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "inline-gutter": "16px",
+                        "stack-gap": "12px",
+                        "container-margin": "16px",
+                        "section-gap": "24px",
+                        "touch-target": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Roboto"],
+                        "title-lg": ["Roboto"],
+                        "headline-md": ["Roboto"],
+                        "label-lg": ["Roboto"],
+                        "body-md": ["Roboto"],
+                        "headline-lg-mobile": ["Roboto"],
+                        "label-sm": ["Roboto"],
+                        "body-lg": ["Roboto"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.5px", "fontWeight": "700"}],
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-card {
+            border: 2px solid #fe6a34 !important;
+            background-color: #eff4ff;
+        }
+        .step-progress-track {
+            height: 4px;
+            width: 100%;
+            background-color: #e0e3e6;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .step-progress-fill {
+            height: 100%;
+            background-color: #fe6a34;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+<!-- Top Navigation Header -->
+<header class="w-full top-0 sticky bg-background z-50 flex items-center px-container-margin h-touch-target">
+<button class="active:scale-95 transition-transform p-2 -ml-2">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="ml-2 font-title-lg text-title-lg font-bold text-primary">NOMAD Academy</h1>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow px-container-margin pt-4 pb-32">
+<!-- Progress Indicator -->
+<div class="mb-section-gap">
+<div class="flex justify-between items-end mb-2">
+<span class="text-label-lg font-label-lg text-secondary uppercase tracking-wider">Шаг 1 из 5</span>
+<span class="text-label-sm font-label-sm text-outline">Выбор типа занятия</span>
+</div>
+<div class="step-progress-track">
+<div class="step-progress-fill" style="width: 20%;"></div>
+</div>
+</div>
+<!-- Headline Area -->
+<section class="mb-section-gap">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-2">Выберите тип занятия</h2>
+<p class="text-body-md font-body-md text-on-surface-variant">Начните свой путь к водительскому удостоверению с профессиональным инструктором.</p>
+</section>
+<!-- Lesson Type Options -->
+<div class="space-y-stack-gap">
+<!-- Option 1: Driving Lesson -->
+<label class="block cursor-pointer group">
+<input checked="" class="hidden peer" name="lesson_type" type="radio"/>
+<div class="p-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm peer-checked:border-secondary-container peer-checked:ring-1 peer-checked:ring-secondary-container transition-all active:scale-[0.98] flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-title-lg text-title-lg text-primary">Урок вождения</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Площадка 1
+                        </p>
+</div>
+<div class="text-right">
+<span class="font-headline-md text-headline-md text-primary">6 000 ₸</span>
+</div>
+</div>
+</label>
+<!-- Option 2: Mock Exam -->
+<label class="block cursor-pointer group">
+<input class="hidden peer" name="lesson_type" type="radio"/>
+<div class="p-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm peer-checked:border-secondary-container peer-checked:ring-1 peer-checked:ring-secondary-container transition-all active:scale-[0.98] flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">assignment</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-title-lg text-title-lg text-primary">Пробный экзамен</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Площадка 2
+                        </p>
+</div>
+<div class="text-right">
+<span class="font-headline-md text-headline-md text-primary">5 000 ₸</span>
+</div>
+</div>
+</label>
+</div>
+<!-- Instructional Card (Bento Style) -->
+<div class="mt-section-gap p-6 bg-primary-container rounded-xl overflow-hidden relative min-h-[160px] flex flex-col justify-end">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-[80px]">verified_user</span>
+</div>
+<h4 class="text-on-primary font-title-lg text-title-lg relative z-10 mb-1">Опытные инструкторы</h4>
+<p class="text-on-primary-container font-body-md text-body-md relative z-10">Все наши специалисты имеют стаж более 10 лет и лицензию на обучение.</p>
+</div>
+<!-- Visual Context Image -->
+<div class="mt-section-gap w-full aspect-video rounded-xl overflow-hidden shadow-sm">
+<div class="w-full h-full bg-cover bg-center" data-alt="A professional driving instructor in a modern, clean dual-control vehicle guiding a student through a structured training course. The lighting is bright and natural, reflecting a professional and reassuring atmosphere. The color palette features deep navy blues and vibrant orange accents, consistent with a high-end corporate academy brand. The scene is shot from a slightly elevated side angle to show both the dashboard and the road ahead." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMadtoiwoz_mRA1-Hw9ZN8numiDYBQOYzv2ssB2YixTikKK-ANI1yKnnmh1cFcb8fBVTpfegzx1VlCaeex6ZZzmTbpUD_2WXMy7d31HPPCqu3ZoOi58nQMxY_-5HxyGjpRFozgRA4fH2V_N11veUZTd8PaGBoFVkkYRRc9FqxDrvVD-1cUKsRpf_sygYrsxM5sAwFvbZqS0mWjUGS3JbKXbs8zhXrBX7PLgliDMrRs3m--ALT7vEFc6k5qS9Tub4zgc6LYlrZ5VpXt')"></div>
+</div>
+</main>
+<!-- Bottom Action Area -->
+<footer class="fixed bottom-0 w-full p-container-margin bg-surface-container-lowest shadow-[0px_-4px_16px_rgba(0,0,0,0.05)] z-50">
+<button class="w-full h-touch-target bg-secondary-container text-on-secondary font-bold text-label-lg rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md">
+<span>Продолжить</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</footer>
+<script>
+        // Simple interactive state logic for radio buttons
+        const radios = document.querySelectorAll('input[name="lesson_type"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                // The peer classes handle the styling automatically via Tailwind
+                console.log('Selected lesson:', e.target.closest('label').querySelector('h3').innerText);
+            });
+        });
+
+        // Hover/Touch effects for better feel
+        const btn = document.querySelector('footer button');
+        btn.addEventListener('touchstart', () => {
+            btn.classList.add('brightness-90');
+        });
+        btn.addEventListener('touchend', () => {
+            btn.classList.remove('brightness-90');
+        });
+    </script>
+</body></html>

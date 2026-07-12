@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>NOMAD Driving School - ÐÐ½ÑÑÑÑÐºÑÐ¾ÑÑ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1A2B4A",
+                        "on-primary": "#FFFFFF",
+                        secondary: "#FF8C00", // Orange accent
+                        "on-secondary": "#FFFFFF",
+                        surface: "#FFFFFF",
+                        "on-surface": "#1A2B4A",
+                        "on-surface-variant": "#64748B",
+                        "outline-variant": "#E2E8F0",
+                        "secondary-container": "#FFF3E0",
+                        "on-secondary-container": "#E65100",
+                        "surface-container-low": "#F8FAFC",
+                        "surface-variant": "#F1F5F9"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background-color: #FF8C00;
+            transition: all 0.3s ease;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-low text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full bg-surface dark:bg-surface text-primary dark:text-primary z-50 shadow-sm border-b border-outline-variant flex items-center justify-between px-4 h-16 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">menu</span>
+<h1 class="font-headline text-headline-sm font-bold text-primary dark:text-primary">ÐÐ½ÑÑÑÑÐºÑÐ¾ÑÑ</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant">
+<span class="material-symbols-outlined text-on-secondary-container">person</span>
+</div>
+</header>
+<main class="pt-16 px-4">
+<!-- Tab Bar -->
+<nav class="flex w-full mt-4 relative bg-surface rounded-lg p-1 shadow-sm">
+<button class="flex-1 py-3 text-sm font-semibold text-primary relative z-10" onclick="switchTab(0)">ÐÐ½ÑÑÑÑÐºÑÐ¾ÑÑ</button>
+<button class="flex-1 py-3 text-sm font-medium text-on-surface-variant relative z-10" onclick="switchTab(1)">FAQ</button>
+<button class="flex-1 py-3 text-sm font-medium text-on-surface-variant relative z-10" onclick="switchTab(2)">ÐÐ¾Ð½ÑÐ°ÐºÑÑ</button>
+<div class="absolute top-1 left-1 bottom-1 w-[32.5%] bg-secondary-container rounded-md transition-all duration-300 ease-out" id="tab-highlight"></div>
+</nav>
+<!-- Filter Chips Row -->
+<div class="flex gap-2 mt-6 overflow-x-auto hide-scrollbar pb-2">
+<button class="px-5 py-2 rounded-full bg-primary text-on-primary text-sm font-medium whitespace-nowrap shadow-md shadow-primary/20">ÐÑÐµ</button>
+<button class="px-5 py-2 rounded-full bg-surface border border-outline-variant text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-variant transition-colors">ÐÑÐ¶ÑÐ¸Ð½Ñ</button>
+<button class="px-5 py-2 rounded-full bg-surface border border-outline-variant text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-variant transition-colors">ÐÐµÐ½ÑÐ¸Ð½Ñ</button>
+</div>
+<!-- Instructor Cards List -->
+<div class="mt-4 space-y-4">
+<!-- Instructor Card 1 -->
+<div class="bg-surface rounded-xl p-5 shadow-sm border border-outline-variant group active:scale-[0.98] transition-transform duration-200">
+<div class="flex items-start gap-4">
+<div class="relative">
+<div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl ring-4 ring-secondary-container">
+                            ÐÐ
+                        </div>
+<div class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary rounded-full w-7 h-7 flex items-center justify-center border-2 border-surface">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-primary">ÐÐ»ÐµÐºÑÐ°Ð½Ð´Ñ Ð.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant text-sm mt-0.5">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span>8 Ð»ÐµÑ Ð¾Ð¿ÑÑÐ°</span>
+</div>
+</div>
+<div class="bg-secondary-container px-2 py-1 rounded text-[10px] font-bold text-on-secondary-container tracking-wider uppercase">ÐÐÐÐ</div>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-secondary font-bold text-sm">4.9</span>
+<div class="flex text-secondary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+</div>
+</div>
+</div>
+<p class="mt-4 text-on-surface-variant text-sm leading-relaxed">
+                    ÐÑÐ¾ÑÐµÑÑÐ¸Ð¾Ð½Ð°Ð»ÑÐ½ÑÐ¹ Ð¸Ð½ÑÑÑÑÐºÑÐ¾Ñ Ñ Ð¸Ð½Ð´Ð¸Ð²Ð¸Ð´ÑÐ°Ð»ÑÐ½ÑÐ¼ Ð¿Ð¾Ð´ÑÐ¾Ð´Ð¾Ð¼. Ð¡Ð¿ÐµÑÐ¸Ð°Ð»Ð¸Ð·Ð¸ÑÑÑÑÑ Ð½Ð° Ð¿Ð¾Ð´Ð³Ð¾ÑÐ¾Ð²ÐºÐµ Ðº ÑÐºÐ·Ð°Ð¼ÐµÐ½Ð°Ð¼ Ð² ÐÐÐÐÐ Ð¸ Ð¿ÑÐµÐ¾Ð´Ð¾Ð»ÐµÐ½Ð¸Ð¸ ÑÑÑÐ°ÑÐ° Ð²Ð¾Ð¶Ð´ÐµÐ½Ð¸Ñ.
+                </p>
+<div class="mt-5 flex gap-3">
+<button class="flex-1 bg-primary text-white py-3 rounded-lg font-semibold text-sm hover:bg-opacity-90 transition-all">ÐÐ°Ð¿Ð¸ÑÐ°ÑÑÑÑ</button>
+<button class="w-12 h-12 flex items-center justify-center border border-outline-variant rounded-lg text-primary hover:bg-surface-variant">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+<!-- Instructor Card 2 -->
+<div class="bg-surface rounded-xl p-5 shadow-sm border border-outline-variant group active:scale-[0.98] transition-transform duration-200">
+<div class="flex items-start gap-4">
+<div class="relative">
+<div class="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-white font-bold text-xl ring-4 ring-secondary-container">
+                            ÐÐ¡
+                        </div>
+<div class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary rounded-full w-7 h-7 flex items-center justify-center border-2 border-surface">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-primary">ÐÐ°ÑÐ¸Ñ Ð¡.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant text-sm mt-0.5">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span>5 Ð»ÐµÑ Ð¾Ð¿ÑÑÐ°</span>
+</div>
+</div>
+<div class="bg-blue-50 px-2 py-1 rounded text-[10px] font-bold text-blue-700 tracking-wider uppercase">ÐÐÐÐ</div>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-secondary font-bold text-sm">4.8</span>
+<div class="flex text-secondary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</div>
+</div>
+</div>
+</div>
+<p class="mt-4 text-on-surface-variant text-sm leading-relaxed">
+                    Ð¡Ð¿Ð¾ÐºÐ¾Ð¹Ð½Ð¾Ðµ Ð¾Ð±ÑÑÐµÐ½Ð¸Ðµ Ð²Ð¾Ð¶Ð´ÐµÐ½Ð¸Ñ Ð² Ð»ÑÐ±ÑÑ Ð³Ð¾ÑÐ¾Ð´ÑÐºÐ¸Ñ ÑÑÐ»Ð¾Ð²Ð¸ÑÑ. ÐÐ¾Ð¼Ð¾Ð³Ñ Ð¾ÑÐ²Ð¾Ð¸ÑÑ Ð¿Ð°ÑÐºÐ¾Ð²ÐºÑ Ð¸ ÑÐ»Ð¾Ð¶Ð½ÑÐµ ÑÐ°Ð·Ð²ÑÐ·ÐºÐ¸ Ð±ÐµÐ· ÑÑÑÐµÑÑÐ°.
+                </p>
+<div class="mt-5 flex gap-3">
+<button class="flex-1 bg-primary text-white py-3 rounded-lg font-semibold text-sm hover:bg-opacity-90 transition-all">ÐÐ°Ð¿Ð¸ÑÐ°ÑÑÑÑ</button>
+<button class="w-12 h-12 flex items-center justify-center border border-outline-variant rounded-lg text-primary hover:bg-surface-variant">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+<!-- Decorative Card (Extra UI juice) -->
+<div class="bg-primary rounded-xl p-6 relative overflow-hidden shadow-lg shadow-primary/30">
+<div class="relative z-10">
+<h4 class="text-white font-bold text-lg">ÐÐµ Ð·Ð½Ð°ÐµÑÐµ ÐºÐ¾Ð³Ð¾ Ð²ÑÐ±ÑÐ°ÑÑ?</h4>
+<p class="text-white/80 text-sm mt-2 max-w-[70%]">ÐÑÐ¾Ð¹Ð´Ð¸ÑÐµ ÐºÐ¾ÑÐ¾ÑÐºÐ¸Ð¹ ÑÐµÑÑ, Ð¸ Ð¼Ñ Ð¿Ð¾Ð´Ð±ÐµÑÐµÐ¼ Ð¸Ð´ÐµÐ°Ð»ÑÐ½Ð¾Ð³Ð¾ Ð¸Ð½ÑÑÑÑÐºÑÐ¾ÑÐ° Ð´Ð»Ñ Ð²Ð°Ñ.</p>
+<button class="mt-4 bg-secondary text-on-secondary px-4 py-2 rounded-lg font-bold text-sm">ÐÑÐ¾Ð¹ÑÐ¸ ÑÐµÑÑ</button>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-9xl rotate-12">directions_car</span>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe bg-surface dark:bg-surface border-t border-outline-variant shadow-lg">
+<!-- Home -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform hover:bg-surface-variant px-4 py-1">
+<span class="material-symbols-outlined text-primary">dashboard</span>
+<span class="font-label text-label-sm mt-1">Home</span>
+</button>
+<!-- Lessons (Active based on context of current page being a core part of learning flow) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl px-4 py-1 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="font-label text-label-sm mt-1">Lessons</span>
+</button>
+<!-- Profile -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform hover:bg-surface-variant px-4 py-1">
+<span class="material-symbols-outlined text-primary">person</span>
+<span class="font-label text-label-sm mt-1">Profile</span>
+</button>
+</nav>
+<script>
+        function switchTab(index) {
+            const highlight = document.getElementById('tab-highlight');
+            const buttons = document.querySelectorAll('nav button');
+            
+            // Move highlight
+            const percentage = index * 33.33;
+            highlight.style.left = `calc(${percentage}% + 4px)`;
+            
+            // Reset and set styles
+            buttons.forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('text-primary', 'font-semibold');
+                    btn.classList.remove('text-on-surface-variant', 'font-medium');
+                } else {
+                    btn.classList.remove('text-primary', 'font-semibold');
+                    btn.classList.add('text-on-surface-variant', 'font-medium');
+                }
+            });
+        }
+
+        // Initialize first tab
+        switchTab(0);
+    </script>
+</body></html>
