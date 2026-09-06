@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/site-proxy?__nomad_proxy_path=:path*"
+    },
+    { "source": "/landing/(.*)", "destination": "/$1" }
+  ]
+}

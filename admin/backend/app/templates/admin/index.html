@@ -1,0 +1,1054 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOMAD — Панель Управления Автошколой</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+
+  <!-- Login Screen Overlay -->
+  <div id="login-screen" class="screen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg, #f8fafc 0%, #edf2f7 50%, #e2e8f0 100%);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="width:420px;max-width:100%;padding:40px;box-shadow:var(--shadow-xl);border-radius:var(--radius-xl);">
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:14px;">
+        Центр практики вождения
+      </div>
+      <div style="font-size:26px;font-weight:800;color:var(--text-main);display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="color:var(--primary)">◆</span> NOMAD
+      </div>
+      <p style="color:var(--text-muted);font-size:13.5px;margin-bottom:24px;">Панель управления и администрирования</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Логин</label>
+          <input type="text" id="username" placeholder="Введите логин" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Пароль</label>
+          <input type="password" id="password" placeholder="Введите пароль" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:10px;">
+          Войти в панель →
+        </button>
+      </form>
+      <div id="login-error" class="alert alert-error hidden" style="margin-top:14px;background:var(--danger-light);color:var(--danger);padding:10px;border-radius:var(--radius-sm);font-size:13px;border:1px solid var(--danger-border);"></div>
+    </div>
+  </div>
+
+  <div class="app-container screen" id="dashboard-screen" style="display:none;">
+    
+    <!-- Sidebar Navigation Drawer -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">◆</div>
+        <div class="brand-title">
+          <span class="brand-name">NOMAD</span>
+          <span class="brand-sub">Админка</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Главное меню</div>
+        
+        <button class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          </span>
+          <span class="nav-label">Дашборд</span>
+        </button>
+
+        <button class="nav-item" data-page="bookings">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+          </span>
+          <span class="nav-label">Записи</span>
+        </button>
+
+        <button class="nav-item" data-page="archive">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </span>
+          <span class="nav-label">Архив</span>
+        </button>
+
+        <button class="nav-item" data-page="instructors">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="nav-label">Инструкторы</span>
+        </button>
+
+        <button class="nav-item" data-page="vehicles">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M5 17h14l1.5-5.5A3 3 0 0 0 17.6 8H6.4a3 3 0 0 0-2.9 3.5L5 17z"/><path d="M3 17h18v2a2 2 0 0 1-2 2h-1a2 2 0 0 1-4 0H10a2 2 0 0 1-4 0H5a2 2 0 0 1-2-2v-2z"/><circle cx="7.5" cy="17.5" r=".5"/><circle cx="16.5" cy="17.5" r=".5"/></svg>
+          </span>
+          <span class="nav-label">Автопарк</span>
+        </button>
+
+        <button class="nav-item" data-page="clients">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span class="nav-label">Клиенты</span>
+        </button>
+
+        <button class="nav-item" data-page="analytics">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </span>
+          <span class="nav-label">Аналитика</span>
+        </button>
+
+        <div class="nav-section-title">Сервисы</div>
+
+        <button class="nav-item" data-page="packages">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          </span>
+          <span class="nav-label">Сертификаты</span>
+        </button>
+
+        <button class="nav-item" data-page="waiting-list">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </span>
+          <span class="nav-label">Лист ожидания</span>
+        </button>
+
+        <button class="nav-item" data-page="support">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="nav-label">Поддержка</span>
+        </button>
+
+        <button class="nav-item" data-page="faq">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <span class="nav-label">FAQ</span>
+        </button>
+
+        <div class="nav-section-title">Система</div>
+
+        <button class="nav-item" data-page="notifications">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </span>
+          <span class="nav-label">События</span>
+        </button>
+
+        <button class="nav-item" data-page="audit">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          <span class="nav-label">Аудит</span>
+        </button>
+
+        <button class="nav-item" data-page="settings">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          <span class="nav-label">Настройки</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status" style="margin-bottom:10px;">
+          <div class="status-dot"></div>
+          <div class="status-text">Бэкенд NOMAD Live</div>
+        </div>
+        <button class="nav-item nav-logout" id="logout-btn" style="color:var(--danger);">
+          <span class="nav-icon" style="font-size:16px;">🚪</span>
+          <span class="nav-label">Выход</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Меню">☰</button>
+          <div class="page-title" id="page-title">Дашборд</div>
+        </div>
+
+        <div class="header-right">
+          <div id="offline-status" class="offline-status hidden" role="status" aria-live="polite">Админка офлайн</div>
+          <button id="offline-issues-status" class="offline-issues-status hidden" type="button" onclick="openOfflineIssues()" title="Открыть точную причину во вкладке конфликтов"></button>
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="global-search-input" placeholder="Быстрый поиск клиента...">
+          </div>
+
+          <button class="header-btn" onclick="navigateTo('notifications')" title="События">
+            🔔
+            <span class="badge-dot" id="header-notification-dot"></span>
+          </button>
+
+          <div class="user-profile" title="Аккаунт администратора">
+            <div class="avatar">ADM</div>
+            <div class="user-info">
+              <span class="user-name">Администратор</span>
+              <span class="user-role">Главный филиал</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content Views -->
+      <main class="page-content">
+
+        <!-- 1. DASHBOARD PAGE -->
+        <div id="page-dashboard" class="page active">
+          
+          <!-- Hero 4 Metrics Grid -->
+          <div class="grid-4" id="stats-grid" style="margin-bottom: 20px;">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Выручка (Месяц)</span>
+                <div class="stat-icon">₸</div>
+              </div>
+              <div class="stat-value">...</div>
+              <div class="stat-trend up">Загрузка данных...</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Всего записей</span>
+                <div class="stat-icon">📅</div>
+              </div>
+              <div class="stat-value">...</div>
+              <div class="stat-trend up">Загрузка данных...</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Клиентов в базе</span>
+                <div class="stat-icon">👤</div>
+              </div>
+              <div class="stat-value">...</div>
+              <div class="stat-trend up">Загрузка данных...</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Инструкторов</span>
+                <div class="stat-icon">🚘</div>
+              </div>
+              <div class="stat-value">...</div>
+              <div class="stat-trend up">Загрузка данных...</div>
+            </div>
+          </div>
+
+          <!-- Secondary Mini Stats Bar -->
+          <div class="secondary-stats-bar" id="secondary-stats-bar"></div>
+
+          <!-- Quick Action Bar -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <div class="card-title">⚡ Быстрые действия</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="showManualBookingForm()">➕ Ручная запись клиента</button>
+              <button class="btn btn-secondary" onclick="navigateTo('packages')">🎁 Выпустить сертификат</button>
+              <button class="btn btn-outline" onclick="exportBookings()">📥 Экспорт записей (CSV)</button>
+              <button class="btn btn-outline" onclick="exportClients()">📥 Экспорт клиентов (CSV)</button>
+              <button class="btn btn-success" onclick="exportFullBackup()">💾 Полная резервная копия</button>
+              <button class="btn btn-danger" onclick="showRestoreBackupDialog()">♻️ Восстановить из бэкапа</button>
+            </div>
+            <!-- Hidden file input for restore -->
+            <input type="file" id="restore-backup-file" accept=".html,.json" style="display:none" onchange="handleRestoreFile(event)">
+          </div>
+
+          <!-- Live Today's Schedule Table -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📌 Расписание на сегодня</div>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('bookings')">Все записи →</button>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Время</th>
+                    <th>Клиент</th>
+                    <th>Инструктор</th>
+                    <th>Площадка</th>
+                    <th>Услуга / КПП</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-today-tbody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Загрузка расписания на сегодня...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 2. BOOKINGS PAGE -->
+        <div id="page-bookings" class="page">
+          
+          <!-- Manual Booking Card / Form -->
+          <div id="manual-booking-form" class="card hidden" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <div class="card-title">➕ Новая запись на вождение</div>
+              <button class="btn btn-outline btn-sm" onclick="hideManualBookingForm()">✕ Закрыть</button>
+            </div>
+            
+            <div class="grid-2">
+              <div>
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Имя клиента</label>
+                    <input type="text" id="mb-name" placeholder="Введите имя клиента..." autocomplete="off" oninput="searchManualClients('name')">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Телефон клиента</label>
+                    <input type="text" id="mb-phone" placeholder="+7 777 123 45 67" autocomplete="off" oninput="searchManualClients('phone')">
+                  </div>
+                </div>
+                <!-- Suggestions Dropdown -->
+                <div id="mb-client-suggestions" class="client-suggestions hidden"></div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Инструктор (опционально)</label>
+                    <select id="mb-instructor" onchange="updateManualTransmissionFromInstructor(); loadSlots()">
+                      <option value="">Автоматически подобрать</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Услуга *</label>
+                    <select id="mb-service" onchange="handleServiceChange()">
+                      <option value="training">Обучение вождению</option>
+                      <option value="exam">Пробный экзамен</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Площадка</label>
+                    <select id="mb-location" onchange="loadSlots()">
+                      <option value="Циолковского 30">Циолковского 30 (10 000 ₸)</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>КПП</label>
+                    <select id="mb-transmission" onchange="loadSlots()">
+                      <option value="automatic">Автомат (АКПП)</option>
+                      <option value="manual">Механика (МКПП)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Дата занятия *</label>
+                    <input type="date" id="mb-date" onchange="loadSlots()">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Время начала *</label>
+                    <input type="time" id="mb-time" value="09:00">
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                  <button class="btn btn-primary" onclick="saveManualBooking()">✓ Записать клиента</button>
+                  <button class="btn btn-outline" onclick="hideManualBookingForm()">Отмена</button>
+                </div>
+              </div>
+
+              <!-- Available Slots Panel -->
+              <div>
+                <label style="font-weight:700;font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:8px;">⏰ Доступные слоты времени</label>
+                <div id="slots-panel" class="card" style="background:var(--bg-subtle);padding:14px;">
+                  <div class="slots-list"><p style="color:var(--text-muted);text-align:center;padding:24px 0;font-size:13px">Выберите дату и инструктора</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs and Filters -->
+          <div class="filter-bar" id="bookings-filter-bar">
+            <div class="tabs-group booking-tabs">
+              <button class="tab-btn booking-tab active" id="tab-active" onclick="switchBookingTab('active')">Активные</button>
+              <button class="tab-btn booking-tab" id="tab-applications" onclick="switchBookingTab('applications')">Заявки</button>
+              <button type="button" class="booking-sound-toggle" id="application-sound-toggle" onclick="toggleApplicationSound()" aria-pressed="true" aria-label="Выключить звук новых заявок" title="Звук новых заявок включён. Нажмите, чтобы выключить.">🔊</button>
+              <button class="tab-btn booking-tab" id="tab-completed" onclick="switchBookingTab('completed')">Завершенные</button>
+              <button class="tab-btn booking-tab" id="tab-cancelled" onclick="switchBookingTab('cancelled')">Отмененные</button>
+              <button class="tab-btn booking-tab" id="tab-conflicts" onclick="switchBookingTab('conflicts')">⚠️ Конфликты</button>
+              <button class="tab-btn booking-tab" id="tab-waiting-list" onclick="switchBookingTab('waiting-list')">Лист ожидания</button>
+            </div>
+            
+            <div id="booking-filter-controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <input type="date" id="filter-date-from" class="form-control" style="width:140px;">
+              <input type="date" id="filter-date-to" class="form-control" style="width:140px;">
+              <select id="filter-location" class="form-control" style="width:160px;">
+                <option value="">Все площадки</option>
+                <option value="Циолковского 30">Циолковского 30</option>
+              </select>
+              <button class="btn btn-primary" onclick="loadBookings()">🔍 Применить</button>
+              <button class="btn btn-outline" onclick="exportBookings()">📥 CSV</button>
+              <button class="btn btn-success" onclick="showManualBookingForm()">➕ Записать</button>
+              <button id="purge-cancelled-bookings-button" class="btn btn-outline-danger hidden" onclick="purgeAllCancelledBookings()">🗑️ Удалить все отменённые</button>
+            </div>
+          </div>
+
+          <div id="conflicts-section" class="hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 16px">
+              <h2 style="margin:0">⚠️ Конфликтные записи</h2>
+              <button class="btn btn-primary btn-sm" onclick="checkPendingConflicts()">🔄 Проверить заявки</button>
+            </div>
+            <p style="color:#888;margin:0 0 16px;font-size:14px">Спорная заявка создаётся только при восстановлении связи после офлайн-записи. В карточке указано время уже созданной ручной записи. Выберите: подтвердить или отменить.</p>
+            <div id="conflicts-container"></div>
+          </div>
+
+          <div id="waiting-list-section" class="hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 16px">
+              <h2 style="margin:0">Лист ожидания</h2>
+              <button class="btn btn-primary btn-sm" onclick="addWaitingClient()">+ Добавить клиента</button>
+            </div>
+            <div id="waiting-list-container"></div>
+          </div>
+
+          <div class="card" id="bookings-list-section">
+            <div class="table-container table-wrapper">
+              <table class="data-table" id="bookings-table">
+                <thead>
+                  <tr>
+                    <th>Дата<br><small>№ записи</small></th>
+                    <th>Время<br><small>начала</small></th>
+                    <th>Клиент</th>
+                    <th>Инструктор</th>
+                    <th>КПП</th>
+                    <th>Услуга</th>
+                    <th>Площадка</th>
+                    <th>Статус</th>
+                    <th>Стоимость</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="bookings-tbody">
+                  <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:32px">Загрузка записей...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="bookings-mobile-cards" class="mobile-cards"></div>
+          </div>
+        </div>
+
+        <!-- 3. INSTRUCTORS PAGE -->
+        <div id="page-instructors" class="page">
+          
+          <div class="filter-bar">
+            <h2>Команда Автоинструкторов</h2>
+            <button class="btn btn-primary" onclick="showInstructorForm()">➕ Добавить инструктора</button>
+          </div>
+
+          <!-- Add / Edit Instructor Card -->
+          <div id="instructor-form" class="card hidden" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <h3 id="instructor-form-title">Новый инструктор</h3>
+              <button class="btn btn-outline btn-sm" onclick="hideInstructorForm()">✕</button>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>ФИО инструктора *</label>
+                    <input type="text" id="inst-name" placeholder="Иванов Иван">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Телефон *</label>
+                    <input type="text" id="inst-phone" placeholder="+7 777 123 45 67">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Специализация КПП</label>
+                    <select id="inst-trans">
+                      <option value="both">Механика и автомат</option>
+                      <option value="manual">Механика</option>
+                      <option value="automatic">Автомат</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Тип урока</label>
+                    <select id="inst-lesson-type">
+                      <option value="both">Вождение и пробный экзамен</option>
+                      <option value="training">Только вождение</option>
+                      <option value="exam">Только пробный экзамен</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Пол</label>
+                    <select id="inst-gender">
+                      <option value="any">Любой</option>
+                      <option value="male">Мужчина</option>
+                      <option value="female">Женщина</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Стаж (лет)</label>
+                    <input type="number" id="inst-exp" value="0" min="0">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Telegram Username</label>
+                    <input type="text" id="inst-tg-user" placeholder="username" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Telegram ID</label>
+                    <input type="text" id="inst-tg-id" placeholder="Числовой ID">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Начало работы</label>
+                    <input type="time" id="inst-start" value="09:00">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Последний старт записи</label>
+                    <input type="time" id="inst-end" value="19:00">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Обед с</label>
+                    <input type="time" id="inst-lunch-start" value="13:00">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Обед до</label>
+                    <input type="time" id="inst-lunch-end" value="14:00">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Описание / Автомобиль</label>
+                  <textarea id="inst-desc" rows="2" placeholder="Автомобиль, опыт работы..."></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top:14px">
+                  <label style="display:flex; align-items:center; gap:12px; cursor:pointer; user-select:none;">
+                    <label class="toggle" style="margin:0;">
+                      <input type="checkbox" id="inst-duty">
+                      <span class="slider"></span>
+                    </label>
+                    <div>
+                      <span style="font-size:13.5px; font-weight:700; color:var(--text-main);">Дежурный инструктор</span>
+                      <small style="color: var(--text-muted); display: block; font-size:12px;">(автоматически назначается, если нет свободных слотов)</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Calendar & Day Schedule Editor -->
+              <div>
+                <label style="font-weight:700;font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:8px;">🗓️ Календарь графика и выходных</label>
+                <div class="calendar-wrapper">
+                  <div class="calendar-sidebar">
+                    <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;">Месяцы</div>
+                    <div class="calendar-months-list" id="calendar-months-list">
+                      <button type="button" class="calendar-month-btn" data-month="0">Январь</button>
+                      <button type="button" class="calendar-month-btn" data-month="1">Февраль</button>
+                      <button type="button" class="calendar-month-btn" data-month="2">Март</button>
+                      <button type="button" class="calendar-month-btn" data-month="3">Апрель</button>
+                      <button type="button" class="calendar-month-btn" data-month="4">Май</button>
+                      <button type="button" class="calendar-month-btn" data-month="5">Июнь</button>
+                      <button type="button" class="calendar-month-btn" data-month="6">Июль</button>
+                      <button type="button" class="calendar-month-btn" data-month="7">Август</button>
+                      <button type="button" class="calendar-month-btn" data-month="8">Сентябрь</button>
+                      <button type="button" class="calendar-month-btn" data-month="9">Октябрь</button>
+                      <button type="button" class="calendar-month-btn" data-month="10">Ноябрь</button>
+                      <button type="button" class="calendar-month-btn" data-month="11">Декабрь</button>
+                    </div>
+                  </div>
+
+                  <div class="calendar-main">
+                    <div class="calendar-header" id="calendar-title">Август 2026</div>
+                    <div class="calendar-weekdays">
+                      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div style="color:var(--danger)">Сб</div><div style="color:var(--danger)">Вс</div>
+                    </div>
+                    <div class="calendar-days-grid" id="calendar-days-grid"></div>
+
+                    <!-- Daily Schedule Editor Subpanel -->
+                    <div class="daily-schedule-editor" id="daily-schedule-editor">
+                      <div class="daily-schedule-empty" id="daily-schedule-empty" style="color:var(--text-muted);font-size:12px;text-align:center;padding:10px;">Кликните на день в календаре для настройки графика</div>
+                      <div class="daily-schedule-panel hidden" id="daily-schedule-panel">
+                        <div class="daily-schedule-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                          <div>
+                            <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">Выбранный день:</span>
+                            <strong id="daily-schedule-title" style="margin-left:6px;color:var(--primary);">—</strong>
+                          </div>
+                          <button type="button" class="btn btn-outline btn-sm" onclick="clearDailyScheduleForm()">Сбросить</button>
+                        </div>
+                        <input type="hidden" id="daily-schedule-date">
+                        <div class="schedule-mode-grid">
+                          <button type="button" class="schedule-mode-btn" id="schedule-mode-default" onclick="setDailyScheduleMode('default')">Обычный</button>
+                          <button type="button" class="schedule-mode-btn" id="schedule-mode-off" onclick="setDailyScheduleMode('off')">Выходной</button>
+                          <button type="button" class="schedule-mode-btn" id="schedule-mode-custom" onclick="setDailyScheduleMode('custom')">Особый</button>
+                        </div>
+                        <div class="daily-custom-fields hidden" id="daily-custom-fields" style="margin-top:6px;">
+                          <div class="form-row">
+                            <div class="form-group flex-1">
+                              <label>Работа с</label>
+                              <input type="time" id="daily-work-start">
+                            </div>
+                            <div class="form-group flex-1">
+                              <label>Работа до</label>
+                              <input type="time" id="daily-work-end">
+                            </div>
+                          </div>
+                          <div class="form-row">
+                            <div class="form-group flex-1">
+                              <label>Перерыв с</label>
+                              <input type="time" id="daily-lunch-start">
+                            </div>
+                            <div class="form-group flex-1">
+                              <label>Перерыв до</label>
+                              <input type="time" id="daily-lunch-end">
+                            </div>
+                          </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveDailySchedule()" style="width:100%;margin-top:6px;">Сохранить график дня</button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:16px;">
+              <button class="btn btn-primary" onclick="saveInstructor()">✓ Сохранить инструктора</button>
+              <button class="btn btn-outline" onclick="hideInstructorForm()">Отмена</button>
+            </div>
+          </div>
+
+          <!-- Instructors Grid + Week Workload Panel -->
+          <div class="instructors-workload-layout">
+            <div id="instructors-list">
+              <div style="color:var(--text-muted);padding:32px;text-align:center;grid-column:1/-1;">Загрузка инструкторов...</div>
+            </div>
+
+            <!-- Slide-out Week Workload Panel -->
+            <aside id="instructor-week-panel" class="instructor-week-panel hidden">
+              <div class="week-panel-header">
+                <div>
+                  <div class="week-panel-label">Занятость на неделю</div>
+                  <h3 id="week-panel-title">Инструктор</h3>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeInstructorWeekPanel()">✕</button>
+              </div>
+              <div id="week-panel-body" class="week-panel-body"></div>
+            </aside>
+          </div>
+
+        </div>
+
+        <!-- 4. VEHICLES PAGE -->
+        <div id="page-vehicles" class="page">
+          <div class="filter-bar">
+            <div>
+              <h2>Автопарк</h2>
+              <p class="page-description">Автомобиль закрепляется за записью. Свободный слот требует подходящего инструктора и свободную машину.</p>
+            </div>
+            <button class="btn btn-primary" onclick="addVehicle()">+ Добавить машину</button>
+          </div>
+          <div id="vehicles-list" class="fleet-grid"></div>
+        </div>
+
+        <!-- 5. CLIENTS PAGE -->
+        <div id="page-clients" class="page">
+          <div class="filter-bar">
+            <h2>Клиенты АвтоПрактик</h2>
+            <button class="btn btn-primary" onclick="showClientForm()">➕ Добавить клиента</button>
+          </div>
+
+          <!-- Add / Edit Client Form -->
+          <div id="client-form" class="card hidden" style="margin-bottom: 20px;">
+            <h3>Новый клиент</h3>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Имя *</label>
+                <input type="text" id="client-name" placeholder="Иван Иванов">
+              </div>
+              <div class="form-group flex-1">
+                <label>Телефон *</label>
+                <input type="text" id="client-phone" placeholder="+7 707 000 00 00">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Реферальный код</label>
+                <input type="text" id="client-referral" placeholder="Пусто — сгенерируется автоматически">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Пароль для мобильного приложения *</label>
+                <input type="password" id="client-password" placeholder="От 6 символов, латинские буквы">
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;">
+              <button class="btn btn-primary" onclick="saveClient()">✓ Сохранить клиента</button>
+              <button class="btn btn-outline" onclick="hideClientForm()">Отмена</button>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card" style="grid-column: span 1;">
+              <div class="card-header">
+                <div class="card-title">Список клиентов</div>
+              </div>
+              <input type="text" id="client-search" class="form-control" placeholder="🔍 Поиск по имени или телефону..." oninput="filterClients()" style="margin-bottom:10px;">
+              <div id="clients-list" class="chat-dialogs" style="border:none;background:transparent;max-height:520px;">
+                <p style="color:var(--text-muted);padding:24px;text-align:center;">Загрузка клиентов...</p>
+              </div>
+            </div>
+
+            <div class="card" style="grid-column: span 2;" id="client-card-details">
+              <div id="client-empty" style="color:var(--text-muted);text-align:center;padding:60px 20px;">
+                Выберите клиента из списка слева для просмотра профиля и истории
+              </div>
+              <div id="client-card" class="hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. ANALYTICS PAGE -->
+        <div id="page-analytics" class="page">
+          <div class="analytics-section-heading">
+            <div>
+              <h2>Источники записей</h2>
+              <p>Сколько раз клиенты записывались через каждый канал за всё время</p>
+            </div>
+            <span class="badge badge-info">Все записи</span>
+          </div>
+          <div class="analytics-channel-grid">
+            <div class="stat-card analytics-channel-card telegram">
+              <div class="stat-header"><span class="stat-title">Telegram-бот</span><span class="stat-icon">✈</span></div>
+              <div class="stat-value" id="analytics-source-telegram">—%</div>
+              <div class="stat-trend" id="analytics-source-telegram-pct">— записей</div>
+              <div class="analytics-channel-track"><span id="analytics-source-telegram-bar"></span></div>
+            </div>
+            <div class="stat-card analytics-channel-card mobile">
+              <div class="stat-header"><span class="stat-title">APK-приложение</span><span class="stat-icon">📱</span></div>
+              <div class="stat-value" id="analytics-source-mobile">—%</div>
+              <div class="stat-trend" id="analytics-source-mobile-pct">— записей</div>
+              <div class="analytics-channel-track"><span id="analytics-source-mobile-bar"></span></div>
+            </div>
+            <div class="stat-card analytics-channel-card manual">
+              <div class="stat-header"><span class="stat-title">Администратор</span><span class="stat-icon">✍</span></div>
+              <div class="stat-value" id="analytics-source-manual">—%</div>
+              <div class="stat-trend" id="analytics-source-manual-pct">— записей</div>
+              <div class="analytics-channel-track"><span id="analytics-source-manual-bar"></span></div>
+            </div>
+          </div>
+          <div class="analytics-section-heading">
+            <div>
+              <h2>Клиенты: мужчины и женщины</h2>
+              <p>Приблизительное определение по именам, обновляется раз в час; неясные имена не входят в проценты</p>
+            </div>
+            <span class="badge badge-info" id="analytics-gender-updated">Ожидает расчёта</span>
+          </div>
+          <div class="analytics-gender-grid">
+            <div class="stat-card analytics-gender-card male">
+              <div class="stat-header"><span class="stat-title">Мужчины</span><span class="stat-icon">М</span></div>
+              <div class="stat-value" id="analytics-gender-male">—%</div>
+              <div class="stat-trend" id="analytics-gender-male-count">— клиентов</div>
+              <div class="analytics-channel-track"><span id="analytics-gender-male-bar"></span></div>
+            </div>
+            <div class="stat-card analytics-gender-card female">
+              <div class="stat-header"><span class="stat-title">Женщины</span><span class="stat-icon">Ж</span></div>
+              <div class="stat-value" id="analytics-gender-female">—%</div>
+              <div class="stat-trend" id="analytics-gender-female-count">— клиентов</div>
+              <div class="analytics-channel-track"><span id="analytics-gender-female-bar"></span></div>
+            </div>
+          </div>
+          <div class="card analytics-revenue-card">
+            <div class="analytics-revenue-header">
+              <div>
+                <div class="card-title">📈 Динамика выручки</div>
+                <p>Выручка каждого интервала: по часам, дням или неделям</p>
+              </div>
+              <div class="analytics-period-switch" aria-label="Период графика выручки">
+                <button type="button" data-revenue-period="day" onclick="setRevenuePeriod('day')">1Д</button>
+                <button type="button" data-revenue-period="week" onclick="setRevenuePeriod('week')">7Д</button>
+                <button type="button" data-revenue-period="month" onclick="setRevenuePeriod('month')">1М</button>
+                <button type="button" class="active" data-revenue-period="all" onclick="setRevenuePeriod('all')">Всё</button>
+              </div>
+            </div>
+            <div class="analytics-revenue-summary">
+              <strong id="analytics-revenue-total">— ₸</strong>
+              <span id="analytics-revenue-updated">Данные автоматически обновляются каждые 3 часа</span>
+            </div>
+            <div id="chart-revenue-analytics" class="analytics-revenue-chart"></div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:20px;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">💰 Самые прибыльные часы и дни</div>
+                <span class="badge badge-info">Всё время</span>
+              </div>
+              <div class="profitability-grid">
+                <div>
+                  <div class="profitability-title">Лучшие часы</div>
+                  <div id="analytics-profitable-hours" class="profitability-list"></div>
+                </div>
+                <div>
+                  <div class="profitability-title">Лучшие дни</div>
+                  <div id="analytics-profitable-days" class="profitability-list"></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📊 Доля услуг (Обучение vs Экзамены)</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-around;height:180px;">
+                <div style="text-align:center;">
+                  <h2 style="color:var(--primary);font-size:2.2rem" id="analytics-training-pct">—</h2>
+                  <span style="color:var(--text-muted);font-weight:600;">Обучение вождению (10 000 ₸)</span>
+                </div>
+                <div style="text-align:center;">
+                  <h2 style="color:var(--secondary);font-size:2.2rem" id="analytics-exam-pct">—</h2>
+                  <span style="color:var(--text-muted);font-weight:600;">Пробный экзамен (5 000 ₸)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:20px;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🔥 Загруженность площадки по часам (9:00 — 20:00)</div>
+              </div>
+              <div class="heatmap-grid heatmap" id="heatmap-container"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🚗 Загрузка автоинструкторов (30 дней)</div>
+              </div>
+              <div id="instructor-load-chart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. CERTIFICATES PAGE -->
+        <div id="page-packages" class="page">
+          <div class="grid-2" style="margin-bottom:20px;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🎁 Генератор Сертификата</div>
+              </div>
+              <div class="form-group">
+                <label>Номинал сертификата (₸)</label>
+                <input type="number" id="cert-nominal" class="form-control" placeholder="10000" value="10000">
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=5000">5 000 ₸</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=10000">10 000 ₸</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=20000">20 000 ₸</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=50000">50 000 ₸</button>
+              </div>
+              <button class="btn btn-primary" onclick="createCertificate()">✨ Сгенерировать сертификат</button>
+              <div id="cert-result" style="margin-top:14px;"></div>
+            </div>
+
+            <div class="cert-preview-card">
+              <div style="font-weight:800;letter-spacing:0.1em;color:rgba(255,255,255,0.7);font-size:0.8rem;">NOMAD GIFT CERTIFICATE</div>
+              <h2 style="margin:12px 0;font-size:1.8rem;color:#fff;">ПОДАРОЧНЫЙ СЕРТИФИКАТ</h2>
+              <p style="color:rgba(255,255,255,0.8);font-size:0.85rem;">На обучение вождению или пробный экзамен</p>
+              <div style="margin-top:16px;font-family:monospace;font-size:1.2rem;letter-spacing:0.15em;background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:6px;width:fit-content;">NMD-XXXXXX</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📜 Выпущенные сертификаты</div>
+            </div>
+            <div id="certificates-list">
+              <p style="color:var(--text-muted);padding:24px;text-align:center;">Загрузка сертификатов...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. SUPPORT CHAT PAGE -->
+        <div id="page-support" class="page">
+          <div class="support-tabs">
+            <button class="support-tab active" id="support-tab-clients" onclick="switchSupportChannel('clients')">👤 Клиенты</button>
+            <button class="support-tab" id="support-tab-instructors" onclick="switchSupportChannel('instructors')">👨‍🏫 Инструкторы</button>
+          </div>
+
+          <div class="chat-layout support-layout">
+            <div class="chat-dialogs support-sidebar" id="support-dialogs">
+              <p style="color:var(--text-muted);padding:24px;text-align:center;">Загрузка диалогов...</p>
+            </div>
+            <div class="chat-main support-chat">
+              <div id="chat-empty" class="chat-empty" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
+                Выберите диалог из списка слева
+              </div>
+              <div id="chat-active" class="chat-active hidden" style="display:flex;flex-direction:column;height:100%;">
+                <div class="chat-header" style="background:#f8fafc;padding:12px 18px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <h3 id="chat-user-name" style="margin:0;font-size:15px;">—</h3>
+                    <p id="chat-user-contacts" style="color:var(--text-muted);font-size:12px;margin:2px 0 0 0;"></p>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <button id="chat-close-button" class="btn btn-danger hidden" onclick="closeSupportChat()">Завершить чат</button>
+                    <span class="badge badge-success">В сети</span>
+                  </div>
+                </div>
+                <div class="chat-messages-box chat-messages" id="chat-messages"></div>
+                <div class="chat-input-bar chat-input-wrapper">
+                  <textarea id="chat-input" class="form-control flex-1" placeholder="Напишите ответ (Enter для отправки)..." rows="2"></textarea>
+                  <button class="btn btn-primary" onclick="sendReply()">Отправить 📤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. FAQ PAGE -->
+        <div id="page-faq" class="page">
+          <div class="card" style="margin-bottom:20px;">
+            <h3>➕ Добавить частый вопрос в базу знаний</h3>
+            <div class="form-group" style="margin-top:12px;">
+              <label>Вопрос</label>
+              <input type="text" id="faq-q" class="form-control" placeholder="Где проходит практика вождения?">
+            </div>
+            <div class="form-group">
+              <label>Подробный ответ</label>
+              <textarea id="faq-a" rows="3" class="form-control" placeholder="Занятия проходят на оборудованной площадке по адресу Циолковского 30."></textarea>
+            </div>
+            <button class="btn btn-primary" id="faq-submit-btn" onclick="createFaq()">+ Сохранить вопрос</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">📚 База знаний (FAQ)</div></div>
+            <div id="faq-list">
+              <p style="color:var(--text-muted);padding:24px;text-align:center;">Загрузка вопросов...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. ARCHIVE PAGE -->
+        <div id="page-archive" class="page">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🗃️ Архив</div></div>
+            <p style="color:var(--text-secondary);margin:0 0 16px;">Завершённые записи переходят сюда через 7 дней, а «Аудит» и «События» — один раз в сутки в 00:00. Все разделы загружаются из серверного архива.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="archive-completed-btn" onclick="loadArchive()">Выгрузить завершённые</button>
+              <button class="btn btn-secondary" id="archive-audit-btn" onclick="loadArchivedAudit()">Выгрузить Аудит</button>
+              <button class="btn btn-success" id="archive-events-btn" onclick="loadArchivedEvents()">Выгрузить События</button>
+            </div>
+            <div id="archive-list" style="margin-top:20px;"></div>
+          </div>
+        </div>
+
+        <!-- 10. NOTIFICATIONS PAGE -->
+        <div id="page-notifications" class="page">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔔 Действия клиентов</div></div>
+            <div id="notifications-list">
+              <p style="color:var(--text-muted);padding:24px;text-align:center;">Загрузка событий...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 11. AUDIT PAGE -->
+        <div id="page-audit" class="page">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📜 Аудит действий администраторов</div></div>
+            <div class="table-container table-wrapper">
+              <table class="data-table" id="audit-table">
+                <thead>
+                  <tr><th>Время</th><th>Действие</th><th>Администратор</th><th>Описание</th></tr>
+                </thead>
+                <tbody id="audit-tbody">
+                  <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">Загрузка журнала действий...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="audit-mobile-cards" class="mobile-cards"></div>
+          </div>
+        </div>
+
+        <!-- 12. SETTINGS PAGE -->
+        <div id="page-settings" class="page">
+          <div class="card" style="max-width:500px;">
+            <h3>⚙️ Безопасность и пароль администратора</h3>
+            <div class="form-group" style="margin-top:16px;">
+              <label>Текущий пароль</label>
+              <input type="password" id="old-pass" class="form-control" placeholder="Введите текущий пароль">
+            </div>
+            <div class="form-group">
+              <label>Новый пароль</label>
+              <input type="password" id="new-pass" class="form-control" placeholder="Введите новый пароль">
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()">🔐 Обновить пароль</button>
+            <div id="password-result" class="mt-16"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Offline Banner -->
+  <div id="offline-banner" class="offline-banner">
+    <span class="offline-icon">⚠</span>
+    <span>Админка офлайн</span>
+    <span id="offline-sync-count" class="offline-sync-count" style="display:none;">0 изменений</span>
+  </div>
+
+  <!-- Sync Overlay -->
+  <div id="offline-sync-overlay" class="offline-sync-overlay">
+    <div class="offline-sync-box">
+      <div class="offline-sync-spinner"></div>
+      <h3>Синхронизация...</h3>
+      <p id="offline-sync-status">Отправка сохранённых изменений на сервер</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Universal Modal -->
+  <div class="modal-backdrop modal-overlay hidden" id="app-modal">
+    <div class="modal-dialog modal-box">
+      <div class="modal-header">
+        <h3 id="modal-title">Заголовок</h3>
+        <button class="modal-close btn-outline btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Закрыть</button>
+        <button class="btn btn-primary" id="modal-save-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script File -->
+  <script type="module" src="/static/js/admin.js"></script>
+</body>
+</html>

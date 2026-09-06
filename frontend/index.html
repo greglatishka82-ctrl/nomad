@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOMAD — АвтоПрактик в Павлодаре</title>
+    <meta name="description" content="АвтоПрактик NOMAD — центр практики вождения в Павлодаре. Механика и автомат, гибкое расписание, опытные инструкторы.">
+    <link rel="icon" type="image/png" href="snapedit_1788519918280.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+
+    <!-- Progress Bar -->
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <img src="logo_transparent_full (1) copy.svg" alt="Логотип NOMAD" class="logo-mark">
+                <span class="logo-wordmark">
+                    NOM<span style="color: #b91c1c;">A</span>D
+                </span>
+            </a>
+            <nav class="nav" id="nav">
+                <a href="#services" class="nav-link">Услуги</a>
+                <a href="#buy" class="nav-link">Записаться</a>
+                <a href="#instructors" class="nav-link">Инструкторы</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#app" class="nav-link">Приложение</a>
+                <a href="#contacts" class="nav-link">Контакты</a>
+            </nav>
+            <div class="header-actions">
+                <a href="tel:+77027182233" class="header-phone">
+                    <span class="phone-pulse"></span>
+                    +7 702 718 22 33
+                </a>
+                <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-sm" target="_blank">Записаться</a>
+            </div>
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Меню">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" style="min-height: auto; padding-bottom: 60px;">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-glow hero-glow-1"></div>
+        <div class="hero-glow hero-glow-2"></div>
+        <div class="hero-grid-bg"></div>
+
+        <div class="container hero-content">
+            <div class="hero-badge reveal-up">
+                <span class="badge-dot"></span>
+                АвтоПрактик №1 в Павлодаре
+            </div>
+            <h1 class="reveal-up" data-delay="100">
+                Научим водить<br>
+                <span class="hero-accent">
+                    <span class="typewriter" id="typewriter">уверенно</span>
+                    <span class="typewriter-cursor">|</span>
+                </span>
+            </h1>
+            <p class="hero-sub reveal-up" data-delay="200">
+                Профессиональное обучение вождению с опытными инструкторами.
+                Современная площадка, гибкое расписание, результат с первого раза.
+            </p>
+            <div class="hero-actions reveal-up" data-delay="300">
+                <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                    <span class="btn-icon">🚀</span>
+                    Записаться через Telegram
+                </a>
+                <a href="#buy" class="btn btn-glass btn-lg magnetic">
+                    Оставить заявку
+                </a>
+            </div>
+            <div class="hero-stats reveal-up" data-delay="400">
+                <div class="hero-stat">
+                    <strong>МКПП / АКПП</strong>
+                    <span>на выбор</span>
+                </div>
+            </div>
+            <div class="hero-scroll-indicator">
+                <div class="scroll-mouse">
+                    <div class="scroll-wheel"></div>
+                </div>
+                <span>Листай вниз</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Как это работает</span>
+                <h2 class="section-title light">3 простых шага</h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card reveal-up" data-delay="0">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3>Запишитесь</h3>
+                        <p>Через Telegram-бот или мобильное приложение. Выберите удобное время и приходите на занятие.</p>
+                    </div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-card reveal-up" data-delay="150">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3>Обучайтесь</h3>
+                        <p>Индивидуальные занятия с опытным инструктором на современной площадке.</p>
+                    </div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-card reveal-up" data-delay="300">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3>Сдайте экзамен</h3>
+                        <p>Пробный экзамен на специализированной площадке. Поддержка и рекомендации от инструктора.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="section" style="padding-top: 60px;">
+        <div class="section-bg-glow"></div>
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag">Наши услуги</span>
+                <h2 class="section-title">Услуги и цены</h2>
+                <p class="section-sub">Прозрачные цены без скрытых платежей</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card tilt-card reveal-up" data-delay="0">
+                    <div class="card-shine"></div>
+                    <div class="service-icon-wrap">
+                        <div class="service-icon">🚗</div>
+                    </div>
+                    <h3>Обучение вождению</h3>
+                    <div class="service-price">
+                        <span class="price-amount">10 000</span>
+                        <span class="price-currency">₸</span>
+                        <span class="price-per">/ час</span>
+                    </div>
+                    <ul class="service-features">
+                        <li><span class="feat-icon">📍</span> Циолковского 30</li>
+                        <li><span class="feat-icon">⚙️</span> Механика или автомат</li>
+                        <li><span class="feat-icon">👨‍🏫</span> Индивидуальный подход</li>
+                        <li><span class="feat-icon">📅</span> Гибкое расписание</li>
+                    </ul>
+                    <a href="https://t.me/nomadrive_bot" class="btn btn-outline-dark btn-full magnetic" target="_blank">Записаться</a>
+                </div>
+                <div class="service-card featured tilt-card reveal-up" data-delay="150">
+                    <div class="card-shine"></div>
+                    <div class="service-badge">
+                        <span class="badge-glow"></span>
+                        Популярное
+                    </div>
+                    <div class="service-icon-wrap featured">
+                        <div class="service-icon">🏁</div>
+                    </div>
+                    <h3>Пробный экзамен</h3>
+                    <div class="service-price featured">
+                        <span class="price-amount">5 000</span>
+                        <span class="price-currency">₸</span>
+                        <span class="price-per">/ круг</span>
+                    </div>
+                    <ul class="service-features">
+                        <li><span class="feat-icon">📍</span> Циолковского 30</li>
+                        <li><span class="feat-icon">⏱️</span> 20 минут (1 круг)</li>
+                        <li><span class="feat-icon">🎯</span> Практика экзаменации</li>
+                        <li><span class="feat-icon">📋</span> Максимальное погружение</li>
+                    </ul>
+                    <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-full magnetic" target="_blank">Записаться</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<section id="buy" class="section section-dark">
+    <div class="section-bg-glow"></div>
+    <div class="container">
+        <div class="section-header reveal-up" style="margin-bottom: 40px;">
+            <span class="section-tag light">Запишитесь онлайн</span>
+            <h2 class="section-title light">Как записаться</h2>
+            <p class="section-sub light">Выберите удобный для вас способ связи</p>
+        </div>
+        
+        <div class="cta-content reveal-up" id="buy-cta">
+            <div class="cta-actions">
+                <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                    <span class="btn-icon">📩</span>
+                    Записаться в Telegram
+                </a>
+                <a href="tel:+77027182233" class="btn btn-glass btn-lg magnetic">
+                    <span class="btn-icon">📞</span>
+                    Звоним +7 702 718 22 33
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section">
+        <div class="section-bg-glow"></div>
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag">FAQ</span>
+                <h2 class="section-title">Частые вопросы</h2>
+            </div>
+            <div id="faq-list" class="faq-container">
+                <p style="color:var(--text-secondary);text-align:center">Загрузка...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Instructors -->
+    <section id="instructors" class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Наша команда</span>
+                <h2 class="section-title light">Наши инструкторы</h2>
+                <p class="section-sub light">Инструктор назначается автоматически по специализации и расписанию</p>
+            </div>
+            <div class="instructors-grid" id="instructors-cards">
+                <div class="instructor-placeholder">
+                    <div class="loader-dots"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+            <div class="features-row reveal-up">
+                <div class="feature-item">
+                    <span class="feature-icon">⚙️</span>
+                    <span>Механика и автомат</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📅</span>
+                    <span>Без выходных, 9:00–19:00</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">👨‍🏫</span>
+                    <span>Опытные инструкторы</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section cta-section">
+        <div class="cta-bg"></div>
+        <div class="container">
+            <div class="cta-content reveal-up">
+                <h2>Готовы начать?</h2>
+                <p>Запишитесь прямо сейчас и начните обучение</p>
+                <div class="cta-actions">
+                    <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-lg magnetic" target="_blank">
+                        <span class="btn-icon">💬</span>
+                        Написать в Telegram
+                    </a>
+                    <a href="tel:+77027182233" class="btn btn-glass btn-lg magnetic">
+                        <span class="btn-icon">📞</span>
+                        Позвонить
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacts -->
+    <section id="contacts" class="section section-dark">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Контакты</span>
+                <h2 class="section-title light">Свяжитесь с нами</h2>
+            </div>
+            <div class="contacts-grid">
+                <div class="contact-card tilt-card reveal-up" data-delay="0">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">📞</span></div>
+                    <h3>Телефон</h3>
+                    <a href="tel:+77027182233" class="contact-link">+7 702 718 22 33</a>
+                </div>
+                <div class="contact-card tilt-card reveal-up" data-delay="100">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">🤖</span></div>
+                    <h3>Telegram-бот</h3>
+                    <a href="https://t.me/nomadrive_bot" class="contact-link" target="_blank">@nomadrive_bot</a>
+                </div>
+                <div class="contact-card tilt-card reveal-up" data-delay="150">
+                    <div class="card-shine"></div>
+                    <div class="contact-icon-wrap"><span class="contact-icon">📸</span></div>
+                    <h3>Instagram</h3>
+                    <a href="https://www.instagram.com/autodrom_nomad/" class="contact-link" target="_blank" rel="noopener noreferrer">@autodrom_nomad</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Download -->
+    <section id="app" class="section section-dark app-section">
+        <div class="container">
+            <div class="section-header reveal-up">
+                <span class="section-tag light">Мобильное приложение</span>
+                <h2 class="section-title light">Скачайте приложение NOMAD</h2>
+                <p class="section-sub light">Записывайтесь на занятия, отслеживайте расписание и общайтесь с поддержкой прямо с телефона</p>
+            </div>
+            <div class="app-blocks reveal-up">
+                <div class="app-block tilt-card">
+                    <div class="card-shine"></div>
+                    <div class="app-block-icon">📱</div>
+                    <h3>Запись на занятия</h3>
+                    <p>Выберите дату, время и инструктора в пару кликов</p>
+                </div>
+                <div class="app-block tilt-card" data-delay="100">
+                    <div class="card-shine"></div>
+                    <div class="app-block-icon">📅</div>
+                    <h3>Ваше расписание</h3>
+                    <p>Все занятия в одном месте — история и предстоящие уроки</p>
+                </div>
+                <div class="app-block tilt-card" data-delay="200">
+                    <div class="card-shine"></div>
+                    <div class="app-block-icon">💬</div>
+                    <h3>Чат с поддержкой</h3>
+                    <p>Задайте вопрос и получите ответ от команды NOMAD</p>
+                </div>
+            </div>
+            <div class="app-download reveal-up">
+                <div class="app-phone-mockup">
+                    <img src="img/app-screen.png" alt="NOMAD App Screenshot"
+                         style="width:100%;height:100%;object-fit:cover;border-radius:34px;display:block;">
+                </div>
+                <div class="app-download-info">
+                    <div class="app-badges">
+                        <div class="app-badge-item">
+                            <span class="badge-icon">✅</span>
+                            <span>Бесплатно</span>
+                        </div>
+                        <div class="app-badge-item">
+                            <span class="badge-icon">✅</span>
+                            <span>Android 5.0+</span>
+                        </div>
+                        <div class="app-badge-item">
+                            <span class="badge-icon">✅</span>
+                            <span>Без регистрации в Play Store</span>
+                        </div>
+                    </div>
+                    <a href="https://github.com/greglatishka82-ctrl/nomad/releases/download/v1.0.0/app-release.apk"
+                       class="btn btn-glow btn-lg magnetic app-download-btn"
+                       download>
+                        <span class="btn-icon">⬇️</span>
+                        Скачать APK для Android
+                    </a>
+                    <p class="app-install-hint">
+                        После скачивания разрешите установку из неизвестных источников в настройках телефона
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <span class="logo-icon">◆</span> NOMAD
+                </div>
+                <nav class="footer-nav">
+                    <a href="#services">Услуги</a>
+                    <a href="#buy">Записаться</a>
+                    <a href="#instructors">Инструкторы</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="#contacts">Контакты</a>
+                </nav>
+                <div class="footer-social">
+                    <a href="https://www.instagram.com/autodrom_nomad/" target="_blank" rel="noopener noreferrer" class="social-link" title="Instagram">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                    </a>
+                    <a href="https://t.me/nomadrive_bot" target="_blank" rel="noopener noreferrer" class="social-link" title="Telegram">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.53.36-.99.54-1.4.52-.46-.02-1.35-.26-2.01-.47-.81-.26-1.46-.4-1.41-.85.03-.23.42-.47 1.17-.73 4.59-2 7.66-3.32 9.21-3.95 4.39-1.82 5.3-1.97 5.89-1.98.13 0 .42.03.61.18.16.13.2.31.22.45.01.1.03.32.01.5z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 АвтоПрактик NOMAD. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget">
+        <button id="chat-toggle" class="chat-toggle-btn" onclick="toggleChat()" aria-label="Открыть чат">
+            <span class="chat-pulse"></span>
+            <span class="chat-label">💬 Задать вопрос</span>
+        </button>
+        <div id="chat-window" class="chat-window hidden">
+            <div class="chat-header">
+                <span>🤖 Помощник NOMAD</span>
+                <button onclick="toggleChat()" class="chat-close" aria-label="Закрыть">✕</button>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Введите вопрос..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <button onclick="sendMessage()" class="chat-send" aria-label="Отправить">→</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/landing.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+name: nomad_mobile
+description: Академия вождения NOMAD — мобильное приложение
+publish_to: none
+version: 1.0.6+8
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Сеть
+  dio: ^5.7.0
+  pretty_dio_logger: ^1.4.0
+
+  # Хранение токенов
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.2
+
+  # Навигация
+  go_router: ^14.3.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Push уведомления
+  onesignal_flutter: ^5.1.6
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+  audioplayers: ^6.0.0
+
+  # UI
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  table_calendar: ^3.1.2
+  share_plus: ^10.0.2
+  url_launcher: ^6.3.0
+  intl: ^0.19.0
+  flutter_svg: ^2.0.10+1
+  image_picker: ^1.0.7
+  image: ^4.1.7
+
+  # Утилиты
+  connectivity_plus: ^6.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/sounds/
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
