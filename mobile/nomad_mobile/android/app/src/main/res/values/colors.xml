@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цвет splash screen — тёмно-синий бренд NOMAD -->
+    <color name="launch_background">#1A2B4A</color>
+</resources>
