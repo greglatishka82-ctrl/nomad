@@ -3356,6 +3356,7 @@ async function changePassword() {
 
 // --- Support ---
 let currentDialogUserId = null;
+let currentDialogSignature = null;
 let currentSupportChannel = 'clients';
 
 function switchSupportChannel(channel) {
@@ -3409,6 +3410,7 @@ async function loadSupport() {
 }
 
 async function openDialog(userId) {
+    const sameDialog = currentDialogUserId === userId;
     currentDialogUserId = userId;
     const data = await apiGet(currentSupportChannel === 'clients' ? `/support/dialogs/${userId}` : `/support/instructors/dialogs/${userId}`);
     if (!data) return;
@@ -3422,13 +3424,23 @@ async function openDialog(userId) {
     );
 
     const chatMessages = document.getElementById('chat-messages');
-    chatMessages.innerHTML = data.messages.map(m => `
+    const lastMessage = data.messages.length ? data.messages[data.messages.length - 1] : null;
+    const signature = currentSupportChannel + ':' + userId + ':' + data.messages.length + ':' + (lastMessage ? lastMessage.id : 0);
+    if (signature !== currentDialogSignature) {
+        // Перерисовываем только когда переписка изменилась: иначе опрос каждые
+        // 8 секунд сбрасывал бы прокрутку, пока администратор читает историю.
+        const wasAtBottom = !sameDialog
+            || (chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight) < 40;
+        const previousScrollTop = chatMessages.scrollTop;
+        currentDialogSignature = signature;
+        chatMessages.innerHTML = data.messages.map(m => `
         <div class="chat-message ${m.sender === 'admin' ? 'chat-message-admin' : 'chat-message-user'}">
             <div class="chat-message-text">${escapeHtml(m.text)}</div>
             <div class="chat-message-time">${new Date(m.created_at).toLocaleString('ru')}</div>
         </div>
     `).join('');
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatMessages.scrollTop = wasAtBottom ? chatMessages.scrollHeight : previousScrollTop;
+    }
 
     // Сервер отметил прочитанными только сообщения этого диалога. Сразу
     // пересчитываем общий бейдж и список, не затрагивая остальные чаты.
