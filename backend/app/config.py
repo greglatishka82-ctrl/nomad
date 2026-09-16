@@ -28,12 +28,8 @@ class Settings:
     SECRET_KEY: str = _env("SECRET_KEY", "nomad-secret-key-change-in-production")
 
     GROQ_API_KEY: str = _env("GROQ_API_KEY")
-    GROQ_MODEL: str = _env("GROQ_MODEL", "openai/gpt-oss-20b")
     GROQ_BASE_URL: str = _env("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-
-    NVIDIA_API_KEY: str = _env("NVIDIA_API_KEY")
-    NVIDIA_MODEL: str = _env("NVIDIA_MODEL", "openai/gpt-oss-20b")
-    NVIDIA_BASE_URL: str = _env("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+    GROQ_MODEL: str = _env("GROQ_MODEL", "openai/gpt-oss-20b")
 
     LOCATION_MAIN = "Циолковского 30"
     LOCATION_EXAM = "Циолковского 30"

@@ -251,17 +251,6 @@ async def _build_date_buttons(
     return buttons
 
 
-def _callback_values(buttons: list, prefix: str) -> list[str]:
-    """Return exactly the values exposed by an inline keyboard."""
-    marker = f"{prefix}:"
-    return [
-        button.callback_data[len(marker):]
-        for row in buttons
-        for button in row
-        if button.callback_data and button.callback_data.startswith(marker)
-    ]
-
-
 async def _get_client_by_telegram(telegram_id: str) -> Optional[Client]:
     async with async_session() as db:
         result = await db.execute(
@@ -350,7 +339,6 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
 
         async with async_session() as db:
             buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
-        await state.update_data(offered_dates=_callback_values(buttons, "date"))
         kb = _kb_with_back(buttons)
         await callback.message.edit_text("Выберите дату:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_date)
@@ -375,7 +363,6 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
                 text=slot.strftime("%H:%M"),
                 callback_data=f"time:{slot.strftime('%H:%M')}"
             )])
-        await state.update_data(offered_times=[slot.strftime("%H:%M") for slot in slots[:12]])
         kb = _kb_with_back(buttons)
         await callback.message.edit_text("Выберите время:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_time)
@@ -391,7 +378,6 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
                 await state.clear()
                 return
             buttons = await _build_date_buttons(db, booking.service_type, booking.transmission, prefix="resch_date")
-        await state.update_data(offered_reschedule_dates=_callback_values(buttons, "resch_date"))
         kb = InlineKeyboardMarkup(inline_keyboard=buttons)
         await callback.message.edit_text("Выберите новую дату:", reply_markup=kb)
         await state.set_state(RescheduleStates.choosing_date)
@@ -467,11 +453,8 @@ async def process_name(message: Message, state: FSMContext):
 
 @router.callback_query(BookingStates.choosing_service, F.data.startswith("service:"))
 async def process_service(callback: CallbackQuery, state: FSMContext):
-    service = callback.data.split(":")[1]
-    if service not in {"training", "exam"}:
-        await callback.answer("Выберите услугу из предложенного списка.", show_alert=True)
-        return
     await callback.answer()
+    service = callback.data.split(":")[1]
     await state.update_data(service_type=service)
 
     # Пробный экзамен — только автомат и только на новой площадке
@@ -519,11 +502,8 @@ async def process_location(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(BookingStates.choosing_transmission, F.data.startswith("trans:"))
 async def process_transmission(callback: CallbackQuery, state: FSMContext):
-    trans = callback.data.split(":")[1]
-    if trans not in {"manual", "automatic"}:
-        await callback.answer("Выберите коробку передач из предложенного списка.", show_alert=True)
-        return
     await callback.answer()
+    trans = callback.data.split(":")[1]
     await state.update_data(transmission=trans)
 
     kb = _kb_with_back([
@@ -537,11 +517,8 @@ async def process_transmission(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(BookingStates.choosing_instructor_gender, F.data.startswith("gender:"))
 async def process_instructor_gender(callback: CallbackQuery, state: FSMContext):
-    gender = callback.data.split(":")[1]
-    if gender not in {"male", "female", "any"}:
-        await callback.answer("Выберите вариант из предложенного списка.", show_alert=True)
-        return
     await callback.answer()
+    gender = callback.data.split(":")[1]
     await state.update_data(instructor_gender=gender)
 
     data = await state.get_data()
@@ -559,7 +536,6 @@ async def process_instructor_gender(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text("К сожалению, на ближайшие 5 дней нет свободных дат. Попробуйте позже.")
         await state.clear()
         return
-    await state.update_data(offered_dates=_callback_values(buttons, "date"))
     kb = _kb_with_back(buttons)
     await callback.message.edit_text("Выберите дату:", reply_markup=kb)
     await state.set_state(BookingStates.choosing_date)
@@ -567,15 +543,10 @@ async def process_instructor_gender(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(BookingStates.choosing_date, F.data.startswith("date:"))
 async def process_date_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     # Extract date from callback data (format: date:DD.MM.YYYY)
     parts = callback.data.split(":", 1)  # Split only on first colon
     date_str = parts[1] if len(parts) > 1 else ""
-
-    data = await state.get_data()
-    if date_str not in data.get("offered_dates", []):
-        await callback.answer("На выбранную дату нельзя записаться. Выберите дату из списка.", show_alert=True)
-        return
-    await callback.answer()
 
     try:
         booking_date = datetime.strptime(date_str, "%d.%m.%Y").date()
@@ -588,6 +559,7 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text("Дата не может быть в прошлом. Выберите другую дату:")
         return
 
+    data = await state.get_data()
     service_type = ServiceType.TRAINING if data["service_type"] == "training" else ServiceType.EXAM
     trans_map = {"manual": "manual", "automatic": "automatic"}
     transmission = trans_map[data["transmission"]]
@@ -603,7 +575,6 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
     if not slots:
         async with async_session() as db:
             buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
-        await state.update_data(offered_dates=_callback_values(buttons, "date"))
         kb = _kb_with_back(buttons)
         await callback.message.edit_text(
             "На эту дату нет свободных слотов. Выберите другую дату:",
@@ -618,7 +589,6 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
             text=slot.strftime("%H:%M"),
             callback_data=f"time:{slot.strftime('%H:%M')}"
         )])
-    await state.update_data(offered_times=[slot.strftime("%H:%M") for slot in slots[:12]])
     kb = _kb_with_back(buttons)
     await callback.message.edit_text("Выберите время:", reply_markup=kb)
     await state.set_state(BookingStates.choosing_time)
@@ -626,30 +596,48 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
 
 @router.message(BookingStates.choosing_date)
 async def process_date(message: Message, state: FSMContext):
-    await message.answer("На выбранную дату нельзя записаться. Выберите дату из списка кнопок.")
+    try:
+        booking_date = datetime.strptime(message.text.strip(), "%d.%m.%Y").date()
+    except ValueError:
+        await message.answer("Неверный формат. Введите дату как ДД.ММ.ГГГГ:")
+        return
+    today_kz = datetime.now(TIMEZONE).date()
+    if booking_date < today_kz:
+        await message.answer("Дата не может быть в прошлом. Введите другую дату:")
+        return
+
+    data = await state.get_data()
+    service_type = ServiceType.TRAINING if data["service_type"] == "training" else ServiceType.EXAM
+    trans_map = {"manual": "manual", "automatic": "automatic"}
+    transmission = trans_map[data["transmission"]]
+    location = settings.LOCATION_EXAM  # для слотов передаём exam location, площадка определяется в финализации
+
+    gender_map = {"male": "male", "female": "female", "any": "any"}
+    instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
+
+    async with async_session() as db:
+        slots = await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender)
+
+    if not slots:
+        await message.answer("На эту дату нет свободных слотов. Попробуйте другую дату:")
+        return
+
+    await state.update_data(booking_date=str(booking_date))
+    buttons = []
+    for slot in slots[:12]:
+        buttons.append([InlineKeyboardButton(
+            text=slot.strftime("%H:%M"),
+            callback_data=f"time:{slot.strftime('%H:%M')}"
+        )])
+    kb = _kb_with_back(buttons)
+    await message.answer("Выберите время:", reply_markup=kb)
+    await state.set_state(BookingStates.choosing_time)
 
 
 @router.callback_query(BookingStates.choosing_time, F.data.startswith("time:"))
 async def process_time(callback: CallbackQuery, state: FSMContext):
-    time_str = callback.data.split(":", 1)[1]
-    data = await state.get_data()
-    if time_str not in data.get("offered_times", []):
-        await callback.answer("Это время недоступно. Выберите время из списка.", show_alert=True)
-        return
-
-    booking_date = date.fromisoformat(data["booking_date"])
-    service_type = ServiceType.TRAINING if data["service_type"] == "training" else ServiceType.EXAM
-    transmission = data["transmission"]
-    instructor_gender = data.get("instructor_gender", "any")
-    async with async_session() as db:
-        current_slots = await get_available_slots(
-            db, booking_date, service_type, transmission,
-            settings.LOCATION_EXAM, instructor_gender,
-        )
-    if time_str not in {slot.strftime("%H:%M") for slot in current_slots[:12]}:
-        await callback.answer("Этот слот уже занят. Выберите другое время из списка.", show_alert=True)
-        return
     await callback.answer()
+    time_str = callback.data.split(":", 1)[1]
     await state.update_data(start_time=time_str)
 
     client = await _get_client_by_telegram(str(callback.from_user.id))
@@ -674,11 +662,6 @@ async def process_time(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(f"Выбрано время: {time_str}")
         await callback.message.answer("Как вас зовут?", reply_markup=MAIN_KEYBOARD)
         await state.set_state(BookingStates.waiting_name)
-
-
-@router.message(BookingStates.choosing_time)
-async def reject_manual_booking_time(message: Message):
-    await message.answer("Это время недоступно. Выберите время из списка кнопок.")
 
 
 async def _finalize_booking(message: Message, state: FSMContext, telegram_id: str, client: Client = None):
@@ -1419,7 +1402,6 @@ async def start_reschedule(callback: CallbackQuery, state: FSMContext):
             return
         await state.update_data(reschedule_booking_id=booking_id)
         buttons = await _build_date_buttons(db, booking.service_type, booking.transmission, prefix="resch_date")
-        await state.update_data(offered_reschedule_dates=_callback_values(buttons, "resch_date"))
 
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.edit_text("Выберите новую дату:", reply_markup=kb)
@@ -1428,13 +1410,9 @@ async def start_reschedule(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(RescheduleStates.choosing_date, F.data.startswith("resch_date:"))
 async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     parts = callback.data.split(":", 1)
     date_str = parts[1] if len(parts) > 1 else ""
-    data = await state.get_data()
-    if date_str not in data.get("offered_reschedule_dates", []):
-        await callback.answer("На выбранную дату нельзя перенести запись. Выберите дату из списка.", show_alert=True)
-        return
-    await callback.answer()
     try:
         new_date = datetime.strptime(date_str, "%d.%m.%Y").date()
     except ValueError:
@@ -1445,6 +1423,7 @@ async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text("Дата не может быть в прошлом.")
         return
 
+    data = await state.get_data()
     booking_id = data["reschedule_booking_id"]
 
     async with async_session() as db:
@@ -1463,7 +1442,6 @@ async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
     if not slots:
         async with async_session() as db:
             buttons = await _build_date_buttons(db, booking.service_type, booking.transmission, prefix="resch_date")
-        await state.update_data(offered_reschedule_dates=_callback_values(buttons, "resch_date"))
         kb = InlineKeyboardMarkup(inline_keyboard=buttons)
         await callback.message.edit_text("Нет свободных слотов на эту дату. Выберите другую:", reply_markup=kb)
         return
@@ -1475,7 +1453,6 @@ async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
             text=slot.strftime("%H:%M"),
             callback_data=f"resch_time:{slot.strftime('%H:%M')}"
         )])
-    await state.update_data(offered_reschedule_times=[slot.strftime("%H:%M") for slot in slots[:12]])
     kb = _kb_with_back(buttons)
     await callback.message.edit_text("Выберите новое время:", reply_markup=kb)
     await state.set_state(RescheduleStates.choosing_time)
@@ -1483,25 +1460,18 @@ async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(RescheduleStates.choosing_time, F.data.startswith("resch_time:"))
 async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     chosen_time = callback.data.split(":", 1)[1]
 
     data = await state.get_data()
-    if chosen_time not in data.get("offered_reschedule_times", []):
-        await callback.answer("Это время недоступно. Выберите время из списка.", show_alert=True)
-        return
     booking_id = data["reschedule_booking_id"]
     new_date = date.fromisoformat(data["reschedule_new_date"])
-    try:
-        new_start = time.fromisoformat(chosen_time)
-    except ValueError:
-        await callback.answer("Это время недоступно. Выберите время из списка.", show_alert=True)
-        return
+    new_start = time.fromisoformat(chosen_time)
 
     async with async_session() as db:
         result = await db.execute(select(Booking).where(Booking.id == booking_id))
         booking = result.scalar_one_or_none()
         if not booking:
-            await callback.answer()
             await callback.message.edit_text("Запись не найдена.")
             await state.clear()
             return
@@ -1541,16 +1511,6 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
                 )
             )
             conflict = mobile_conflict_result.scalar_one_or_none()
-
-        current_slots = await get_available_slots_for_instructor(
-            db, new_date, booking.service_type, booking.transmission,
-            booking.location, current_instructor_id,
-            preserve_existing_assignment=True,
-        )
-        if chosen_time not in {slot.strftime("%H:%M") for slot in current_slots[:12]}:
-            await callback.answer("Этот слот уже занят. Выберите другое время из списка.", show_alert=True)
-            return
-        await callback.answer()
         if conflict:
             # У текущего инструктора занято — сообщаем клиенту
             buttons = []
@@ -1564,7 +1524,6 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
                     text=slot.strftime("%H:%M"),
                     callback_data=f"resch_time:{slot.strftime('%H:%M')}"
                 )])
-            await state.update_data(offered_reschedule_times=[slot.strftime("%H:%M") for slot in slots[:12]])
             kb = _kb_with_back(buttons) if buttons else None
             await callback.message.edit_text(
                 "На это время у вашего инструктора уже есть запись. Выберите другое время:",
@@ -1625,24 +1584,6 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
         except Exception as error:
             logger.error("Failed to send reschedule warning to Telegram client: %s", error)
     await state.clear()
-
-
-@router.message(RescheduleStates.choosing_date)
-async def reject_manual_reschedule_date(message: Message):
-    await message.answer("На выбранную дату нельзя перенести запись. Выберите дату из списка кнопок.")
-
-
-@router.message(RescheduleStates.choosing_time)
-async def reject_manual_reschedule_time(message: Message):
-    await message.answer("Это время недоступно. Выберите время из списка кнопок.")
-
-
-@router.message(BookingStates.choosing_service)
-@router.message(BookingStates.choosing_location)
-@router.message(BookingStates.choosing_transmission)
-@router.message(BookingStates.choosing_instructor_gender)
-async def reject_manual_booking_option(message: Message):
-    await message.answer("Выберите один из вариантов с помощью кнопок.")
 
 
 @router.message(F.text == "❓ FAQ")

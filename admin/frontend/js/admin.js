@@ -89,8 +89,6 @@ async function replaceOfflineApiCache(snapshot) {
         ...snapshot,
         instructors: data['/instructors'] || [],
         bookings: data['/bookings'] || [],
-        vehicles: data['/vehicles'] || [],
-        clients: data['/clients'] || [],
     };
     return new Promise((resolve, reject) => {
         const tx = db.transaction('api-cache', 'readwrite');
@@ -564,7 +562,11 @@ async function heartbeat() {
     if (offlineHeartbeatInFlight) return;
     offlineHeartbeatInFlight = true;
     try {
-        const res = await fetch(`${API}/check-session`, { credentials: 'include', cache: 'no-store' });
+        const res = await fetchWithTimeout(
+            `${API}/check-session`,
+            { credentials: 'include', cache: 'no-store' },
+            INITIAL_SESSION_TIMEOUT_MS,
+        );
         if (res.status === 401) {
             showLogin('Сессия завершена. Войдите снова.');
             return;
@@ -594,8 +596,10 @@ async function heartbeat() {
             await refreshOfflineSnapshot();
         }
     } catch (error) {
-        if (!navigator.onLine) setOfflineState(true);
-        else console.error('Проверка соединения с админкой не прошла', error);
+        // navigator.onLine is only a browser hint: it can stay true while
+        // the route to the admin API is unavailable.
+        setOfflineState(true);
+        console.warn('Проверка соединения с админкой не прошла, включён офлайн-режим', error);
     } finally {
         offlineHeartbeatInFlight = false;
     }
@@ -604,7 +608,10 @@ function startOfflineMonitoring() {
     heartbeat();
     offlineOperations().then(renderOfflineIssues).catch(() => {});
     if (offlineHeartbeatTimer) clearInterval(offlineHeartbeatTimer);
-    offlineHeartbeatTimer = setInterval(heartbeat, 30000);
+    // The browser's offline event reacts immediately. This one-minute request
+    // is its fallback when a network path disappears without changing
+    // navigator.onLine.
+    offlineHeartbeatTimer = setInterval(heartbeat, 60000);
     window.addEventListener('online', heartbeat);
     window.addEventListener('offline', () => setOfflineState(true));
 }
@@ -618,16 +625,10 @@ async function refreshOfflineSnapshot() {
         const res = await fetch(`${API}/offline-snapshot`, { credentials: 'include', cache: 'no-store' });
         if (!res.ok) throw new Error('Не удалось получить полный офлайн-снимок');
         const snapshot = await res.json();
-        const snapshotBookings = snapshot?.data?.['/bookings'];
-        const hasCompleteBookingLinks = Array.isArray(snapshotBookings)
-            && snapshotBookings.every(booking => booking.instructor_id !== null && booking.instructor_id !== undefined);
-        const requiredPaths = ['/bookings', '/instructors', '/clients', '/packages', '/certificates', '/faq',
-            '/notifications', '/waiting-list', '/audit-logs', '/instructor-daily-schedules',
-            '/instructor-days-off', '/offline-mobile-bookings', '/dashboard', '/notification-counts',
-            '/analytics/heatmap', '/analytics/instructor-load', '/analytics/booking-sources', '/analytics/gender',
-            '/analytics/revenue', '/certificate-requests', '/bookings/conflicts', '/settings/exam-sensors'];
-        const hasFullData = snapshot?.version >= 13 && requiredPaths.every(path => snapshot.data[path] !== undefined);
-        if (!snapshot?.slot_rules || !snapshot?.data || !hasCompleteBookingLinks || !hasFullData) {
+        const requiredPaths = ['/bookings', '/instructors', '/instructor-daily-schedules',
+            '/instructor-days-off', '/offline-mobile-bookings', '/settings/exam-sensors'];
+        const hasRequiredData = snapshot?.version >= 14 && requiredPaths.every(path => snapshot.data[path] !== undefined);
+        if (!snapshot?.booking_window || !snapshot?.slot_rules || !snapshot?.data || !hasRequiredData) {
             throw new Error('Сервер вернул неполный офлайн-снимок');
         }
         await replaceOfflineApiCache(snapshot);
@@ -669,11 +670,11 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
     const examSensorCapacity = Number.isInteger(rules.exam_sensor_capacity)
         ? rules.exam_sensor_capacity : 1;
     // Both services consume one gearbox pool; sensors can move between automatics.
-    const fleet = Array.isArray(snapshot.vehicles) ? snapshot.vehicles : [];
-    const availableVehicles = fleet.filter(vehicle =>
-        vehicle.transmission === transmission && !vehicle.is_under_repair
-    );
-    const vehicleCapacity = fleet.length ? availableVehicles.length : capacity;
+    const vehicleCapacities = rules.vehicle_capacity_by_transmission || {};
+    const hasFleetCapacityData = Object.prototype.hasOwnProperty.call(rules, 'has_available_fleet');
+    const vehicleCapacity = hasFleetCapacityData
+        ? Number(vehicleCapacities[transmission] || 0)
+        : capacity;
     const location = rules.location || 'Циолковского 30';
     const mobileBookings = snapshot.data?.['/offline-mobile-bookings'] || [];
     const allBookings = [...snapshot.bookings, ...mobileBookings];
@@ -1194,6 +1195,28 @@ function hideInitialLoading() {
     document.getElementById('app-loading')?.remove();
 }
 
+async function restoreOfflineDashboard() {
+    try {
+        const snapshot = await offlineRead('api-cache', 'offline-snapshot');
+        const requiredPaths = ['/bookings', '/instructors', '/instructor-daily-schedules',
+            '/instructor-days-off', '/offline-mobile-bookings'];
+        // Version 12 is accepted only as a one-time bridge for an already
+        // saved snapshot. Every new online refresh writes the smaller v13
+        // snapshot below.
+        const usable = snapshot?.version >= 12
+            && snapshot?.booking_window
+            && snapshot?.slot_rules
+            && requiredPaths.every(path => snapshot.data?.[path] !== undefined);
+        if (!usable) return false;
+        setOfflineState(true);
+        showDashboard();
+        return true;
+    } catch (error) {
+        console.warn('Локальный снимок админки недоступен', error);
+        return false;
+    }
+}
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errEl = document.getElementById('login-error');
@@ -1418,7 +1441,6 @@ async function apiGet(path) {
     } catch (error) {
         // Never mask a real server validation error with stale data.
         if (!(error instanceof TypeError)) throw error;
-        if (navigator.onLine) throw new Error('Не удалось связаться с сервером админки. Повторите действие.');
         setOfflineState(true);
         return readOfflineApi(path);
     }
@@ -1523,12 +1545,9 @@ async function apiDelete(path) {
 }
 
 function assertOfflineWriteAllowed(path) {
-    if (path === '/bookings/cancelled') {
-        throw new Error('Массовое удаление отменённых записей доступно только при подключении к серверу.');
-    }
-    const localEntities = /^\/(?:bookings|waiting-list|instructors|clients|packages|certificates|certificate-requests|faq)(?:\/|$)/;
-    const externalOnly = /\/mark-viewed$/.test(path);
-    if (!localEntities.test(path) || externalOnly) {
+    const bookingMutation = path === '/bookings/manual'
+        || /^\/bookings\/-?\d+(?:\/(?:edit|status|confirm))?$/.test(path);
+    if (!bookingMutation) {
         throw new Error('Это действие недоступно офлайн. Подключитесь к интернету.');
     }
 }
@@ -4113,11 +4132,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (res.ok && data?.ok === true) {
             // Сессия активна - показываем дашборд
             showDashboard();
+        } else if (res.status !== 401 && await restoreOfflineDashboard()) {
+            // A reachable but temporarily unhealthy server must not discard a
+            // previously authenticated local working copy.
         } else {
             // Сессия не активна - показываем логин
             showLogin();
         }
-    } catch { showLogin(); }
+    } catch {
+        if (!await restoreOfflineDashboard()) showLogin();
+    }
 });
 
 // --- Manual Bookings ---
@@ -4432,21 +4456,10 @@ async function addQueuedBookingToSnapshot(booking, operationId, localClientId) {
     const snapshot = await offlineRead('api-cache', 'offline-snapshot');
     if (!snapshot) return;
     const instructor = snapshot.instructors?.find(i => String(i.id) === String(booking.instructor_id));
-    let client = snapshot.clients?.find(item => String(item.id) === String(localClientId));
-    if (!client) {
-        client = {
-            id: localClientId, name: booking.client_name || booking.client_phone || 'Клиент',
-            phone: booking.client_phone || null, bookings_count: 0,
-            packages: [], certificates: [], created_at: new Date().toISOString(),
-        };
-        snapshot.clients ||= [];
-        snapshot.clients.unshift(client);
-    }
-    client.bookings_count = Number(client.bookings_count || 0) + 1;
     const localBooking = {
         id: `offline-${operationId}`, source: 'offline', client_name: booking.client_name,
         client_phone: booking.client_phone, instructor_name: booking.instructor_name || instructor?.name || 'Назначается',
-        client_id: client.id, instructor_id: booking.instructor_id, service_type: booking.service_type,
+        client_id: localClientId, instructor_id: booking.instructor_id, service_type: booking.service_type,
         transmission: booking.transmission, location: 'Циолковского 30', date: booking.booking_date,
         start_time: booking.start_time, end_time: formatMinutes(minutesFromTime(booking.start_time) + (
             booking.service_type === 'exam'
@@ -4458,7 +4471,6 @@ async function addQueuedBookingToSnapshot(booking, operationId, localClientId) {
     snapshot.bookings.push(localBooking);
     await offlineStore('api-cache', 'offline-snapshot', snapshot);
     await offlineStore('api-cache', '/bookings', snapshot.bookings);
-    await offlineStore('api-cache', '/clients', snapshot.clients);
 }
 
 

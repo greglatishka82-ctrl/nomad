@@ -142,11 +142,32 @@ function toggleChat() {
     }
 }
 
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatBotMessage(value) {
+    let html = escapeHtml(value);
+    html = html.replace(/(https?:\/\/[^\s<]+)/g, (url) =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    return html.replace(/\n/g, '<br>');
+}
+
 function addMessage(role, text) {
     const container = document.getElementById('chat-messages');
     const div = document.createElement('div');
     div.className = `msg ${role}`;
-    div.textContent = text;
+    if (role === 'bot') {
+        div.innerHTML = formatBotMessage(text);
+    } else {
+        div.textContent = text;
+    }
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -19,28 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 async def _seed_admin():
-    from sqlalchemy import select, update
-    from sqlalchemy.sql import func
+    from sqlalchemy import select
     from app.database import async_session
-    from app.models.models import Admin, FAQItem
-
-    FAQ_DATA = [
-        ("Сколько стоит одно занятие по вождению?", "Стоимость одного занятия составляет 6 000 тенге. Также доступны пакеты занятий — чем больше занятий в пакете, тем выгоднее цена за каждое.", 1),
-        ("Сколько длится одно занятие?", "Одно занятие по вождению длится 1 час. Пробный экзамен — 20 минут.", 2),
-        ("Где проходят занятия?", "Занятия по вождению и пробный экзамен проходят по адресу Циолковского 30.", 3),
-        ("Как записаться на занятие?", "Записаться можно через наш Telegram-бот https://t.me/nomadrive_bot или через мобильное приложение. Выберите тип занятия, коробку передач, удобную дату и время — инструктор назначается автоматически.", 4),
-        ("Можно ли выбрать конкретного инструктора?", "На данный момент инструктор назначается системой автоматически — выбирается свободный инструктор с наивысшим рейтингом. Вы можете указать предпочтение по полу инструктора.", 5),
-        ("Как отменить или перенести запись?", "Отменить или перенести запись можно через Telegram-бот в разделе «Мои записи» или в мобильном приложении.", 6),
-        ("Что такое пробный экзамен?", "Пробный экзамен — это репетиция реального экзамена на автодроме. Вы едете по экзаменационному маршруту, инструктор фиксирует ошибки. Помогает понять слабые места перед официальным экзаменом.", 7),
-        ("На каком автомобиле проходят занятия?", "Занятия проводятся как на механике так и на автомате — в зависимости от выбора при записи.", 8),
-        ("Сколько занятий нужно чтобы сдать экзамен?", "В среднем ученики готовы к экзамену после 10–15 занятий. Наши инструкторы дадут рекомендацию по готовности лично.", 9),
-        ("Есть ли скидки или акции?", "Да! Доступны пакеты занятий со скидкой, подарочные сертификаты, а также скидка 1000 ₸ на первое занятие по реферальному коду друга.", 10),
-        ("Как работает реферальная программа?", "Попросите у друга его реферальный код и введите его при регистрации в приложении. Вы получите скидку 1000 ₸ на своё первое занятие.", 11),
-        ("Что такое подарочный сертификат?", "Подарочный сертификат — это код с номиналом в тенге. Активируется в боте или приложении. Сумма автоматически вычитается из стоимости занятия.", 12),
-        ("Как связаться с автошколой?", "Позвоните нам: +77027182233. Также отвечаем через Telegram-бот https://t.me/nomadrive_bot и в разделе «Поддержка» в мобильном приложении.", 13),
-        ("В какое время работает автошкола?", "Занятия проводятся с 9:00 до 20:00. Последнее занятие начинается в 19:00. Актуальные слоты видны при записи.", 14),
-        ("Можно ли записаться на несколько занятий подряд?", "Да, можно записаться максимум на 2 занятия подряд в один день.", 15),
-    ]
+    from app.models.models import Admin
 
     async with async_session() as db:
         result = await db.execute(select(Admin).where(Admin.username == settings.ADMIN_USERNAME))
@@ -51,31 +33,6 @@ async def _seed_admin():
             ))
             await db.commit()
             logger.info(f"Default admin '{settings.ADMIN_USERNAME}' created")
-
-        faq_result = await db.execute(select(FAQItem))
-        existing_faqs = faq_result.scalars().all()
-        
-        if not existing_faqs:
-            # Создаем FAQ если их нет
-            for question, answer, sort_order in FAQ_DATA:
-                db.add(FAQItem(question=question, answer=answer, sort_order=sort_order, is_active=True))
-            await db.commit()
-            logger.info(f"FAQ наполнен {len(FAQ_DATA)} вопросами")
-        else:
-            # Обновляем FAQ если нашли старое имя бота
-            await db.execute(
-                update(FAQItem)
-                .where(FAQItem.answer.like('%@drivenomad_bot%'))
-                .values(answer=func.replace(FAQItem.answer, '@drivenomad_bot', 'https://t.me/nomadrive_bot'))
-            )
-            await db.execute(
-                update(FAQItem)
-                .where(FAQItem.answer.like('%@nomadrive_bot%'))
-                .values(answer=func.replace(FAQItem.answer, '@nomadrive_bot', 'https://t.me/nomadrive_bot'))
-            )
-            await db.commit()
-            logger.info("FAQ обновлены: заменено имя бота на полную ссылку https://t.me/nomadrive_bot")
-
 
 async def _scheduler_loop(bot):
     while True:
@@ -214,22 +171,24 @@ async def lifespan(app: FastAPI):
         logger.error("INSTRUCTOR_BOT_TOKEN not set!")
     if not settings.REPORT_BOT_TOKEN:
         logger.warning("REPORT_BOT_TOKEN not set, report bot disabled")
-    if not settings.GROQ_API_KEY and not settings.NVIDIA_API_KEY:
-        logger.warning("No AI API keys configured - chat will not work")
+    if not settings.GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not configured - chat will not work")
     
     await init_db()
     logger.info("Database initialized")
     
     await _seed_admin()
-    logger.info("Admin seeded")
+    logger.info("Admin ensured")
 
-    stop_bot_workers = asyncio.Event()
-    bot_workers_task = asyncio.create_task(_run_bot_workers(stop_bot_workers))
+    start_bots = os.getenv("START_BOTS", "true").lower() in {"1", "true", "yes"}
+    stop_bot_workers = asyncio.Event() if start_bots else None
+    bot_workers_task = asyncio.create_task(_run_bot_workers(stop_bot_workers)) if start_bots else None
     try:
         yield
     finally:
-        stop_bot_workers.set()
-        await bot_workers_task
+        if stop_bot_workers is not None and bot_workers_task is not None:
+            stop_bot_workers.set()
+            await bot_workers_task
 
 
 from fastapi.middleware.cors import CORSMiddleware

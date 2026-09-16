@@ -21,9 +21,7 @@ _ALLOWED = {"male", "female", "unknown"}
 
 
 def _provider() -> tuple[str, str, str] | None:
-    """NVIDIA takes priority when its three admin variables are configured."""
-    if settings.NVIDIA_API_KEY:
-        return "NVIDIA", settings.NVIDIA_BASE_URL.rstrip("/"), settings.NVIDIA_MODEL
+    """Return the Groq provider configuration."""
     if settings.GROQ_API_KEY:
         return "Groq", settings.GROQ_BASE_URL.rstrip("/"), settings.GROQ_MODEL
     return None
@@ -60,24 +58,27 @@ async def _classify_chunk(
             {
                 "role": "system",
                 "content": (
-                    "Определи предполагаемый пол только по имени. Верни строго JSON: "
-                    "{\"items\":[{\"id\":1,\"gender\":\"male|female|unknown\"}]}. "
-                    "Для неоднозначного имени, организации, мусора или сомнения ставь unknown. "
-                    "Не добавляй объяснений и не изменяй id."
+                    "Ты классификатор имён. Определи предполагаемый пол только по имени. "
+                    "Верни ровно один JSON-объект с массивом items. Каждый элемент должен "
+                    "содержать исходный числовой id и gender со значением male, female или unknown. "
+                    "Верни каждый переданный id ровно один раз и не изменяй его. Для неоднозначного "
+                    "имени, организации, мусора или сомнения ставь unknown. Не добавляй объяснений."
                 ),
             },
             {"role": "user", "content": json.dumps({"items": names}, ensure_ascii=False)},
         ],
     }
-    # NVIDIA's compatible endpoint does not require JSON mode. The strict
-    # instruction above works for both providers and avoids a provider-only
-    # parameter rejection.
-    if provider_name == "Groq":
-        payload["response_format"] = {"type": "json_object"}
     response = await client.post(
         f"{base_url}/chat/completions",
-        headers={"Authorization": f"Bearer {settings.NVIDIA_API_KEY if provider_name == 'NVIDIA' else settings.GROQ_API_KEY}"},
-        json=payload,
+        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+        json={
+            "model": model,
+            "messages": payload["messages"],
+            "stream": False,
+            "temperature": 0,
+            "max_tokens": 1024,
+            "response_format": {"type": "json_object"},
+        },
     )
     if response.status_code != 200:
         raise RuntimeError(f"{provider_name} returned HTTP {response.status_code}: {response.text[:300]}")
@@ -102,7 +103,7 @@ async def refresh_gender_analytics(force: bool = False) -> bool:
     """Refresh saved counts; a failure never overwrites the previous result."""
     provider = _provider()
     if provider is None:
-        logger.warning("Gender analytics skipped: configure either NVIDIA_* or GROQ_* in admin backend")
+        logger.warning("Gender analytics skipped: configure GROQ_API_KEY")
         return False
 
     lock_connection, acquired = await _acquire_lock()
@@ -123,8 +124,9 @@ async def refresh_gender_analytics(force: bool = False) -> bool:
 
         classified: dict[int, str] = {}
         async with httpx.AsyncClient(timeout=45.0) as client:
-            for offset in range(0, len(rows), _CHUNK_SIZE):
-                chunk = [(int(item_id), str(name)) for item_id, name in rows[offset:offset + _CHUNK_SIZE]]
+            chunk_size = 25
+            for offset in range(0, len(rows), chunk_size):
+                chunk = [(int(item_id), str(name)) for item_id, name in rows[offset:offset + chunk_size]]
                 classified.update(await _classify_chunk(client, chunk, provider))
 
         counts = {gender: sum(value == gender for value in classified.values()) for gender in _ALLOWED}

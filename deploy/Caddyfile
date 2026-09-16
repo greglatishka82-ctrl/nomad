@@ -1,0 +1,16 @@
+{
+    email admin@nomad.57-129-153-111.sslip.io
+}
+
+nomad.57-129-153-111.sslip.io {
+    encode zstd gzip
+    reverse_proxy /api/* site-api:8000
+    reverse_proxy /static/* site-api:8000
+    reverse_proxy site-frontend:80
+}
+
+admin.nomad.57-129-153-111.sslip.io {
+    encode zstd gzip
+    reverse_proxy /api/admin/* admin-api:8001
+    reverse_proxy admin-frontend:80
+}

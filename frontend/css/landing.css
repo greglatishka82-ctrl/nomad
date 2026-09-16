@@ -569,6 +569,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-width: 0;
 }
 
 .msg {
@@ -577,11 +578,29 @@ body {
     max-width: 80%;
     line-height: 1.5;
     font-size: 14px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
+}
+
+.msg a {
+    color: var(--primary);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.msg strong {
+    font-weight: 700;
 }
 
 .msg.user {
     align-self: flex-end;
     background: var(--primary);
+    color: white;
+}
+
+.msg.user a {
     color: white;
 }
 
@@ -626,6 +645,20 @@ body {
 
 .chat-send:hover {
     transform: scale(1.05);
+}
+
+@media (max-width: 440px) {
+    #chat-widget,
+    .chat-window {
+        bottom: 16px;
+        right: 16px;
+    }
+
+    .chat-window {
+        width: calc(100vw - 32px);
+        max-width: 380px;
+        height: min(500px, 72vh);
+    }
 }
 
 /* Footer */

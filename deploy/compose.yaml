@@ -1,0 +1,67 @@
+name: nomad
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  site-api:
+    build: {context: .., dockerfile: deploy/backend.Dockerfile}
+    restart: unless-stopped
+    env_file: .env
+    environment: {PORT: 8000, START_BOTS: "false"}
+    depends_on: {db: {condition: service_healthy}}
+    volumes: [site_static:/app/app/static]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  bot-worker:
+    build: {context: .., dockerfile: deploy/backend.Dockerfile}
+    restart: unless-stopped
+    env_file: .env
+    environment: {START_BOTS: "true"}
+    command: ["python", "bot_worker.py"]
+    depends_on: {db: {condition: service_healthy}}
+    volumes: [site_static:/app/app/static]
+  admin-api:
+    build: {context: .., dockerfile: deploy/admin-backend.Dockerfile}
+    restart: unless-stopped
+    env_file: .env
+    environment: {PORT: 8001}
+    depends_on: {db: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  site-frontend:
+    build: {context: .., dockerfile: deploy/site-frontend.Dockerfile}
+    restart: unless-stopped
+  admin-frontend:
+    build: {context: .., dockerfile: deploy/admin-frontend.Dockerfile}
+    restart: unless-stopped
+  gateway:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [site-api, admin-api, site-frontend, admin-frontend]
+volumes:
+  postgres_data:
+  site_static:
+  caddy_data:
+  caddy_config:

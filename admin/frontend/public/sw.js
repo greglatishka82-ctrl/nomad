@@ -1,4 +1,4 @@
-const CACHE = 'nomad-admin-shell-v12';
+const CACHE = 'nomad-admin-shell-v14';
 const SHELL_KEY = '/__nomad-admin-shell';
 
 async function fetchAndCache(request) {

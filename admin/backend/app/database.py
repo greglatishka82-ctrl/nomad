@@ -119,22 +119,6 @@ async def _sync_mobile_users_to_clients():
     logger.info("Synced legacy mobile_users to clients")
 
 
-async def _seed_default_fleet() -> None:
-    """Provide local SQLite with the same booking resources as PostgreSQL."""
-    from sqlalchemy import select
-    from app.models.models import BookingResource, Vehicle
-
-    async with async_session() as db:
-        if (await db.execute(select(Vehicle.id).limit(1))).scalar_one_or_none() is None:
-            db.add_all([
-                Vehicle(name="Машина 1", transmission="manual"),
-                *[Vehicle(name=f"Машина {number}", transmission="automatic") for number in range(2, 7)],
-            ])
-        if await db.get(BookingResource, "exam_sensor_kits") is None:
-            db.add(BookingResource(key="exam_sensor_kits", capacity=1))
-        await db.commit()
-
-
 def _verify_model_schema(conn):
     from sqlalchemy import inspect as sa_inspect
 
@@ -208,13 +192,12 @@ async def _run_explicit_migrations():
         # Fleet: six real cars replace the former global capacity-only rule.
         # This seed runs only once and preserves the established six-car
         # capacity while making the single manual car explicit.
-        "CREATE TABLE IF NOT EXISTS vehicles (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, transmission VARCHAR(50) NOT NULL, is_under_repair BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+        "CREATE TABLE IF NOT EXISTS vehicles (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, transmission VARCHAR(50) NOT NULL, usage_type VARCHAR(50) NOT NULL DEFAULT 'both', is_under_repair BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_vehicles_name ON vehicles (name);",
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS is_under_repair BOOLEAN NOT NULL DEFAULT FALSE;",
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS usage_type VARCHAR(50) NOT NULL DEFAULT 'both';",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_id INTEGER;",
         "CREATE INDEX IF NOT EXISTS ix_bookings_vehicle_slot ON bookings (vehicle_id, booking_date, start_time, end_time);",
-        "INSERT INTO vehicles (name, transmission, created_at) SELECT fleet.name, fleet.transmission, NOW() FROM (VALUES ('Машина 1', 'manual'), ('Машина 2', 'automatic'), ('Машина 3', 'automatic'), ('Машина 4', 'automatic'), ('Машина 5', 'automatic'), ('Машина 6', 'automatic')) AS fleet(name, transmission) WHERE NOT EXISTS (SELECT 1 FROM vehicles);",
         "CREATE TABLE IF NOT EXISTS booking_resources (key VARCHAR(50) PRIMARY KEY, capacity INTEGER NOT NULL DEFAULT 1 CHECK (capacity >= 0));",
         "INSERT INTO booking_resources (key, capacity) VALUES ('exam_sensor_kits', 1) ON CONFLICT (key) DO NOTHING;",
         
@@ -490,7 +473,6 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
 
     if engine.dialect.name != "postgresql":
-        await _seed_default_fleet()
         return
 
     async with engine.begin() as conn:

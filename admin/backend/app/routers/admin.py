@@ -1617,34 +1617,33 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
     the online admin compete with itself and left IndexedDB half-updated.
     """
     _get_admin_username(request)
-    await archive_previous_day_logs(db)
     # PostgreSQL REPEATABLE READ guarantees that every tab payload and every
     # raw table below sees one coherent database state. Lesson transitions are
     # performed by the site backend scheduler, never by merely opening admin.
+    # This must be the transaction's first SQL statement; asyncpg rejects an
+    # isolation-level change after archive_previous_day_logs has queried data.
     if db.get_bind().dialect.name == "postgresql":
         await db.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
-    # The recurring local copy intentionally excludes the historical tabs.
-    # The normal online booking screens and their API remain unchanged.
+    await archive_previous_day_logs(db)
+    # The offline working copy intentionally contains only the data needed to
+    # create and review appointments while disconnected. Historical and
+    # reference tabs remain online-only.
     bookings = await list_bookings(request, status="planned,confirmed,in_progress,pending,cancellation_pending,reschedule_pending,conflict,disputed", db=db)
-    instructors = await list_instructors(request, db=db)
-    vehicles = await list_vehicles(request, db=db)
-    clients = await list_clients(request, db=db)
-    packages = await list_packages(request, db=db)
-    certificates = await certificates_list(request, db=db)
-    faq = await faq_list(request, db=db)
-    notifications = await get_notifications(request, db=db)
-    waiting_list = await get_waiting_list(request, db=db)
-    audit = await audit_logs(request, db=db)
-    dashboard_data = await dashboard(request, db=db)
-    notification_counts = await get_notification_counts(request, response=Response(), db=db)
-    analytics_heatmap = await heatmap(request, db=db)
-    analytics_instructor_load = await instructor_load(request, db=db)
-    analytics_booking_sources = await booking_sources(request, db=db)
-    analytics_gender = await gender_breakdown(request, db=db)
-    analytics_revenue = await revenue_analytics(request, db=db)
-    certificate_requests = await get_certificate_requests(request, db=db)
-    conflict_groups = await get_conflict_groups(request, db=db)
-    schedules = (await db.execute(select(InstructorDailySchedule))).scalars().all()
+    all_instructors = (await db.execute(select(Instructor).order_by(Instructor.name))).scalars().all()
+    instructors = [{
+        "id": item.id, "name": item.name, "transmission": item.transmission,
+        "lesson_type": item.lesson_type or "both", "is_active": item.is_active is not False,
+        "working_hours_start": str(item.working_hours_start),
+        "working_hours_end": str(item.working_hours_end),
+        "lunch_start": str(item.lunch_start) if item.lunch_start else None,
+        "lunch_end": str(item.lunch_end) if item.lunch_end else None,
+        "days_off": item.days_off, "is_duty": item.is_duty,
+    } for item in all_instructors]
+    first_date, last_date = await _manual_booking_window(db)
+    schedule_last_date = first_date + timedelta(days=6)
+    schedules = (await db.execute(
+        select(InstructorDailySchedule).where(InstructorDailySchedule.schedule_date.between(first_date, schedule_last_date))
+    )).scalars().all()
     daily_schedules = [{
         "instructor_id": item.instructor_id, "schedule_date": item.schedule_date.isoformat(),
         "is_day_off": item.is_day_off,
@@ -1653,7 +1652,9 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
         "lunch_start": str(item.lunch_start) if item.lunch_start else None,
         "lunch_end": str(item.lunch_end) if item.lunch_end else None,
     } for item in schedules]
-    days_off = (await db.execute(select(InstructorDayOff))).scalars().all()
+    days_off = (await db.execute(
+        select(InstructorDayOff).where(InstructorDayOff.day_off_date.between(first_date, schedule_last_date))
+    )).scalars().all()
     instructor_days_off = [{"instructor_id": item.instructor_id, "day_off_date": item.day_off_date.isoformat()} for item in days_off]
     mobile_bookings = (await db.execute(
         select(MobileBooking)
@@ -1671,13 +1672,15 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
         "end_time": item.end_time.strftime("%H:%M") if item.end_time else None,
         "status": item.status,
     } for item in mobile_bookings]
-    first_date, last_date = await _manual_booking_window(db)
+    available_vehicle_transmissions = (await db.execute(
+        select(Vehicle.transmission).where(Vehicle.is_under_repair.is_(False))
+    )).scalars().all()
     exam_sensor_resource = await db.get(BookingResource, "exam_sensor_kits")
     exam_sensor_settings = {
         "capacity": exam_sensor_resource.capacity if exam_sensor_resource else 0
     }
     return {
-        "version": 13,
+        "version": 14,
         "synced_at": now_kz().isoformat(),
         "booking_window": {"min_date": first_date.isoformat(), "max_date": last_date.isoformat()},
         "slot_rules": {
@@ -1686,20 +1689,16 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
             "exam_sensor_capacity": exam_sensor_settings["capacity"],
             "training_duration_minutes": settings.TRAINING_DURATION_MINUTES,
             "exam_duration_minutes": settings.EXAM_DURATION_MINUTES,
+            "has_available_fleet": bool(available_vehicle_transmissions),
+            "vehicle_capacity_by_transmission": {
+                "automatic": sum(item == "automatic" for item in available_vehicle_transmissions),
+                "manual": sum(item == "manual" for item in available_vehicle_transmissions),
+            },
         },
         "data": {
-            "/bookings": bookings, "/instructors": instructors, "/vehicles": vehicles, "/clients": clients,
-            "/packages": packages, "/certificates": certificates, "/faq": faq,
-            "/notifications": notifications, "/waiting-list": waiting_list,
-            "/audit-logs": audit,
+            "/bookings": bookings, "/instructors": instructors,
             "/instructor-daily-schedules": daily_schedules, "/instructor-days-off": instructor_days_off,
             "/offline-mobile-bookings": offline_mobile_bookings,
-            "/dashboard": dashboard_data, "/notification-counts": notification_counts,
-            "/analytics/heatmap": analytics_heatmap, "/analytics/instructor-load": analytics_instructor_load,
-            "/analytics/booking-sources": analytics_booking_sources,
-            "/analytics/gender": analytics_gender,
-            "/analytics/revenue": analytics_revenue,
-            "/certificate-requests": certificate_requests, "/bookings/conflicts": conflict_groups,
             "/settings/exam-sensors": exam_sensor_settings,
         },
     }
@@ -5561,14 +5560,12 @@ async def import_full_backup(request: Request, db: AsyncSession = Depends(get_db
                 instructor_id_map[old_id] = instructor.id
                 stats['instructors'] += 1
 
-        # Backups before format 3 had no fleet. Restore the documented default
-        # instead of leaving every later booking without a compatible car.
         vehicle_rows = backup_data.get('vehicles')
         if vehicle_rows is None:
-            vehicle_rows = [
-                {"id": 1, "name": "Машина 1", "transmission": "manual"},
-                *[{"id": number, "name": f"Машина {number}", "transmission": "automatic"} for number in range(2, 7)],
-            ]
+            raise HTTPException(
+                status_code=400,
+                detail="В резервной копии отсутствует список автомобилей; восстановление без фактических данных невозможно",
+            )
         if not isinstance(vehicle_rows, list):
             raise HTTPException(status_code=400, detail="Поле vehicles должно быть списком")
         for vehicle_data in vehicle_rows:

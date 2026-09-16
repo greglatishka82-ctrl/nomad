@@ -1,0 +1,30 @@
+diff --git a/backend/app/main.py b/backend/app/main.py
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -1,5 +1,6 @@
+ import asyncio
+ import logging
++import os
+ from contextlib import asynccontextmanager
+ 
+ from fastapi import FastAPI, HTTPException
+@@ -223,13 +224,15 @@ async def lifespan(app: FastAPI):
+     await _seed_admin()
+     logger.info("Admin seeded")
+ 
+-    stop_bot_workers = asyncio.Event()
+-    bot_workers_task = asyncio.create_task(_run_bot_workers(stop_bot_workers))
++    start_bots = os.getenv("START_BOTS", "true").lower() in {"1", "true", "yes"}
++    stop_bot_workers = asyncio.Event() if start_bots else None
++    bot_workers_task = asyncio.create_task(_run_bot_workers(stop_bot_workers)) if start_bots else None
+     try:
+         yield
+     finally:
+-        stop_bot_workers.set()
+-        await bot_workers_task
++        if stop_bot_workers is not None and bot_workers_task is not None:
++            stop_bot_workers.set()
++            await bot_workers_task
+ 
+ 
+ from fastapi.middleware.cors import CORSMiddleware
