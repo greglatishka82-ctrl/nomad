@@ -2790,3 +2790,246 @@ a:hover {
   background: #fff3a3 !important;
   box-shadow: inset 0 0 0 2px #f59e0b;
 }
+
+/* ======================== РЕЖИМ РАССЫЛКИ В «ПОДДЕРЖКЕ» ======================== */
+.support-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#page-support.broadcast-on {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0) 220px);
+  border-radius: 14px;
+}
+
+.broadcast-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+}
+
+.broadcast-switch input,
+.broadcast-status input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.broadcast-switch-track,
+.broadcast-status-track {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: #cbd5e1;
+  transition: background 0.18s ease;
+  flex: none;
+}
+
+.broadcast-switch-thumb,
+.broadcast-status-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.broadcast-switch input:checked + .broadcast-switch-track {
+  background: var(--primary);
+}
+
+.broadcast-switch input:checked + .broadcast-switch-track .broadcast-switch-thumb {
+  transform: translateX(20px);
+}
+
+.broadcast-switch input:focus-visible + .broadcast-switch-track,
+.broadcast-status input:focus-visible + .broadcast-status-track {
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.broadcast-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--warning-light);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.broadcast-progress {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.broadcast-panel {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+}
+
+.broadcast-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.broadcast-panel-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.broadcast-saved-at {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.broadcast-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.broadcast-channel {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 5px;
+  color: #fff;
+}
+
+.broadcast-channel-tg { background: #0088cc; }
+.broadcast-channel-wa { background: #25d366; color: #04361a; }
+
+.broadcast-sent-badge {
+  margin-left: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--success-text);
+  background: var(--success-light);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-full);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.support-dialog-item.broadcast-item.is-sent {
+  background: var(--success-light);
+}
+
+.support-dialog-item.broadcast-item.is-sent .dialog-preview {
+  color: var(--success-text);
+}
+
+.broadcast-chat-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--warning-light);
+  border-bottom: 1px solid var(--warning-border);
+}
+
+.broadcast-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.broadcast-status input:checked + .broadcast-status-track {
+  background: var(--success);
+}
+
+.broadcast-status input:checked + .broadcast-status-track .broadcast-status-thumb {
+  transform: translateX(20px);
+}
+
+.broadcast-status-text.is-sent {
+  color: var(--success-text);
+}
+
+.broadcast-status-wide {
+  margin-top: 18px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+}
+
+.broadcast-whatsapp {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.broadcast-whatsapp-card {
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  padding: 28px 24px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.broadcast-whatsapp-icon { font-size: 34px; line-height: 1; }
+
+.broadcast-whatsapp-name { margin: 10px 0 2px; font-size: 1.05rem; }
+
+.broadcast-whatsapp-phone {
+  margin: 0 0 18px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.broadcast-whatsapp-hint {
+  margin: 16px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+  .support-mode-bar { align-items: flex-start; }
+  .broadcast-progress { margin-left: 0; }
+  .broadcast-chat-bar { gap: 8px; padding: 10px 12px; }
+}

@@ -7,14 +7,18 @@ POST /api/admin/support/dialogs/{user_id}/reply
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.models.models import Booking, Client, Instructor, SupportMessage, now_kz
+from app.models.models import (
+    Booking, BroadcastSettings, BroadcastStatus, Client, Instructor,
+    MobileSession, SupportMessage, now_kz,
+)
 from app.services.activity_log import record_admin_action
+from app.services.phone_utils import normalize_phone
 from app.services.push_service import send_push_to_user
 
 router = APIRouter(prefix="/api/admin/support", tags=["admin-support"])
@@ -523,3 +527,169 @@ async def mark_support_viewed(request: Request, db: AsyncSession = Depends(get_d
     """
     _require_admin(request)
     return {"ok": True, "deprecated": True}
+
+
+# --- Рассылка клиентам (включаемый режим вкладки «Поддержка») ---
+
+BROADCAST_ID = 1
+
+
+def _broadcast_channel(client: Client) -> str:
+    """Telegram определяется по привязанному Telegram-профилю, остальные — WhatsApp."""
+    return "telegram" if client.telegram_id else "whatsapp"
+
+
+def _whatsapp_digits(phone: str | None) -> str | None:
+    """Номер для ссылки WhatsApp Click to Chat: только цифры, без «+»."""
+    normalized = normalize_phone(phone)
+    return normalized.lstrip("+") if normalized else None
+
+
+async def _apk_client_ids(db: AsyncSession) -> set[int]:
+    """Клиенты, заходившие в мобильное приложение: в рассылку не попадают."""
+    rows = await db.execute(select(MobileSession.client_id).distinct())
+    return {client_id for client_id in rows.scalars().all() if client_id is not None}
+
+
+async def _broadcast_clients(db: AsyncSession) -> list[tuple[Client, str]]:
+    """Telegram- и WhatsApp-клиенты в порядке регистрации.
+
+    Порядок по возрастанию id: новый клиент всегда появляется в конце списка,
+    а смена статуса список не пересортировывает.
+    """
+    apk_ids = await _apk_client_ids(db)
+    rows = await db.execute(
+        select(Client).where(Client.is_deleted == False).order_by(Client.id)
+    )
+    return [
+        (client, _broadcast_channel(client))
+        for client in rows.scalars().all()
+        if client.id not in apk_ids
+    ]
+
+
+async def _require_broadcast_client(db: AsyncSession, client_id: int) -> tuple[Client, str]:
+    client = await db.get(Client, client_id)
+    if not client or client.is_deleted:
+        raise HTTPException(status_code=404, detail="Клиент не найден")
+    apk_ids = await _apk_client_ids(db)
+    if client.id in apk_ids:
+        raise HTTPException(status_code=400, detail="Клиент приложения APK в рассылку не входит")
+    return client, _broadcast_channel(client)
+
+
+@router.get("/broadcast/settings")
+async def get_broadcast_settings(request: Request, db: AsyncSession = Depends(get_db)):
+    _require_admin(request)
+    row = await db.get(BroadcastSettings, BROADCAST_ID)
+    return {
+        "text": (row.text if row else "") or "",
+        "updated_at": row.updated_at.isoformat() if row and row.updated_at else None,
+    }
+
+
+class BroadcastTextRequest(BaseModel):
+    text: str = Field(default="", max_length=4000)
+
+
+@router.put("/broadcast/settings")
+async def save_broadcast_settings(
+    body: BroadcastTextRequest, request: Request, db: AsyncSession = Depends(get_db),
+):
+    username = _require_admin(request)
+    row = await db.get(BroadcastSettings, BROADCAST_ID)
+    if row is None:
+        row = BroadcastSettings(id=BROADCAST_ID)
+        db.add(row)
+    row.text = body.text.strip()
+    row.updated_at = now_kz()
+    await db.commit()
+    await record_admin_action(
+        db, username, "support_broadcast_text",
+        "Администратор сохранил текст рассылки в поддержке.",
+    )
+    return {"ok": True, "text": row.text, "updated_at": row.updated_at.isoformat()}
+
+
+@router.get("/broadcast/clients")
+async def list_broadcast_clients(request: Request, db: AsyncSession = Depends(get_db)):
+    _require_admin(request)
+    pairs = await _broadcast_clients(db)
+    statuses = {
+        item.client_id: item
+        for item in (await db.execute(select(BroadcastStatus))).scalars().all()
+    }
+    unread_rows = await db.execute(
+        select(SupportMessage.client_id, func.count())
+        .where(
+            SupportMessage.client_id.isnot(None),
+            SupportMessage.sender == "user",
+            SupportMessage.is_admin_read == False,
+        )
+        .group_by(SupportMessage.client_id)
+    )
+    unread = {client_id: count for client_id, count in unread_rows.all()}
+
+    clients = []
+    sent = 0
+    for client, channel in pairs:
+        status = statuses.get(client.id)
+        is_sent = bool(status and status.is_sent)
+        if is_sent:
+            sent += 1
+        clients.append({
+            "client_id": client.id,
+            "name": client.name,
+            "phone": client.phone,
+            "channel": channel,
+            "whatsapp_number": _whatsapp_digits(client.phone) if channel == "whatsapp" else None,
+            "is_sent": is_sent,
+            "sent_at": status.sent_at.isoformat() if status and status.sent_at else None,
+            "unread_from_user": unread.get(client.id, 0),
+        })
+    return {"total": len(clients), "sent": sent, "clients": clients}
+
+
+class BroadcastStatusRequest(BaseModel):
+    client_id: int
+    is_sent: bool
+
+
+@router.post("/broadcast/status")
+async def set_broadcast_status(
+    body: BroadcastStatusRequest, request: Request, db: AsyncSession = Depends(get_db),
+):
+    _require_admin(request)
+    await _require_broadcast_client(db, body.client_id)
+
+    row = await db.get(BroadcastStatus, body.client_id)
+    if row is None:
+        row = BroadcastStatus(client_id=body.client_id)
+        db.add(row)
+    row.is_sent = bool(body.is_sent)
+    row.sent_at = now_kz() if body.is_sent else None
+    row.updated_at = now_kz()
+    await db.commit()
+    return {
+        "ok": True,
+        "client_id": body.client_id,
+        "is_sent": row.is_sent,
+        "sent_at": row.sent_at.isoformat() if row.sent_at else None,
+    }
+
+
+@router.post("/broadcast/reset")
+async def reset_broadcast_statuses(request: Request, db: AsyncSession = Depends(get_db)):
+    """Снимает отметки «Отправлено» — только статусы, переписку не трогает."""
+    username = _require_admin(request)
+    result = await db.execute(
+        update(BroadcastStatus)
+        .where(BroadcastStatus.is_sent == True)
+        .values(is_sent=False, sent_at=None, updated_at=now_kz())
+    )
+    await db.commit()
+    await record_admin_action(
+        db, username, "support_broadcast_reset",
+        f"Администратор сбросил статусы рассылки (снято отметок: {result.rowcount or 0}).",
+    )
+    return {"ok": True, "reset": result.rowcount or 0}

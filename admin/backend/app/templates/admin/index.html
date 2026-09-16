@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -899,9 +899,33 @@
 
         <!-- 7. SUPPORT CHAT PAGE -->
         <div id="page-support" class="page">
-          <div class="support-tabs">
-            <button class="support-tab active" id="support-tab-clients" onclick="switchSupportChannel('clients')">👤 Клиенты</button>
+          <div class="support-mode-bar">
+            <div class="support-tabs">
+              <button class="support-tab active" id="support-tab-clients" onclick="switchSupportChannel('clients')">👤 Клиенты</button>
             <button class="support-tab" id="support-tab-instructors" onclick="switchSupportChannel('instructors')">👨‍🏫 Инструкторы</button>
+            </div>
+            <label class="broadcast-switch" title="Включить режим рассылки клиентам">
+              <input type="checkbox" id="broadcast-mode-toggle" onchange="toggleBroadcastMode(this.checked)">
+              <span class="broadcast-switch-track"><span class="broadcast-switch-thumb"></span></span>
+              <span class="broadcast-switch-label">Режим рассылки</span>
+            </label>
+          </div>
+
+          <div id="broadcast-banner" class="broadcast-banner hidden">
+            <span>📣 Режим рассылки включён</span>
+            <span id="broadcast-progress" class="broadcast-progress">Отправлено 0 из 0</span>
+            <button class="btn btn-outline btn-sm" onclick="resetBroadcastStatuses()">Сбросить статусы</button>
+          </div>
+
+          <div id="broadcast-panel" class="broadcast-panel hidden">
+            <div class="broadcast-panel-head">
+              <span class="broadcast-panel-title">Текст рассылки</span>
+              <span id="broadcast-saved-at" class="broadcast-saved-at">Текст ещё не сохранён</span>
+            </div>
+            <textarea id="broadcast-text" class="form-control" rows="4" placeholder="Вставьте текст опроса — он подставится в Telegram и WhatsApp"></textarea>
+            <div class="broadcast-panel-actions">
+              <button class="btn btn-primary btn-sm" id="broadcast-save-btn" onclick="saveBroadcastText()">Сохранить</button>
+            </div>
           </div>
 
           <div class="chat-layout support-layout">
@@ -923,10 +947,33 @@
                     <span class="badge badge-success">В сети</span>
                   </div>
                 </div>
+                <div id="broadcast-chat-bar" class="broadcast-chat-bar hidden">
+                  <button class="btn btn-primary btn-sm" onclick="insertBroadcastText()">📋 Вставить текст</button>
+                  <label class="broadcast-status" title="Отметить, что сообщение отправлено">
+                    <input type="checkbox" id="broadcast-status-toggle" onchange="setBroadcastStatus(this.checked)">
+                    <span class="broadcast-status-track"><span class="broadcast-status-thumb"></span></span>
+                    <span id="broadcast-status-text" class="broadcast-status-text">Не отправлено</span>
+                  </label>
+                </div>
                 <div class="chat-messages-box chat-messages" id="chat-messages"></div>
                 <div class="chat-input-bar chat-input-wrapper">
                   <textarea id="chat-input" class="form-control flex-1" placeholder="Напишите ответ (Enter для отправки)..." rows="2"></textarea>
                   <button class="btn btn-primary" onclick="sendReply()">Отправить 📤</button>
+                </div>
+              </div>
+
+              <div id="broadcast-whatsapp" class="broadcast-whatsapp hidden">
+                <div class="broadcast-whatsapp-card">
+                  <div class="broadcast-whatsapp-icon">🟢</div>
+                  <h3 id="broadcast-wa-name" class="broadcast-whatsapp-name">—</h3>
+                  <p id="broadcast-wa-phone" class="broadcast-whatsapp-phone"></p>
+                  <button class="btn btn-success" id="broadcast-wa-open" onclick="openWhatsAppChat()">Открыть WhatsApp</button>
+                  <p class="broadcast-whatsapp-hint">Откроется чат клиента с подставленным текстом рассылки. Отправьте сообщение в WhatsApp, вернитесь сюда и переключите статус.</p>
+                  <label class="broadcast-status broadcast-status-wide">
+                    <input type="checkbox" id="broadcast-wa-status-toggle" onchange="setBroadcastStatus(this.checked)">
+                    <span class="broadcast-status-track"><span class="broadcast-status-thumb"></span></span>
+                    <span id="broadcast-wa-status-text" class="broadcast-status-text">Не отправлено</span>
+                  </label>
                 </div>
               </div>
             </div>

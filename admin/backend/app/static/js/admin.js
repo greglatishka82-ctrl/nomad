@@ -1,4 +1,4 @@
-﻿// API URL из переменной окружения Vite
+// API URL из переменной окружения Vite
 const API = '/api/admin';
 const INITIAL_SESSION_TIMEOUT_MS = 8000;
 
@@ -2112,6 +2112,11 @@ async function openClientChat(clientId) {
         showToast('У этого клиента нет Telegram-профиля: свяжитесь с ним по телефону', 'error');
         return;
     }
+    if (broadcastMode) {
+        const toggle = document.getElementById('broadcast-mode-toggle');
+        if (toggle) toggle.checked = false;
+        toggleBroadcastMode(false);
+    }
     currentSupportChannel = 'clients';
     await navigateTo('support');
     await openDialog(clientId);
@@ -3354,6 +3359,10 @@ let currentDialogUserId = null;
 let currentSupportChannel = 'clients';
 
 function switchSupportChannel(channel) {
+    if (broadcastMode) {
+        showToast('Сначала выключите режим рассылки', 'error');
+        return;
+    }
     currentSupportChannel = channel;
     currentDialogUserId = null;
     document.getElementById('support-tab-clients')?.classList.toggle('active', channel === 'clients');
@@ -3367,6 +3376,11 @@ function switchSupportChannel(channel) {
 }
 
 async function loadSupport() {
+    // В режиме рассылки левый список — это база клиентов, а не список диалогов.
+    if (broadcastMode) {
+        await loadBroadcastClients();
+        return;
+    }
     const dialogs = await apiGet(currentSupportChannel === 'clients' ? '/support/dialogs' : '/support/instructors/dialogs');
     if (!dialogs) return;
     const list = document.getElementById('support-dialogs');
@@ -3468,6 +3482,255 @@ document.getElementById('chat-input')?.addEventListener('keydown', (e) => {
         sendReply();
     }
 });
+
+// --- Режим рассылки (вкладка «Поддержка») ---
+let broadcastMode = false;
+let broadcastClients = [];
+let broadcastText = '';
+let broadcastSelectedClientId = null;
+let broadcastSelectedChannel = null;
+let broadcastWhatsappNumber = null;
+let broadcastLastSignature = '';
+
+function broadcastSentCount() {
+    return broadcastClients.filter(c => c.is_sent).length;
+}
+
+function updateBroadcastProgress() {
+    const el = document.getElementById('broadcast-progress');
+    if (el) el.textContent = 'Отправлено ' + broadcastSentCount() + ' из ' + broadcastClients.length;
+}
+
+function toggleBroadcastMode(enabled) {
+    broadcastMode = !!enabled;
+    document.getElementById('broadcast-banner')?.classList.toggle('hidden', !broadcastMode);
+    document.getElementById('broadcast-panel')?.classList.toggle('hidden', !broadcastMode);
+    document.getElementById('page-support')?.classList.toggle('broadcast-on', broadcastMode);
+    document.getElementById('support-tab-instructors')?.classList.toggle('hidden', broadcastMode);
+    if (broadcastMode) {
+        currentSupportChannel = 'clients';
+        currentDialogUserId = null;
+        document.getElementById('support-tab-clients')?.classList.add('active');
+        document.getElementById('chat-active')?.classList.add('hidden');
+        document.getElementById('chat-empty')?.classList.remove('hidden');
+        document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
+        document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
+        broadcastLastSignature = '';
+        loadBroadcastSettings();
+        loadBroadcastClients();
+        showToast('Режим рассылки включён');
+    } else {
+        broadcastSelectedClientId = null;
+        broadcastSelectedChannel = null;
+        broadcastWhatsappNumber = null;
+        document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
+        document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
+        loadSupport();
+        showToast('Режим рассылки выключен');
+    }
+}
+
+async function loadBroadcastSettings() {
+    const data = await apiGet('/support/broadcast/settings');
+    if (!data) return;
+    broadcastText = data.text || '';
+    const area = document.getElementById('broadcast-text');
+    if (area && document.activeElement !== area) area.value = broadcastText;
+    showBroadcastSavedAt(data.updated_at);
+}
+
+function showBroadcastSavedAt(iso) {
+    const stamp = document.getElementById('broadcast-saved-at');
+    if (!stamp) return;
+    stamp.textContent = (broadcastText && iso)
+        ? 'Сохранено: ' + new Date(iso).toLocaleString('ru')
+        : 'Текст ещё не сохранён';
+}
+
+async function saveBroadcastText() {
+    const area = document.getElementById('broadcast-text');
+    if (!area) return;
+    const button = document.getElementById('broadcast-save-btn');
+    if (button) button.disabled = true;
+    try {
+        const data = await apiPut('/support/broadcast/settings', { text: area.value });
+        if (!data) return;
+        broadcastText = data.text || '';
+        showBroadcastSavedAt(data.updated_at);
+        showToast('Текст рассылки сохранён');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+function broadcastSignature() {
+    return broadcastClients.map(c => c.client_id + ':' + (c.is_sent ? 1 : 0) + ':' + (c.unread_from_user || 0)).join(',');
+}
+
+function rememberBroadcastList() {
+    broadcastLastSignature = broadcastSignature();
+}
+
+async function loadBroadcastClients() {
+    const data = await apiGet('/support/broadcast/clients');
+    if (!data) return;
+    broadcastClients = data.clients || [];
+    updateBroadcastProgress();
+    // Полная перерисовка каждые 8 секунд съедала бы клик администратора,
+    // поэтому список обновляем только при реальном изменении данных.
+    if (broadcastSignature() !== broadcastLastSignature) {
+        broadcastLastSignature = broadcastSignature();
+        renderBroadcastList();
+    }
+}
+
+function renderBroadcastList() {
+    const list = document.getElementById('support-dialogs');
+    if (!list) return;
+    const scrollTop = list.scrollTop;
+    if (!broadcastClients.length) {
+        list.innerHTML = '<p style="color:var(--text-secondary);padding:32px 16px;text-align:center">Подходящих клиентов нет</p>';
+        return;
+    }
+    list.innerHTML = broadcastClients.map(c => {
+        const initial = escapeHtml(c.name ? c.name.charAt(0).toUpperCase() : '?');
+        const active = broadcastSelectedClientId === c.client_id ? ' active' : '';
+        const sent = c.is_sent ? ' is-sent' : '';
+        const channel = c.channel === 'telegram'
+            ? '<span class="broadcast-channel broadcast-channel-tg">TG</span>'
+            : '<span class="broadcast-channel broadcast-channel-wa">WA</span>';
+        const badge = c.is_sent ? '<span class="broadcast-sent-badge">✓ Отправлено</span>' : '';
+        const unread = c.unread_from_user ? '<div class="dialog-unread-badge">' + c.unread_from_user + '</div>' : '';
+        return '<div class="support-dialog-item broadcast-item' + active + sent + '" data-client-id="' + c.client_id + '" onclick="selectBroadcastClient(' + c.client_id + ')">'
+            + '<div class="dialog-avatar">' + initial + '</div>'
+            + '<div class="dialog-info">'
+            + '<div class="dialog-header"><strong class="dialog-name">' + escapeHtml(c.name) + channel + '</strong>' + badge + '</div>'
+            + '<div class="dialog-preview">' + escapeHtml(c.phone || '—') + '</div>'
+            + '</div>' + unread + '</div>';
+    }).join('');
+    list.scrollTop = scrollTop;
+}
+
+function updateBroadcastListItem(clientId) {
+    const client = broadcastClients.find(c => c.client_id === clientId);
+    const item = document.querySelector('.broadcast-item[data-client-id="' + clientId + '"]');
+    if (!client || !item) return;
+    item.classList.toggle('is-sent', !!client.is_sent);
+    const header = item.querySelector('.dialog-header');
+    let badge = item.querySelector('.broadcast-sent-badge');
+    if (client.is_sent && !badge && header) {
+        badge = document.createElement('span');
+        badge.className = 'broadcast-sent-badge';
+        badge.textContent = '✓ Отправлено';
+        header.appendChild(badge);
+    } else if (!client.is_sent && badge) {
+        badge.remove();
+    }
+    rememberBroadcastList();
+}
+
+function updateBroadcastStatusUI(isSent) {
+    ['broadcast-status-toggle', 'broadcast-wa-status-toggle'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.checked = !!isSent;
+    });
+    ['broadcast-status-text', 'broadcast-wa-status-text'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = isSent ? 'Отправлено' : 'Не отправлено';
+        el.classList.toggle('is-sent', !!isSent);
+    });
+}
+
+async function selectBroadcastClient(clientId) {
+    const client = broadcastClients.find(c => c.client_id === clientId);
+    if (!client) return;
+    broadcastSelectedClientId = clientId;
+    broadcastSelectedChannel = client.channel;
+    broadcastWhatsappNumber = client.whatsapp_number || null;
+    document.querySelectorAll('.broadcast-item').forEach(item => {
+        item.classList.toggle('active', Number(item.dataset.clientId) === clientId);
+    });
+    if (client.channel === 'telegram') {
+        document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
+        await openDialog(clientId);
+        document.getElementById('broadcast-chat-bar')?.classList.remove('hidden');
+    } else {
+        currentDialogUserId = null;
+        document.getElementById('chat-active')?.classList.add('hidden');
+        document.getElementById('chat-empty')?.classList.add('hidden');
+        document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
+        document.getElementById('broadcast-whatsapp')?.classList.remove('hidden');
+        const name = document.getElementById('broadcast-wa-name');
+        if (name) name.textContent = client.name;
+        const phone = document.getElementById('broadcast-wa-phone');
+        if (phone) phone.textContent = client.phone || 'Номер не указан';
+        const open = document.getElementById('broadcast-wa-open');
+        if (open) {
+            open.disabled = !client.whatsapp_number;
+            open.title = client.whatsapp_number ? '' : 'У клиента нет корректного номера телефона';
+        }
+    }
+    updateBroadcastStatusUI(!!client.is_sent);
+}
+
+async function setBroadcastStatus(isSent) {
+    if (!broadcastSelectedClientId) return;
+    const clientId = broadcastSelectedClientId;
+    const data = await apiPost('/support/broadcast/status', { client_id: clientId, is_sent: !!isSent });
+    const client = broadcastClients.find(c => c.client_id === clientId);
+    if (!data) {
+        updateBroadcastStatusUI(!!(client && client.is_sent));
+        return;
+    }
+    if (client) {
+        client.is_sent = !!data.is_sent;
+        client.sent_at = data.sent_at;
+    }
+    updateBroadcastProgress();
+    updateBroadcastListItem(clientId);
+    updateBroadcastStatusUI(!!data.is_sent);
+    showToast(data.is_sent ? 'Отмечено: отправлено' : 'Возвращено в «Не отправлено»');
+}
+
+function insertBroadcastText() {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+    if (!broadcastText) {
+        showToast('Сначала сохраните текст рассылки', 'error');
+        return;
+    }
+    const current = input.value.replace(/\s+$/, '');
+    input.value = current ? current + '\n' + broadcastText : broadcastText;
+    input.focus();
+    showToast('Текст рассылки вставлен в поле сообщения');
+}
+
+function openWhatsAppChat() {
+    if (!broadcastWhatsappNumber) {
+        showToast('У клиента нет корректного номера телефона', 'error');
+        return;
+    }
+    if (!broadcastText) {
+        showToast('Сначала сохраните текст рассылки', 'error');
+        return;
+    }
+    const url = 'https://wa.me/' + broadcastWhatsappNumber + '?text=' + encodeURIComponent(broadcastText);
+    window.open(url, '_blank', 'noopener');
+}
+
+async function resetBroadcastStatuses() {
+    if (!confirm('Сбросить статусы рассылки?\n\nВсе клиенты вернутся в «Не отправлено». Переписка и сообщения не изменятся.')) return;
+    const data = await apiPost('/support/broadcast/reset', {});
+    if (!data) return;
+    broadcastClients.forEach(c => { c.is_sent = false; c.sent_at = null; });
+    updateBroadcastProgress();
+    renderBroadcastList();
+    rememberBroadcastList();
+    updateBroadcastStatusUI(false);
+    showToast('Статусы сброшены: ' + (data.reset || 0));
+}
+
 
 // --- Clients ---
 async function toggleClientHistory(clientId) {
@@ -4407,6 +4670,13 @@ window.sendReply = sendReply;
 window.closeSupportChat = closeSupportChat;
 window.openDialog = openDialog;
 window.switchSupportChannel = switchSupportChannel;
+window.toggleBroadcastMode = toggleBroadcastMode;
+window.saveBroadcastText = saveBroadcastText;
+window.selectBroadcastClient = selectBroadcastClient;
+window.setBroadcastStatus = setBroadcastStatus;
+window.insertBroadcastText = insertBroadcastText;
+window.openWhatsAppChat = openWhatsAppChat;
+window.resetBroadcastStatuses = resetBroadcastStatuses;
 window.closeModal = closeModal;
 window.renderCalendar = renderCalendar;
 window.selectMonth = selectMonth;

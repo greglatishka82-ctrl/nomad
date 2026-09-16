@@ -567,3 +567,28 @@ class CertificateRequest(Base):
     client = relationship("Client", foreign_keys=[client_id])
     certificate = relationship("Certificate", foreign_keys=[matched_certificate_id])
 
+
+class BroadcastSettings(Base):
+    """Текст рассылки в разделе «Поддержка» (одна строка, id=1)."""
+    __tablename__ = "broadcast_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    text = Column(Text, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+
+
+class BroadcastStatus(Base):
+    """Статус рассылки по клиенту: отправлено или ещё нет.
+
+    Строка создаётся только при первой отметке, поэтому обычная поддержка
+    не пишет в таблицу ничего.
+    """
+    __tablename__ = "broadcast_status"
+
+    client_id = Column(
+        Integer, ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True,
+    )
+    is_sent = Column(Boolean, default=False, server_default="false", nullable=False)
+    sent_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=now_kz, nullable=False)
+
