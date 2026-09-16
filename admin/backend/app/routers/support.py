@@ -44,6 +44,13 @@ def _operation_id(request: Request):
     return value[:128] or None
 
 
+def _telegram_reply_text(text: str, raw: bool) -> str:
+    """Обычный ответ идёт с припиской, текст рассылки — без неё."""
+    if raw:
+        return text
+    return f"💬 Ответ поддержки:\n\n{text}"
+
+
 def _message_payload(msg: SupportMessage):
     return {
         "id": msg.id, "sender": msg.sender, "text": msg.text,
@@ -267,6 +274,8 @@ async def get_instructor_dialog(instructor_id: int, request: Request, db: AsyncS
 
 class ReplyRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+    # Текст рассылки уходит клиенту ровно как есть, без служебной приписки.
+    raw: bool = False
 
 
 @router.post("/dialogs/{user_id}/reply", status_code=status.HTTP_201_CREATED)
@@ -338,7 +347,7 @@ async def reply_to_user(
                     f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
                     json={
                         "chat_id": user.telegram_id.strip(),
-                        "text": f"💬 Ответ поддержки:\n\n{text}",
+                        "text": _telegram_reply_text(text, body.raw),
                         "reply_markup": CLIENT_SUPPORT_REPLY_MARKUP,
                     },
                 )

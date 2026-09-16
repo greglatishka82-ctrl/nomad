@@ -3442,9 +3442,14 @@ async function sendReply() {
     const text = input.value.trim();
     if (!text) return;
 
-    const result = await apiPost(currentSupportChannel === 'clients' ? `/support/dialogs/${currentDialogUserId}/reply` : `/support/instructors/dialogs/${currentDialogUserId}/reply`, { text });
+    // Текст, вставленный кнопкой рассылки, уходит без служебной приписки.
+    const payload = { text };
+    if (broadcastTextInserted && currentSupportChannel === 'clients') payload.raw = true;
+
+    const result = await apiPost(currentSupportChannel === 'clients' ? `/support/dialogs/${currentDialogUserId}/reply` : `/support/instructors/dialogs/${currentDialogUserId}/reply`, payload);
     if (!result) return;
 
+    broadcastTextInserted = false;
     input.value = '';
     openDialog(currentDialogUserId);  // Refresh chat
 }
@@ -3491,6 +3496,7 @@ let broadcastSelectedClientId = null;
 let broadcastSelectedChannel = null;
 let broadcastWhatsappNumber = null;
 let broadcastLastSignature = '';
+let broadcastTextInserted = false;
 
 function broadcastSentCount() {
     return broadcastClients.filter(c => c.is_sent).length;
@@ -3523,6 +3529,7 @@ function toggleBroadcastMode(enabled) {
         broadcastSelectedClientId = null;
         broadcastSelectedChannel = null;
         broadcastWhatsappNumber = null;
+        broadcastTextInserted = false;
         document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
         document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
         loadSupport();
@@ -3648,6 +3655,7 @@ async function selectBroadcastClient(clientId) {
     broadcastSelectedClientId = clientId;
     broadcastSelectedChannel = client.channel;
     broadcastWhatsappNumber = client.whatsapp_number || null;
+    broadcastTextInserted = false;
     document.querySelectorAll('.broadcast-item').forEach(item => {
         item.classList.toggle('active', Number(item.dataset.clientId) === clientId);
     });
@@ -3702,6 +3710,7 @@ function insertBroadcastText() {
     }
     const current = input.value.replace(/\s+$/, '');
     input.value = current ? current + '\n' + broadcastText : broadcastText;
+    broadcastTextInserted = true;
     input.focus();
     showToast('Текст рассылки вставлен в поле сообщения');
 }

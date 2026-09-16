@@ -3033,3 +3033,14 @@ a:hover {
   .broadcast-progress { margin-left: 0; }
   .broadcast-chat-bar { gap: 8px; padding: 10px 12px; }
 }
+
+/* Поле текста рассылки: по умолчанию одна строка, поэтому задаём высоту явно. */
+#broadcast-text {
+  height: auto;
+  min-height: 152px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  font-family: inherit;
+  font-size: 0.86rem;
+  resize: vertical;
+}
