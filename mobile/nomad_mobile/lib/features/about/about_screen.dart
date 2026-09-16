@@ -120,7 +120,7 @@ class AboutScreen extends ConsumerWidget {
                 _ActionRow(
                   icon: Icons.language,
                   text: 'Официальный сайт',
-                  onTap: () => _launchURL('https://nomadrive.vercel.app/'),
+                  onTap: () => _launchURL('https://nomad.57-129-153-111.sslip.io/'),
                 ),
                 const Divider(height: 1),
                 _ActionRow(

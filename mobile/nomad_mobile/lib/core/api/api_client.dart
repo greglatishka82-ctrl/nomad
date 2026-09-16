@@ -5,8 +5,8 @@ import '../auth/auth_storage.dart';
 import '../auth/auth_session.dart';
 import '../../shared/models/models.dart';
 
-// Основной site-backend на Render.
-const String kBaseUrl = 'https://nomad-2hhb.onrender.com';
+// Основной site-backend на нашем VPS.
+const String kBaseUrl = 'https://nomad.57-129-153-111.sslip.io';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(

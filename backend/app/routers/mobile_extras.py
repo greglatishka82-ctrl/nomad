@@ -207,7 +207,7 @@ async def get_referral(
     if not code:
         code = f"NOMAD-{user.id:04d}"
 
-    link = f"https://nomadrive.vercel.app/?ref={code}"
+    link = f"https://nomad.57-129-153-111.sslip.io/?ref={code}"
 
     return {
         "referral_code": code,

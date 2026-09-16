@@ -113,6 +113,7 @@ app = FastAPI(title="NOMAD Admin API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://admin.nomad.57-129-153-111.sslip.io",
         "https://adminomad.vercel.app",
         "https://nomadmin.pages.dev",
         "http://localhost:3000",

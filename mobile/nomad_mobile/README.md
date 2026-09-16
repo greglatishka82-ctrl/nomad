@@ -49,11 +49,11 @@ flutter pub get
 
 Открой файл `lib\core\api\api_client.dart` и замените:
 ```dart
-const String kBaseUrl = 'https://your-backend.onrender.com';
+const String kBaseUrl = 'https://your-backend.example.com';
 ```
 на реальный URL бэкенда, например:
 ```dart
-const String kBaseUrl = 'https://nomad-backend.onrender.com';
+const String kBaseUrl = 'https://nomad.57-129-153-111.sslip.io';
 ```
 
 ---
