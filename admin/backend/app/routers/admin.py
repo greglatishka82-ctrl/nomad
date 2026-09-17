@@ -6463,17 +6463,41 @@ async def list_clients(request: Request, db: AsyncSession = Depends(get_db)):
         select(Client).where(Client.is_deleted == False).order_by(Client.created_at.desc())
     )
     clients = result.scalars().all()
+    if not clients:
+        return []
+
+    # Раньше внутри цикла выполнялось по три запроса на каждого клиента (около
+    # 1650 обращений к базе на 551 клиента — это давало 1.5–2 секунды). Те же
+    # данные собираются тремя запросами целиком; формат ответа не меняется.
+    client_ids = [c.id for c in clients]
+
+    bookings_counts = dict((await db.execute(
+        select(Booking.client_id, func.count())
+        .where(Booking.client_id.in_(client_ids))
+        .group_by(Booking.client_id)
+    )).all())
+
+    certificates_by_client: dict[int, list[Certificate]] = {}
+    for certificate in (await db.execute(
+        select(Certificate)
+        .where(Certificate.activated_by_client_id.in_(client_ids))
+        .order_by(Certificate.id)
+    )).scalars().all():
+        certificates_by_client.setdefault(certificate.activated_by_client_id, []).append(certificate)
+
+    packages_by_client: dict[int, list[ClientPackage]] = {}
+    for client_package in (await db.execute(
+        select(ClientPackage)
+        .options(selectinload(ClientPackage.package))
+        .where(ClientPackage.client_id.in_(client_ids))
+        .order_by(ClientPackage.id)
+    )).scalars().all():
+        packages_by_client.setdefault(client_package.client_id, []).append(client_package)
 
     output = []
     for c in clients:
-        bookings_count_result = await db.execute(select(func.count()).select_from(Booking).where(Booking.client_id == c.id))
-        bookings_count = bookings_count_result.scalar() or 0
-
-        certs_result = await db.execute(select(Certificate).where(Certificate.activated_by_client_id == c.id))
-        certs = certs_result.scalars().all()
-
-        packages_result = await db.execute(select(ClientPackage).options(selectinload(ClientPackage.package)).where(ClientPackage.client_id == c.id))
-        packages = packages_result.scalars().all()
+        certs = certificates_by_client.get(c.id, [])
+        packages = packages_by_client.get(c.id, [])
 
         output.append({
             "id": c.id,
@@ -6483,7 +6507,7 @@ async def list_clients(request: Request, db: AsyncSession = Depends(get_db)):
             "referral_code": c.referral_code,
             "referral_discount_available": c.referral_discount_available,
             "avatar_url": c.avatar_url,
-            "bookings_count": bookings_count,
+            "bookings_count": bookings_counts.get(c.id, 0),
             "certificates": [
                 {"id": cert.id, "code": cert.code, "nominal": cert.nominal, "remaining": cert.remaining, "is_used": cert.is_used}
                 for cert in certs

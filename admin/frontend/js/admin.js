@@ -574,6 +574,8 @@ async function heartbeat() {
             offlineReplayPromise = (async () => {
                 const syncCompleted = await syncOfflineOperations();
                 const operationsQueuedDuringSync = (await offlineOperations()).length > 0;
+                // Выгруженные изменения меняют данные на сервере.
+                if (syncCompleted) invalidateApiGetCache();
                 if (syncCompleted && !operationsQueuedDuringSync) await refreshOfflineSnapshot();
             })().catch((error) => {
                 console.error('Не удалось синхронизировать офлайн-изменения', error);
@@ -605,10 +607,18 @@ function startOfflineMonitoring() {
     if (offlineHeartbeatTimer) clearInterval(offlineHeartbeatTimer);
     // The browser's offline event reacts immediately. This one-minute request
     // is its fallback when a network path disappears without changing
-    // navigator.onLine.
-    offlineHeartbeatTimer = setInterval(heartbeat, 60000);
+    // navigator.onLine. Скрытая вкладка не обновляет офлайн-копию: это 50 КБ
+    // трафика, который никто не видит.
+    offlineHeartbeatTimer = setInterval(() => { if (!document.hidden) heartbeat(); }, 60000);
     window.addEventListener('online', heartbeat);
     window.addEventListener('offline', () => setOfflineState(true));
+    // Возврат к панели: сразу проверяем связь и обновляем значки, не дожидаясь
+    // следующего тика таймеров.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        heartbeat();
+        pollNotificationCounts();
+    });
 }
 
 async function refreshOfflineSnapshot() {
@@ -1141,7 +1151,8 @@ async function pollNotificationCounts() {
 function startBadgePolling() {
     pollNotificationCounts();
     if (_badgePollInterval) clearInterval(_badgePollInterval);
-    _badgePollInterval = setInterval(pollNotificationCounts, 20000);
+    // Скрытая вкладка браузера не тянет данные впустую.
+    _badgePollInterval = setInterval(() => { if (!document.hidden) pollNotificationCounts(); }, 20000);
 }
 
 // --- Session Validation ---
@@ -1162,7 +1173,7 @@ async function validateSession() {
 function startSessionPolling() {
     validateSession();
     if (_sessionPollInterval) clearInterval(_sessionPollInterval);
-    _sessionPollInterval = setInterval(validateSession, 60000);
+    _sessionPollInterval = setInterval(() => { if (!document.hidden) validateSession(); }, 60000);
 }
 
 // --- Mobile Sidebar ---
@@ -1343,9 +1354,12 @@ async function navigateTo(page) {
     if (page === 'support') {
         if (supportPollInterval) clearInterval(supportPollInterval);
         supportPollInterval = setInterval(() => {
+            // Переписка обновляется только когда окно панели активно: список
+            // диалогов весит около 86 КБ, и опрос впустую нагружает канал.
+            if (document.hidden) return;
             if (currentDialogUserId) openDialog(currentDialogUserId);
             else loadSupport();
-        }, 8000);
+        }, 15000);
     }
 }
 
@@ -1419,26 +1433,83 @@ async function readOfflineApi(path) {
     throw new Error('Нет локальных данных для этого раздела. Откройте админку онлайн, чтобы получить полный снимок.');
 }
 
+// --- Кэш ответов панели ---
+// Одни и те же списки запрашивают несколько вкладок: полный список записей
+// (около 730 КБ) тянут и дашборд, и аналитика, а при переключении вкладок всё
+// повторяется. Держим недавние ответы в памяти и склеиваем одновременные
+// запросы одного адреса — панель перестаёт качать те же данные заново.
+const apiGetCache = new Map();
+const apiGetInFlight = new Map();
+const API_GET_DEFAULT_TTL_MS = 15000;
+const API_GET_TTL_RULES = [
+    [/^\/bookings(\?|$)/, 30000],
+    [/^\/clients$/, 30000],
+    [/^\/analytics\//, 30000],
+    [/^\/dashboard$/, 15000],
+    [/^\/instructors$/, 30000],
+    [/^\/packages$/, 30000],
+    [/^\/vehicles$/, 30000],
+    [/^\/faq$/, 30000],
+    [/^\/support\/dialogs$/, 5000],
+    [/^\/support\/broadcast\/clients$/, 5000],
+    [/^\/notification-counts$/, 0],
+];
+
+function apiGetTtl(path) {
+    for (const [pattern, ttl] of API_GET_TTL_RULES) {
+        if (pattern.test(path)) return ttl;
+    }
+    return API_GET_DEFAULT_TTL_MS;
+}
+
+// Любое изменение данных делает сохранённые ответы неактуальными.
+function invalidateApiGetCache() {
+    apiGetCache.clear();
+}
+
+// Кэш хранит собственную копию: вызывающий код всегда получает свежий объект,
+// как и при обычном запросе к серверу.
+function copyApiData(data) {
+    if (typeof structuredClone === 'function') return structuredClone(data);
+    return JSON.parse(JSON.stringify(data));
+}
+
 async function apiGet(path) {
     // A normal background snapshot is always parallel. Waiting happens only
     // after a real reconnect while queued offline operations are replayed.
     if (offlineReplayInProgress) await waitForOfflineReplay();
     if (isAdminOffline) return readOfflineApi(path);
-    try {
-        const res = await fetch(`${API}${path}`, {
-            credentials: 'include',
-            cache: path === '/notification-counts' ? 'no-store' : 'default',
-        });
-        if (res.status === 401) { showLogin('Сессия завершена. Войдите снова.'); throw new Error('Сессия завершена. Войдите снова.'); }
-        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Ошибка загрузки данных'); }
-        const data = await res.json();
-        return data;
-    } catch (error) {
-        // Never mask a real server validation error with stale data.
-        if (!(error instanceof TypeError)) throw error;
-        setOfflineState(true);
-        return readOfflineApi(path);
-    }
+
+    const ttl = apiGetTtl(path);
+    const cached = apiGetCache.get(path);
+    if (ttl > 0 && cached && Date.now() - cached.savedAt < ttl) return copyApiData(cached.data);
+
+    // Одинаковые одновременные запросы выполняются один раз.
+    const running = apiGetInFlight.get(path);
+    if (running) return running;
+
+    const request = (async () => {
+        try {
+            const res = await fetch(`${API}${path}`, {
+                credentials: 'include',
+                cache: path === '/notification-counts' ? 'no-store' : 'default',
+            });
+            if (res.status === 401) { showLogin('Сессия завершена. Войдите снова.'); throw new Error('Сессия завершена. Войдите снова.'); }
+            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Ошибка загрузки данных'); }
+            const data = await res.json();
+            if (ttl > 0) apiGetCache.set(path, { savedAt: Date.now(), data: copyApiData(data) });
+            return data;
+        } catch (error) {
+            // Never mask a real server validation error with stale data.
+            if (!(error instanceof TypeError)) throw error;
+            setOfflineState(true);
+            return readOfflineApi(path);
+        } finally {
+            apiGetInFlight.delete(path);
+        }
+    })();
+    apiGetInFlight.set(path, request);
+    return request;
 }
 
 // Every successful data mutation refreshes the currently visible screen.
@@ -1492,6 +1563,7 @@ async function apiPostOnce(path, data, operationId) {
         if (res.status === 401) { showLogin('Сессия завершена. Войдите снова.'); throw new Error('Сессия завершена. Войдите снова.'); }
         if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Ошибка'); }
         const result = await res.json();
+        invalidateApiGetCache();
         scheduleAdminDataRefresh(path);
         return result;
     } catch (error) {
@@ -1511,6 +1583,7 @@ async function apiPut(path, data) {
         if (res.status === 401) { showLogin('Сессия завершена. Войдите снова.'); throw new Error('Сессия завершена. Войдите снова.'); }
         if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Ошибка'); }
         const result = await res.json();
+        invalidateApiGetCache();
         scheduleAdminDataRefresh(path);
         return result;
     } catch (error) {
@@ -1530,6 +1603,7 @@ async function apiDelete(path) {
         if (res.status === 401) { showLogin('Сессия завершена. Войдите снова.'); throw new Error('Сессия завершена. Войдите снова.'); }
         if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Ошибка'); }
         const result = await res.json();
+        invalidateApiGetCache();
         scheduleAdminDataRefresh(path);
         return result;
     } catch (error) {
