@@ -586,7 +586,7 @@ async function heartbeat() {
                 setOfflineState(false);
             }
         } else {
-            // The 30-second snapshot is an atomic background cache replacement.
+            // The one-minute snapshot is an atomic background cache replacement.
             // It neither blocks nor reroutes current online admin actions.
             await refreshOfflineSnapshot();
         }
@@ -614,7 +614,7 @@ function startOfflineMonitoring() {
 async function refreshOfflineSnapshot() {
     // Replace the old snapshot only after a complete fresh copy has arrived.
     // Do not merge endpoint-by-endpoint: stale keys must not survive a
-    // reconnection or a recurring 30-second refresh.
+    // reconnection or a recurring one-minute refresh.
     if (isAdminOffline) return;
     try {
         const res = await fetch(`${API}/offline-snapshot`, { credentials: 'include', cache: 'no-store' });
@@ -630,7 +630,7 @@ async function refreshOfflineSnapshot() {
     } catch (error) {
         // Keep the previous complete snapshot if a new one failed.  It is
         // never mixed with a partial refresh and is replaced on the next
-        // successful 30-second cycle.
+        // successful one-minute cycle.
         console.warn('Офлайн-снимок не обновлён:', error);
     }
 }

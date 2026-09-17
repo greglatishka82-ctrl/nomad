@@ -4,10 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, HTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
@@ -134,14 +131,11 @@ app.include_router(admin.router)
 app.include_router(support.router)
 app.include_router(public.router)  # Подключаем после admin, чтобы /api/admin/* обрабатывался первым
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-templates = Jinja2Templates(directory="app/templates")
-
 
 @app.get("/")
 async def root():
-    return {"message": "NOMAD Admin API", "docs": "/docs", "admin": "/admin"}
+    """Сервис отдаёт только API: страница админки лежит в admin/frontend."""
+    return {"message": "NOMAD Admin API", "docs": "/docs"}
 
 
 @app.get("/health")
@@ -152,14 +146,3 @@ async def health():
         logger.error("Health check failed: %s", exc)
         raise HTTPException(status_code=503, detail="Database is not ready")
     return {"status": "ok"}
-
-
-@app.get("/sw.js", include_in_schema=False)
-async def service_worker():
-    """Expose the admin worker at the origin root so it controls /admin."""
-    return FileResponse("app/static/sw.js", media_type="application/javascript")
-
-
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request):
-    return templates.TemplateResponse("admin/index.html", {"request": request})
