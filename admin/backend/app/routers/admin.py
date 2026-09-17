@@ -8,10 +8,10 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import delete as sa_delete, select, and_, func, or_, update, text
+from sqlalchemy import delete as sa_delete, select, and_, func, literal_column, or_, update, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -3470,24 +3470,14 @@ async def apply_certificate_to_booking(
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     _get_admin_username(request)
     today = today_kz()
-    week_ago = today - timedelta(days=7)
-    month_ago = today - timedelta(days=30)
+    week_start = today - timedelta(days=6)
+    month_start, _month_end = _month_bounds(today.year, today.month)
 
-    revenue_today = await db.execute(
-        select(func.coalesce(func.sum(Booking.price), 0)).where(
-            and_(Booking.booking_date == today, Booking.status == "completed")
-        )
-    )
-    revenue_week = await db.execute(
-        select(func.coalesce(func.sum(Booking.price), 0)).where(
-            and_(Booking.booking_date >= week_ago, Booking.status == "completed")
-        )
-    )
-    revenue_month = await db.execute(
-        select(func.coalesce(func.sum(Booking.price), 0)).where(
-            and_(Booking.booking_date >= month_ago, Booking.status == "completed")
-        )
-    )
+    # Выручка на дашборде считается тем же правилом, что и в блоке «Финансы»:
+    # занятия (без оплаченных сертификатом или пакетом) + сертификаты + пакеты.
+    today_data = await _finance_period(db, today, today, "Сегодня")
+    week_data = await _finance_period(db, week_start, today, "7 дней")
+    month_data = await _finance_period(db, month_start, today, "Текущий месяц")
 
     total_bookings = await db.execute(select(func.count()).select_from(Booking))
     total_bookings_count = total_bookings.scalar() or 0
@@ -3506,9 +3496,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     )
 
     return {
-        "revenue_today": revenue_today.scalar(),
-        "revenue_week": revenue_week.scalar(),
-        "revenue_month": revenue_month.scalar(),
+        "revenue_today": today_data["revenue"],
+        "revenue_week": week_data["revenue"],
+        "revenue_month": month_data["revenue"],
         "total_bookings": total_bookings_count,
         "cancelled": cancelled.scalar(),
         "no_shows": no_shows.scalar(),
@@ -4165,6 +4155,297 @@ async def revenue_analytics(request: Request, db: AsyncSession = Depends(get_db)
         .order_by(Booking.booking_date, Booking.start_time, Booking.id)
     )).all()
     return _build_revenue_analytics(rows, now_kz())
+
+
+MONTH_NAMES = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+]
+FINANCE_PERIOD_DAYS = 62  # длиннее этого диапазона группируем по месяцам
+
+
+def _month_bounds(year: int, month: int) -> tuple[date, date]:
+    first = date(year, month, 1)
+    last = date(year + (1 if month == 12 else 0), (1 if month == 12 else month + 1), 1) - timedelta(days=1)
+    return first, last
+
+
+def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
+    index = year * 12 + (month - 1) + delta
+    return index // 12, index % 12 + 1
+
+
+async def _finance_period(db: AsyncSession, start: date, end: date, label: str) -> dict:
+    """Показатели одного периода: занятия, сертификаты, пакеты.
+
+    Занятие, оплаченное сертификатом или пакетом, в деньги занятий не попадает:
+    эти деньги уже учтены в момент выпуска сертификата или продажи пакета.
+    """
+    start_dt = datetime.combine(start, time.min)
+    end_dt = datetime.combine(end, time.max)
+
+    lessons_row = (await db.execute(
+        select(func.count(), func.coalesce(func.sum(Booking.price), 0)).where(
+            Booking.status == "completed",
+            Booking.booking_date >= start,
+            Booking.booking_date <= end,
+            Booking.certificate_id.is_(None),
+            Booking.package_id.is_(None),
+        )
+    )).one()
+    covered_row = (await db.execute(
+        select(func.count(), func.coalesce(func.sum(Booking.price), 0)).where(
+            Booking.status == "completed",
+            Booking.booking_date >= start,
+            Booking.booking_date <= end,
+            or_(Booking.certificate_id.isnot(None), Booking.package_id.isnot(None)),
+        )
+    )).one()
+    cancelled = (await db.execute(
+        select(func.count()).select_from(Booking).where(
+            Booking.status == "cancelled", Booking.booking_date >= start, Booking.booking_date <= end)
+    )).scalar() or 0
+    no_show = (await db.execute(
+        select(func.count()).select_from(Booking).where(
+            Booking.status == "no_show", Booking.booking_date >= start, Booking.booking_date <= end)
+    )).scalar() or 0
+    certificates_row = (await db.execute(
+        select(func.count(), func.coalesce(func.sum(Certificate.nominal), 0)).where(
+            Certificate.created_at.isnot(None),
+            Certificate.created_at >= start_dt,
+            Certificate.created_at <= end_dt,
+        )
+    )).one()
+    packages_row = (await db.execute(
+        select(func.count(), func.coalesce(func.sum(Package.price), 0))
+        .select_from(ClientPackage)
+        .join(Package, Package.id == ClientPackage.package_id)
+        .where(ClientPackage.purchased_at >= start_dt, ClientPackage.purchased_at <= end_dt)
+    )).one()
+    new_clients = (await db.execute(
+        select(func.count()).select_from(Client).where(
+            Client.created_at >= start_dt, Client.created_at <= end_dt, Client.is_deleted == False)
+    )).scalar() or 0
+
+    lessons_money = int(lessons_row[1] or 0)
+    certificates_money = int(certificates_row[1] or 0)
+    packages_money = int(packages_row[1] or 0)
+    lessons_count = int(lessons_row[0] or 0)
+    revenue = lessons_money + certificates_money + packages_money
+    return {
+        "label": label,
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "lessons": lessons_count,
+        "lessons_money": lessons_money,
+        "covered_lessons": int(covered_row[0] or 0),
+        "covered_money": int(covered_row[1] or 0),
+        "certificates_count": int(certificates_row[0] or 0),
+        "certificates_money": certificates_money,
+        "packages_count": int(packages_row[0] or 0),
+        "packages_money": packages_money,
+        "revenue": revenue,
+        "avg_check": int(lessons_money / lessons_count) if lessons_count else 0,
+        "cancelled": cancelled,
+        "no_show": no_show,
+        "new_clients": new_clients,
+    }
+
+
+async def _finance_points(db: AsyncSession, start: date, end: date, granularity: str) -> dict[str, int]:
+    """Выручка по интервалам: часы, дни или месяцы."""
+    day_trunc = literal_column("'day'")
+    month_trunc = literal_column("'month'")
+    totals: dict[str, int] = {}
+    if granularity == "hour":
+        hour_expr = func.extract("hour", Booking.start_time)
+        rows = (await db.execute(
+            select(hour_expr, func.coalesce(func.sum(Booking.price), 0)).where(
+                Booking.status == "completed",
+                Booking.booking_date >= start,
+                Booking.booking_date <= end,
+                Booking.certificate_id.is_(None),
+                Booking.package_id.is_(None),
+            ).group_by(hour_expr)
+        )).all()
+        for hour, money in rows:
+            totals["%02d" % int(hour)] = int(money or 0)
+    elif granularity == "month":
+        month_expr = func.date_trunc(month_trunc, Booking.booking_date)
+        rows = (await db.execute(
+            select(month_expr, func.coalesce(func.sum(Booking.price), 0)).where(
+                Booking.status == "completed",
+                Booking.booking_date >= start,
+                Booking.booking_date <= end,
+                Booking.certificate_id.is_(None),
+                Booking.package_id.is_(None),
+            ).group_by(month_expr)
+        )).all()
+        for moment, money in rows:
+            totals[moment.strftime("%Y-%m")] = int(money or 0)
+    else:
+        rows = (await db.execute(
+            select(Booking.booking_date, func.coalesce(func.sum(Booking.price), 0)).where(
+                Booking.status == "completed",
+                Booking.booking_date >= start,
+                Booking.booking_date <= end,
+                Booking.certificate_id.is_(None),
+                Booking.package_id.is_(None),
+            ).group_by(Booking.booking_date)
+        )).all()
+        for day, money in rows:
+            totals[day.isoformat()] = int(money or 0)
+
+    if granularity == "month":
+        certificate_expr = func.date_trunc(month_trunc, Certificate.created_at)
+        package_expr = func.date_trunc(month_trunc, ClientPackage.purchased_at)
+    else:
+        certificate_expr = func.date_trunc(day_trunc, Certificate.created_at)
+        package_expr = func.date_trunc(day_trunc, ClientPackage.purchased_at)
+
+    certificates = (await db.execute(
+        select(certificate_expr, func.coalesce(func.sum(Certificate.nominal), 0)).where(
+            Certificate.created_at.isnot(None),
+            Certificate.created_at >= datetime.combine(start, time.min),
+            Certificate.created_at <= datetime.combine(end, time.max),
+        ).group_by(certificate_expr)
+    )).all()
+    packages = (await db.execute(
+        select(package_expr, func.coalesce(func.sum(Package.price), 0))
+        .select_from(ClientPackage)
+        .join(Package, Package.id == ClientPackage.package_id)
+        .where(ClientPackage.purchased_at >= datetime.combine(start, time.min),
+               ClientPackage.purchased_at <= datetime.combine(end, time.max))
+        .group_by(package_expr)
+    )).all()
+
+    def bucket_of(moment: datetime) -> str:
+        if granularity == "hour":
+            return "%02d" % moment.hour
+        if granularity == "month":
+            return moment.strftime("%Y-%m")
+        return moment.date().isoformat()
+
+    for moment, money in list(certificates) + list(packages):
+        if moment is None:
+            continue
+        key = bucket_of(moment)
+        totals[key] = totals.get(key, 0) + int(money or 0)
+    return totals
+
+
+@router.get("/analytics/finance")
+async def finance_analytics(
+    request: Request,
+    mode: str = "month",
+    anchor: Optional[str] = None,
+    date_from: Optional[str] = Query(None, alias="from"),
+    date_to: Optional[str] = Query(None, alias="to"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Выручка по периодам: день, месяц, год или произвольный диапазон.
+
+    Один источник истины для дашборда и вкладки «Аналитика».
+    """
+    _get_admin_username(request)
+    today = today_kz()
+    try:
+        base = date.fromisoformat(anchor) if anchor else today
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Некорректная дата")
+
+    if mode == "day":
+        start = end = base
+        prev_start = prev_end = base - timedelta(days=1)
+        label = base.strftime("%d.%m.%Y")
+        prev_label = prev_start.strftime("%d.%m.%Y")
+        granularity = "hour"
+    elif mode == "year":
+        start, end = date(base.year, 1, 1), date(base.year, 12, 31)
+        prev_start, prev_end = date(base.year - 1, 1, 1), date(base.year - 1, 12, 31)
+        label, prev_label = str(base.year), str(base.year - 1)
+        granularity = "month"
+    elif mode == "range":
+        try:
+            start = date.fromisoformat(date_from) if date_from else today.replace(day=1)
+            end = date.fromisoformat(date_to) if date_to else today
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Некорректный диапазон дат")
+        if end < start:
+            start, end = end, start
+        length = (end - start).days + 1
+        prev_end = start - timedelta(days=1)
+        prev_start = prev_end - timedelta(days=length - 1)
+        label = start.strftime("%d.%m.%Y") + " — " + end.strftime("%d.%m.%Y")
+        prev_label = prev_start.strftime("%d.%m.%Y") + " — " + prev_end.strftime("%d.%m.%Y")
+        granularity = "day" if length <= FINANCE_PERIOD_DAYS else "month"
+    else:
+        mode = "month"
+        start, end = _month_bounds(base.year, base.month)
+        prev_year, prev_month = _shift_month(base.year, base.month, -1)
+        prev_start, prev_end = _month_bounds(prev_year, prev_month)
+        label = MONTH_NAMES[base.month - 1] + " " + str(base.year)
+        prev_label = MONTH_NAMES[prev_month - 1] + " " + str(prev_year)
+        granularity = "day"
+
+    current = await _finance_period(db, start, end, label)
+    previous = await _finance_period(db, prev_start, prev_end, prev_label)
+    totals = await _finance_points(db, start, end, granularity)
+    prev_totals = await _finance_points(db, prev_start, prev_end, granularity)
+
+    points = []
+    if granularity == "hour":
+        for hour in range(9, 21):
+            key = "%02d" % hour
+            points.append({"label": key, "current": totals.get(key, 0), "previous": prev_totals.get(key, 0)})
+    elif granularity == "month":
+        cursor = date(start.year, start.month, 1)
+        while cursor <= end:
+            key = cursor.strftime("%Y-%m")
+            points.append({
+                "label": MONTH_NAMES[cursor.month - 1][:3],
+                "current": totals.get(key, 0),
+                "previous": prev_totals.get(key, 0),
+            })
+            cursor = date(cursor.year + (1 if cursor.month == 12 else 0), (1 if cursor.month == 12 else cursor.month + 1), 1)
+    else:
+        cursor = start
+        while cursor <= end:
+            key = cursor.isoformat()
+            points.append({
+                "label": str(cursor.day),
+                "current": totals.get(key, 0),
+                "previous": prev_totals.get(key, 0),
+            })
+            cursor += timedelta(days=1)
+
+    all_time = (await db.execute(
+        select(func.coalesce(func.sum(Booking.price), 0)).where(
+            Booking.status == "completed",
+            Booking.certificate_id.is_(None),
+            Booking.package_id.is_(None),
+        )
+    )).scalar() or 0
+    all_time_certificates = (await db.execute(
+        select(func.coalesce(func.sum(Certificate.nominal), 0))
+    )).scalar() or 0
+    all_time_packages = (await db.execute(
+        select(func.coalesce(func.sum(Package.price), 0))
+        .select_from(ClientPackage).join(Package, Package.id == ClientPackage.package_id)
+    )).scalar() or 0
+
+    return {
+        "mode": mode,
+        "label": label,
+        "previous_label": prev_label,
+        "granularity": granularity,
+        "granularity_label": {"hour": "по часам", "day": "по дням", "month": "по месяцам"}[granularity],
+        "current": current,
+        "previous": previous,
+        "points": points,
+        "all_time_revenue": int(all_time) + int(all_time_certificates) + int(all_time_packages),
+        "updated_at": now_kz().replace(tzinfo=KZ_TZ).isoformat(),
+    }
 
 
 @router.get("/analytics/instructor-load")

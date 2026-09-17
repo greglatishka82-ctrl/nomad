@@ -247,6 +247,42 @@
             </div>
           </div>
 
+          <!-- Месяц к месяцу: прошлый и текущий месяц в одном блоке -->
+          <div class="card" id="dash-finance-card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">📆 Месяц к месяцу</div>
+                <p class="chart-hint">Прошлый и текущий месяц рядом. 1-го числа текущий месяц становится прошлым, а новый начинается с нуля</p>
+              </div>
+              <div class="row-inline">
+                <button class="btn btn-outline btn-sm" onclick="shiftDashboardMonth(-1)">‹</button>
+                <span class="badge badge-info" id="dash-finance-label">—</span>
+                <button class="btn btn-outline btn-sm" onclick="shiftDashboardMonth(1)">›</button>
+              </div>
+            </div>
+            <div class="finance-months" id="dash-finance-cols"></div>
+            <div class="finance-legend">
+              <span><i class="legend-past"></i>прошлый месяц</span>
+              <span><i class="legend-current"></i>текущий месяц</span>
+            </div>
+            <div class="finance-chart" id="dash-finance-chart"></div>
+            <div class="finance-chart-labels" id="dash-finance-labels"></div>
+          </div>
+
+          <!-- Потери за месяц -->
+          <div class="card" id="dash-losses-card">
+            <div class="card-header">
+              <div class="card-title">📉 Потери за месяц</div>
+              <span class="badge badge-warning" id="dash-losses-label">—</span>
+            </div>
+            <div class="grid-4">
+              <div class="stat-card"><div class="stat-header"><span>Отменено</span></div><div class="stat-value" id="dash-cancelled">—</div><div class="stat-trend">записей</div></div>
+              <div class="stat-card"><div class="stat-header"><span>Неявки</span></div><div class="stat-value" id="dash-no-show">—</div><div class="stat-trend">записей</div></div>
+              <div class="stat-card"><div class="stat-header"><span>Потеряно (оценка)</span></div><div class="stat-value" id="dash-lost">—</div><div class="stat-trend">если бы занятия состоялись</div></div>
+              <div class="stat-card"><div class="stat-header"><span>Средний чек</span></div><div class="stat-value" id="dash-average">—</div><div class="stat-trend" id="dash-average-diff">—</div></div>
+            </div>
+          </div>
+
           <!-- Secondary Mini Stats Bar -->
           <div class="secondary-stats-bar" id="secondary-stats-bar"></div>
 
@@ -744,6 +780,45 @@
 
         <!-- 5. ANALYTICS PAGE -->
         <div id="page-analytics" class="page">
+          <!-- Финансы: выручка по периодам -->
+          <div class="card" id="finance-card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">💰 Финансы</div>
+                <p class="chart-hint">Выручка по периодам: занятия + сертификаты + пакеты. Оплаченное сертификатом или пакетом повторно не считается</p>
+              </div>
+              <div class="analytics-period-switch" id="finance-mode-switch">
+                <button type="button" data-finance-mode="day" onclick="setFinanceMode('day')">День</button>
+                <button type="button" data-finance-mode="month" class="active" onclick="setFinanceMode('month')">Месяц</button>
+                <button type="button" data-finance-mode="year" onclick="setFinanceMode('year')">Год</button>
+                <button type="button" data-finance-mode="range" onclick="setFinanceMode('range')">Диапазон</button>
+              </div>
+            </div>
+            <div class="finance-toolbar">
+              <div class="row-inline">
+                <button class="btn btn-outline btn-sm" onclick="shiftFinancePeriod(-1)">‹</button>
+                <strong id="finance-label">Загрузка…</strong>
+                <button class="btn btn-outline btn-sm" onclick="shiftFinancePeriod(1)">›</button>
+                <span class="badge badge-info" id="finance-granularity">—</span>
+              </div>
+              <div class="row-inline hidden" id="finance-range-box">
+                <label class="chart-hint">с</label>
+                <input type="date" id="finance-from" class="form-control" style="width:150px">
+                <label class="chart-hint">по</label>
+                <input type="date" id="finance-to" class="form-control" style="width:150px">
+                <button class="btn btn-primary btn-sm" onclick="applyFinanceRange()">Показать</button>
+              </div>
+              <div class="chart-hint">Итого за всё время: <strong id="finance-all-time">—</strong></div>
+            </div>
+            <div class="finance-months" id="finance-cols"></div>
+            <div class="finance-legend">
+              <span><i class="legend-past"></i>прошлый период</span>
+              <span><i class="legend-current"></i>выбранный период</span>
+            </div>
+            <div class="finance-chart" id="finance-chart"></div>
+            <div class="finance-chart-labels" id="finance-labels"></div>
+          </div>
+
           <div class="analytics-section-heading">
             <div>
               <h2>Источники записей</h2>

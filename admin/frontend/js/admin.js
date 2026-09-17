@@ -1549,6 +1549,7 @@ function assertOfflineWriteAllowed(path) {
 
 // --- Dashboard ---
 async function loadDashboard() {
+    loadDashboardFinance();
     const [data, bookings] = await Promise.all([
         apiGet('/dashboard'),
         apiGet('/bookings').catch(() => [])
@@ -1565,7 +1566,7 @@ async function loadDashboard() {
                     <div class="stat-icon">₸</div>
                 </div>
                 <div class="stat-value">${(data.revenue_month || 0).toLocaleString('ru-RU')} ₸</div>
-                <div class="stat-trend up">↗ Выручка за 30 дней</div>
+                <div class="stat-trend up">↗ Выручка за текущий месяц</div>
             </div>
             <div class="stat-card primary">
                 <div class="stat-header">
@@ -3033,6 +3034,7 @@ function setRevenuePeriod(period) {
 }
 
 async function loadAnalytics() {
+    loadAnalyticsFinance();
     const [heatmap, load, bookings, sourceData, genderData, revenueData] = await Promise.all([
         apiGet('/analytics/heatmap'),
         apiGet('/analytics/instructor-load'),
@@ -3605,6 +3607,185 @@ async function changePassword() {
     }
 }
 
+
+// --- Финансы: выручка по периодам (дашборд и аналитика) ---
+let financeMode = 'month';
+let financeAnchor = new Date();
+let financeRangeFrom = null;
+let financeRangeTo = null;
+let dashboardFinanceAnchor = new Date();
+
+function financeIsoDate(value) {
+    const d = value instanceof Date ? value : new Date(value);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function financeMoney(value) {
+    return (Number(value) || 0).toLocaleString('ru-RU') + ' ₸';
+}
+
+function financeShiftAnchor(anchor, mode, delta) {
+    if (mode === 'day') return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + delta);
+    if (mode === 'year') return new Date(anchor.getFullYear() + delta, 0, 1);
+    return new Date(anchor.getFullYear(), anchor.getMonth() + delta, 1);
+}
+
+function financeQueryFor(mode, anchor, rangeFrom, rangeTo) {
+    const params = { mode: mode };
+    if (mode === 'range') {
+        if (rangeFrom) params.from = rangeFrom;
+        if (rangeTo) params.to = rangeTo;
+    } else {
+        params.anchor = financeIsoDate(anchor);
+    }
+    return params;
+}
+
+async function fetchFinance(params) {
+    const query = new URLSearchParams(params);
+    return apiGet('/analytics/finance?' + query.toString()).catch(() => null);
+}
+
+function financePeriodCard(period, isCurrent, pastBadge, currentBadge) {
+    const badge = isCurrent
+        ? '<span class="badge badge-success">' + (currentBadge || 'текущий') + '</span>'
+        : '<span class="badge badge-info">' + (pastBadge || 'прошлый') + '</span>';
+    return '<div class="finance-month ' + (isCurrent ? 'current' : 'past') + '">'
+        + '<div class="finance-month-head"><span class="finance-month-name">' + escapeHtml(period.label) + '</span>' + badge + '</div>'
+        + '<div class="finance-kv"><span>Выручка</span><strong class="big">' + financeMoney(period.revenue) + '</strong></div>'
+        + '<div class="finance-kv"><span>Занятий</span><strong>' + (period.lessons || 0) + '</strong></div>'
+        + '<div class="finance-kv"><span>Средний чек</span><strong>' + financeMoney(period.avg_check) + '</strong></div>'
+        + '<div class="finance-kv"><span>Отменено / неявок</span><strong>' + (period.cancelled || 0) + ' / ' + (period.no_show || 0) + '</strong></div>'
+        + '<div class="finance-kv"><span>Новых клиентов</span><strong>' + (period.new_clients || 0) + '</strong></div>'
+        + '</div>';
+}
+
+function financeBreakdownCard(current, previous) {
+    let diff = '<span class="badge badge-info">нет данных для сравнения</span>';
+    if (previous && previous.revenue) {
+        const percent = Math.round((current.revenue - previous.revenue) / previous.revenue * 100);
+        diff = percent >= 0
+            ? '<span class="badge badge-success">+' + percent + '% к прошлому периоду</span>'
+            : '<span class="badge badge-danger">' + percent + '% к прошлому периоду</span>';
+    }
+    return '<div class="finance-month wide">'
+        + '<div class="finance-month-head"><span class="finance-month-name">Из чего состоит выручка выбранного периода</span>' + diff + '</div>'
+        + '<div class="finance-kv"><span>Занятия (наличные и переводы)</span><strong>' + financeMoney(current.lessons_money) + '</strong></div>'
+        + '<div class="finance-kv"><span>Пакеты (продажа)</span><strong>' + financeMoney(current.packages_money) + '</strong></div>'
+        + '<div class="finance-kv"><span>Сертификаты (выпуск)</span><strong>' + financeMoney(current.certificates_money) + '</strong></div>'
+        + '<div class="finance-kv"><span>Оплачено сертификатом или пакетом</span><strong class="muted">'
+        + (current.covered_lessons || 0) + ' занятий · повторно не считается</strong></div>'
+        + '</div>';
+}
+
+function renderFinanceChart(chartId, labelsId, points) {
+    const chart = document.getElementById(chartId);
+    const labels = document.getElementById(labelsId);
+    if (!chart || !labels) return;
+    let max = 1;
+    (points || []).forEach(p => { max = Math.max(max, p.current || 0, p.previous || 0); });
+    chart.innerHTML = (points || []).map(p => {
+        const currentHeight = Math.round((p.current || 0) / max * 100);
+        const previousHeight = Math.round((p.previous || 0) / max * 100);
+        return '<div class="finance-bar-group">'
+            + '<div class="finance-bar past" style="height:' + previousHeight + '%" title="Прошлый период: ' + financeMoney(p.previous) + '"></div>'
+            + '<div class="finance-bar current" style="height:' + currentHeight + '%" title="Выбранный период: ' + financeMoney(p.current) + '"></div>'
+            + '</div>';
+    }).join('');
+    labels.innerHTML = (points || []).map(p => '<span>' + escapeHtml(String(p.label)) + '</span>').join('');
+}
+
+function setFinanceText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+async function loadDashboardFinance() {
+    const data = await fetchFinance(financeQueryFor('month', dashboardFinanceAnchor));
+    if (!data) return;
+    const cols = document.getElementById('dash-finance-cols');
+    if (cols) {
+        cols.innerHTML = financePeriodCard(data.previous, false, 'прошлый месяц', '')
+            + financePeriodCard(data.current, true, '', 'текущий месяц');
+    }
+    setFinanceText('dash-finance-label', data.current.label + ' · прошлый: ' + data.previous.label);
+    renderFinanceChart('dash-finance-chart', 'dash-finance-labels', data.points);
+    setFinanceText('dash-losses-label', data.current.label);
+    setFinanceText('dash-cancelled', data.current.cancelled || 0);
+    setFinanceText('dash-no-show', data.current.no_show || 0);
+    setFinanceText('dash-lost', financeMoney(((data.current.cancelled || 0) + (data.current.no_show || 0)) * (data.current.avg_check || 0)));
+    setFinanceText('dash-average', financeMoney(data.current.avg_check));
+    setFinanceText('dash-average-diff', data.previous.avg_check
+        ? 'в прошлом месяце ' + financeMoney(data.previous.avg_check)
+        : 'нет данных за прошлый месяц');
+}
+
+function shiftDashboardMonth(delta) {
+    dashboardFinanceAnchor = financeShiftAnchor(dashboardFinanceAnchor, 'month', delta);
+    loadDashboardFinance();
+}
+
+async function loadAnalyticsFinance() {
+    const data = await fetchFinance(financeQueryFor(financeMode, financeAnchor, financeRangeFrom, financeRangeTo));
+    if (!data) return;
+    setFinanceText('finance-label', data.label);
+    setFinanceText('finance-granularity', data.granularity_label);
+    setFinanceText('finance-all-time', financeMoney(data.all_time_revenue));
+    const cols = document.getElementById('finance-cols');
+    if (cols) {
+        cols.innerHTML = financePeriodCard(data.previous, false, '', '')
+            + financePeriodCard(data.current, true, '', '')
+            + financeBreakdownCard(data.current, data.previous);
+    }
+    renderFinanceChart('finance-chart', 'finance-labels', data.points);
+    const box = document.getElementById('finance-range-box');
+    if (box) box.classList.toggle('hidden', financeMode !== 'range');
+    if (financeMode === 'range') {
+        const fromInput = document.getElementById('finance-from');
+        const toInput = document.getElementById('finance-to');
+        if (fromInput && !fromInput.value) fromInput.value = data.current.start;
+        if (toInput && !toInput.value) toInput.value = data.current.end;
+    }
+    document.querySelectorAll('#finance-mode-switch button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.financeMode === financeMode);
+    });
+}
+
+function setFinanceMode(mode) {
+    if (['day', 'month', 'year', 'range'].indexOf(mode) === -1) return;
+    financeMode = mode;
+    if (mode === 'range') {
+        const fromInput = document.getElementById('finance-from');
+        const toInput = document.getElementById('finance-to');
+        if (fromInput && !fromInput.value) fromInput.value = financeIsoDate(new Date(financeAnchor.getFullYear(), financeAnchor.getMonth(), 1));
+        if (toInput && !toInput.value) toInput.value = financeIsoDate(new Date());
+        financeRangeFrom = fromInput ? fromInput.value : null;
+        financeRangeTo = toInput ? toInput.value : null;
+    }
+    loadAnalyticsFinance();
+}
+
+function shiftFinancePeriod(delta) {
+    if (financeMode === 'range') {
+        showToast('Для произвольного периода выберите даты и нажмите «Показать»', 'error');
+        return;
+    }
+    financeAnchor = financeShiftAnchor(financeAnchor, financeMode, delta);
+    loadAnalyticsFinance();
+}
+
+function applyFinanceRange() {
+    const fromInput = document.getElementById('finance-from');
+    const toInput = document.getElementById('finance-to');
+    if (!fromInput || !toInput || !fromInput.value || !toInput.value) {
+        showToast('Укажите обе даты диапазона', 'error');
+        return;
+    }
+    financeMode = 'range';
+    financeRangeFrom = fromInput.value;
+    financeRangeTo = toInput.value;
+    loadAnalyticsFinance();
+}
 
 // --- Support ---
 let currentDialogUserId = null;
@@ -5064,6 +5245,10 @@ window.sendReply = sendReply;
 window.closeSupportChat = closeSupportChat;
 window.openDialog = openDialog;
 window.switchSupportChannel = switchSupportChannel;
+window.shiftDashboardMonth = shiftDashboardMonth;
+window.setFinanceMode = setFinanceMode;
+window.shiftFinancePeriod = shiftFinancePeriod;
+window.applyFinanceRange = applyFinanceRange;
 window.toggleBroadcastMode = toggleBroadcastMode;
 window.saveBroadcastText = saveBroadcastText;
 window.selectBroadcastClient = selectBroadcastClient;
