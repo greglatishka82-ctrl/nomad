@@ -2998,3 +2998,32 @@ a:hover {
   color: var(--danger-text);
   border: 1px solid var(--danger-border);
 }
+
+/* Отдельные счётчики рассылки: сколько отправлено в Telegram и WhatsApp. */
+.broadcast-channel-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.broadcast-stat {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.broadcast-stat-tg {
+  background: rgba(0, 136, 204, 0.12);
+  border-color: rgba(0, 136, 204, 0.35);
+  color: #075985;
+}
+
+.broadcast-stat-wa {
+  background: rgba(37, 211, 102, 0.16);
+  border-color: rgba(37, 211, 102, 0.45);
+  color: #065f46;
+}

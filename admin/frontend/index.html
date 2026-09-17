@@ -977,6 +977,10 @@
             <span>📣 Режим рассылки включён</span>
             <span id="broadcast-cooldown" class="broadcast-cooldown hidden"></span>
             <span id="broadcast-progress" class="broadcast-progress">Отправлено 0 из 0</span>
+            <span class="broadcast-channel-stats">
+              <span class="broadcast-stat broadcast-stat-tg">Telegram: <b id="broadcast-sent-telegram">0</b> из <b id="broadcast-total-telegram">0</b></span>
+              <span class="broadcast-stat broadcast-stat-wa">WhatsApp: <b id="broadcast-sent-whatsapp">0</b> из <b id="broadcast-total-whatsapp">0</b></span>
+            </span>
             <button class="btn btn-outline btn-sm" onclick="resetBroadcastStatuses()">Сбросить статусы</button>
           </div>
 

@@ -3769,9 +3769,31 @@ function broadcastSentCount() {
     return broadcastClients.filter(c => c.is_sent).length;
 }
 
+function broadcastChannelStats() {
+    // Признак канала тот же, что и у значка TG/WA в списке клиентов.
+    const stats = { telegram: { sent: 0, total: 0 }, whatsapp: { sent: 0, total: 0 } };
+    broadcastClients.forEach(c => {
+        const channel = c.channel === 'telegram' ? 'telegram' : 'whatsapp';
+        stats[channel].total += 1;
+        if (c.is_sent) stats[channel].sent += 1;
+    });
+    return stats;
+}
+
+function setBroadcastStatText(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (el) el.textContent = String(value);
+}
+
 function updateBroadcastProgress() {
     const el = document.getElementById('broadcast-progress');
     if (el) el.textContent = 'Отправлено ' + broadcastSentCount() + ' из ' + broadcastClients.length;
+    // Отдельные счётчики по каналам: админ видит, сколько отправлено в Telegram и WhatsApp.
+    const stats = broadcastChannelStats();
+    setBroadcastStatText('broadcast-sent-telegram', stats.telegram.sent);
+    setBroadcastStatText('broadcast-total-telegram', stats.telegram.total);
+    setBroadcastStatText('broadcast-sent-whatsapp', stats.whatsapp.sent);
+    setBroadcastStatText('broadcast-total-whatsapp', stats.whatsapp.total);
 }
 
 function toggleBroadcastMode(enabled) {
