@@ -2035,18 +2035,11 @@ async def create_manual_booking(
         db.add(client)
         await db.flush()
 
-    daily_limit_result = await db.execute(
-        select(func.count()).select_from(Booking).where(
-            and_(
-                Booking.client_id == client.id,
-                Booking.booking_date == booking_date,
-            Booking.status.in_(["pending", "cancellation_pending", "reschedule_pending", "planned", "confirmed"]),
-            )
-        )
-    )
-    daily_count = daily_limit_result.scalar() or 0
-    if daily_count >= 2:
-        raise HTTPException(status_code=400, detail="Максимум 2 записи на один день для одного клиента")
+    # Администратор не ограничен правилом «не более 2 записей в день»: оно
+    # защищает слоты только от самостоятельной записи клиента через
+    # Telegram-бота и мобильное приложение (backend/app/bot/handlers.py и
+    # backend/app/routers/mobile_bookings.py). Доступность слота ручная
+    # запись проверяет выше, поэтому лишних записей в одно время не будет.
 
     # The next eligible manual booking consumes one package entitlement just
     # like bookings created in the mobile app or client Telegram bot.
@@ -7115,7 +7108,10 @@ async def check_daily_booking_limit(
         )
     )
     count = result.scalar() or 0
-    return {"count": count, "limit": 2, "can_book": count < 2}
+    # Лимит «2 записи в день» ограничивает только самостоятельную запись
+    # клиента (Telegram-бот и приложение). Администратор может создать
+    # столько записей, сколько позволяют свободные слоты.
+    return {"count": count, "can_book": True, "client_channel_limit": 2}
 
 
 # ==================== БЛОКИРОВКА КЛИЕНТА (Задача 9) ====================

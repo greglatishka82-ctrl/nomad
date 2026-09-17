@@ -193,13 +193,8 @@ async function validateOfflineOperation(method, path, body) {
         if (!slots.slots.some(slot => slot.time === body.start_time && slot.is_free)) {
             throw new Error('Выбранный слот уже занят или инструктор не работает в это время');
         }
-        const phone = String(body.client_phone || '').replace(/\D/g, '').slice(-10);
-        const client = snapshot.clients?.find(item => (phone && String(item.phone || '').replace(/\D/g, '').slice(-10) === phone)
-            || (!phone && body.client_name && item.name === body.client_name));
-        if (client && (snapshot.bookings || []).filter(item => String(item.client_id) === String(client.id)
-            && item.date === body.booking_date && ['pending', 'cancellation_pending', 'reschedule_pending', 'planned', 'confirmed'].includes(item.status)).length >= 2) {
-            throw new Error('Максимум 2 записи на один день для одного клиента');
-        }
+        // Лимит «2 записи в день» действует только для самостоятельной записи
+        // клиента (Telegram-бот и приложение), администратор им не ограничен.
     }
     const certificateBooking = path.match(/^\/bookings\/(-?\d+)\/apply-certificate$/);
     if (method === 'POST' && certificateBooking) {
