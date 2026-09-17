@@ -2987,3 +2987,14 @@ a:hover {
   font-size: 0.86rem;
   resize: vertical;
 }
+
+/* Пауза между сообщениями рассылки: защита аккаунта WhatsApp от блокировки. */
+.broadcast-cooldown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--danger-light);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}

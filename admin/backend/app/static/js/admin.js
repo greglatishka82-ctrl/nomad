@@ -3504,6 +3504,9 @@ let broadcastSelectedChannel = null;
 let broadcastWhatsappNumber = null;
 let broadcastLastSignature = '';
 let broadcastTextInserted = false;
+let broadcastCooldownUntil = 0;
+let broadcastCooldownTimer = null;
+const BROADCAST_COOLDOWN_SECONDS = 30;
 
 function broadcastSentCount() {
     return broadcastClients.filter(c => c.is_sent).length;
@@ -3529,6 +3532,11 @@ function toggleBroadcastMode(enabled) {
         document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
         document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
         broadcastLastSignature = '';
+        try {
+            const savedCooldown = Number(localStorage.getItem('broadcastCooldownUntil') || 0);
+            if (savedCooldown > Date.now()) broadcastCooldownUntil = savedCooldown;
+        } catch (e) { /* приватный режим браузера — таймер просто начнётся заново */ }
+        updateBroadcastCooldownUI();
         loadBroadcastSettings();
         loadBroadcastClients();
         showToast('Режим рассылки включён');
@@ -3537,6 +3545,7 @@ function toggleBroadcastMode(enabled) {
         broadcastSelectedChannel = null;
         broadcastWhatsappNumber = null;
         broadcastTextInserted = false;
+        document.getElementById('broadcast-cooldown')?.classList.add('hidden');
         document.getElementById('broadcast-whatsapp')?.classList.add('hidden');
         document.getElementById('broadcast-chat-bar')?.classList.add('hidden');
         loadSupport();
@@ -3682,9 +3691,9 @@ async function selectBroadcastClient(clientId) {
         if (phone) phone.textContent = client.phone || 'Номер не указан';
         const open = document.getElementById('broadcast-wa-open');
         if (open) {
-            open.disabled = !client.whatsapp_number;
             open.title = client.whatsapp_number ? '' : 'У клиента нет корректного номера телефона';
         }
+        updateBroadcastCooldownUI();
     }
     updateBroadcastStatusUI(!!client.is_sent);
 }
@@ -3705,7 +3714,13 @@ async function setBroadcastStatus(isSent) {
     updateBroadcastProgress();
     updateBroadcastListItem(clientId);
     updateBroadcastStatusUI(!!data.is_sent);
-    showToast(data.is_sent ? 'Отмечено: отправлено' : 'Возвращено в «Не отправлено»');
+    if (data.is_sent) {
+        // Пауза между сообщениями: WhatsApp блокирует аккаунт за частую рассылку.
+        startBroadcastCooldown();
+        showToast('Отмечено: отправлено. Следующее сообщение через ' + BROADCAST_COOLDOWN_SECONDS + ' секунд');
+    } else {
+        showToast('Возвращено в «Не отправлено»');
+    }
 }
 
 function insertBroadcastText() {
@@ -3722,7 +3737,51 @@ function insertBroadcastText() {
     showToast('Текст рассылки вставлен в поле сообщения');
 }
 
+function broadcastCooldownLeft() {
+    return Math.max(0, Math.ceil((broadcastCooldownUntil - Date.now()) / 1000));
+}
+
+function startBroadcastCooldown() {
+    broadcastCooldownUntil = Date.now() + BROADCAST_COOLDOWN_SECONDS * 1000;
+    try { localStorage.setItem('broadcastCooldownUntil', String(broadcastCooldownUntil)); } catch (e) { /* не критично */ }
+    updateBroadcastCooldownUI();
+}
+
+function updateBroadcastCooldownUI() {
+    const left = broadcastCooldownLeft();
+    const chip = document.getElementById('broadcast-cooldown');
+    if (chip) {
+        chip.classList.toggle('hidden', left <= 0);
+        chip.textContent = left > 0 ? '⏳ Следующее сообщение через ' + left + ' с' : '';
+    }
+    const openButton = document.getElementById('broadcast-wa-open');
+    if (openButton) {
+        if (left > 0) {
+            openButton.disabled = true;
+            openButton.textContent = 'Подождите ' + left + ' с';
+        } else {
+            openButton.disabled = !broadcastWhatsappNumber;
+            openButton.textContent = 'Открыть WhatsApp';
+        }
+    }
+    if (left > 0 && !broadcastCooldownTimer) {
+        broadcastCooldownTimer = setInterval(() => {
+            if (broadcastCooldownLeft() <= 0) {
+                clearInterval(broadcastCooldownTimer);
+                broadcastCooldownTimer = null;
+                try { localStorage.removeItem('broadcastCooldownUntil'); } catch (e) { /* не критично */ }
+            }
+            updateBroadcastCooldownUI();
+        }, 1000);
+    }
+}
+
 function openWhatsAppChat() {
+    const waitLeft = broadcastCooldownLeft();
+    if (waitLeft > 0) {
+        showToast('Подождите ' + waitLeft + ' с — пауза защищает аккаунт WhatsApp от блокировки', 'error');
+        return;
+    }
     if (!broadcastWhatsappNumber) {
         showToast('У клиента нет корректного номера телефона', 'error');
         return;
