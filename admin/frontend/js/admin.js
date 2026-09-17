@@ -1,4 +1,4 @@
-// URL admin backend берётся серверной proxy-функцией Vercel из ADMIN_BACKEND_URL.
+// Админ-панель обращается к своему домену: /api/admin проксирует nginx на admin-api.
 const API = '/api/admin';
 const INITIAL_SESSION_TIMEOUT_MS = 8000;
 
@@ -631,8 +631,9 @@ async function refreshOfflineSnapshot() {
         if (!res.ok) throw new Error('Не удалось получить полный офлайн-снимок');
         const snapshot = await res.json();
         const requiredPaths = ['/bookings', '/instructors', '/instructor-daily-schedules',
-            '/instructor-days-off', '/offline-mobile-bookings', '/settings/exam-sensors'];
-        const hasRequiredData = snapshot?.version >= 14 && requiredPaths.every(path => snapshot.data[path] !== undefined);
+            '/instructor-days-off', '/offline-mobile-bookings', '/settings/exam-sensors',
+            '/support-dialogs', '/support-messages'];
+        const hasRequiredData = snapshot?.version >= 15 && requiredPaths.every(path => snapshot.data[path] !== undefined);
         if (!snapshot?.booking_window || !snapshot?.slot_rules || !snapshot?.data || !hasRequiredData) {
             throw new Error('Сервер вернул неполный офлайн-снимок');
         }
@@ -882,14 +883,16 @@ async function offlineDerivedRead(path) {
                 day_name: dayNames[new Date(`${date}T12:00:00`).getDay()] };
         }).sort((a, b) => `${a.date}:${a.hour}`.localeCompare(`${b.date}:${b.hour}`));
     }
-    if (path === '/analytics/instructor-load') {
-        const since = addKzDays(currentKzClock().date, -30);
+    if (path.startsWith('/analytics/instructor-load')) {
+        const range = instructorLoadRangeFromPath(path);
         const counts = new Map();
-        for (const booking of localBookings.filter(item => item.date >= since && ['confirmed', 'completed'].includes(item.status))) {
+        for (const booking of localBookings.filter(item =>
+            item.date >= range.from && item.date <= range.to && ['confirmed', 'completed'].includes(item.status))) {
             const name = booking.instructor_name || '—';
             counts.set(name, (counts.get(name) || 0) + 1);
         }
-        return [...counts.entries()].map(([name, bookings]) => ({ name, bookings }));
+        return [...counts.entries()].map(([name, bookings]) => ({ name, bookings }))
+            .sort((a, b) => b.bookings - a.bookings);
     }
     if (path === '/analytics/booking-sources') {
         const counts = { telegram: 0, mobile: 0, manual: 0 };
@@ -933,31 +936,49 @@ async function offlineDerivedRead(path) {
     if (path === '/support/dialogs' || path === '/support/instructors/dialogs') {
         const isInstructor = path.includes('/instructors/');
         const key = isInstructor ? 'instructor_id' : 'client_id';
-        const people = isInstructor ? snapshot.instructors || [] : snapshot.clients || [];
         const rows = (snapshot.data?.['/support-messages'] || []).filter(m => m[key]);
-        const lastByPerson = new Map(rows.map(m => [m[key], m]));
-        const ids = isInstructor ? people.map(person => person.id) : [...lastByPerson.keys()];
+        // Последнее сообщение берём по времени: офлайн-ответ админа тоже лежит здесь.
+        const lastByPerson = new Map();
+        rows.forEach(message => {
+            const id = String(message[key]);
+            const previous = lastByPerson.get(id);
+            if (!previous || String(message.created_at) >= String(previous.created_at)) lastByPerson.set(id, message);
+        });
+        // Имена и телефоны приходят в снимке: без них диалог выглядел бы безликим.
+        const people = isInstructor
+            ? (snapshot.instructors || []).map(person => ({ ...person, user_id: person.id }))
+            : (snapshot.data?.['/support-dialogs'] || []);
+        const ids = isInstructor
+            ? people.map(person => person.user_id)
+            : [...new Set([...people.map(dialog => dialog.user_id), ...[...lastByPerson.keys()].map(Number)])];
         return ids.map(id => {
-            const last = lastByPerson.get(id);
-            const person = people.find(p => String(p.id) === String(id)) || {};
+            const last = lastByPerson.get(String(id));
+            const person = people.find(p => String(p.user_id ?? p.id) === String(id)) || {};
             const unread = rows.filter(message => String(message[key]) === String(id)
                 && message.sender === (isInstructor ? 'instructor' : 'user')
                 && !message.is_admin_read).length;
-            return { user_id: id, user_name: person.name || 'Пользователь', user_phone: person.phone || '',
+            return { user_id: id, user_name: person.user_name || person.name || 'Пользователь',
+                user_phone: person.user_phone || person.phone || '',
                 telegram_id: person.telegram_id, telegram_username: person.telegram_username,
-                last_message: last?.text || (isInstructor ? 'Можно написать инструктору' : ''),
-                last_message_at: last?.created_at || null, unread_from_user: unread, has_new: unread > 0, channel: last?.channel };
+                last_message: last?.text || person.last_message || (isInstructor ? 'Можно написать инструктору' : ''),
+                last_message_at: last?.created_at || person.last_message_at || null,
+                unread_from_user: unread, has_new: unread > 0,
+                channel: last?.channel || person.channel,
+                support_chat_is_open: person.support_chat_is_open };
         }).sort((a, b) => String(b.last_message_at || '').localeCompare(String(a.last_message_at || '')));
     }
     const dialogMatch = path.match(/^\/support\/(?:instructors\/)?dialogs\/(\d+)$/);
     if (dialogMatch) {
         const isInstructor = path.includes('/instructors/');
         const key = isInstructor ? 'instructor_id' : 'client_id';
-        const people = isInstructor ? snapshot.instructors || [] : snapshot.clients || [];
-        const user = people.find(p => String(p.id) === dialogMatch[1]) || {};
-        return { user: { id: user.id, name: user.name || 'Пользователь', phone: user.phone || '',
+        const people = isInstructor
+            ? (snapshot.instructors || []).map(person => ({ ...person, user_id: person.id }))
+            : (snapshot.data?.['/support-dialogs'] || []);
+        const user = people.find(p => String(p.user_id ?? p.id) === dialogMatch[1]) || {};
+        return { user: { id: Number(dialogMatch[1]), name: user.user_name || user.name || 'Пользователь',
+                phone: user.user_phone || user.phone || '',
                 telegram_id: user.telegram_id,
-                created_at: user.created_at },
+                support_chat_is_open: user.support_chat_is_open },
             messages: (snapshot.data?.['/support-messages'] || []).filter(m => String(m[key]) === dialogMatch[1])
                 .map(m => ({ ...m, sender: isInstructor && m.sender !== 'admin' ? 'user' : m.sender })),
             recent_bookings: isInstructor ? [] : localBookings.filter(b => String(b.client_id) === dialogMatch[1]).slice(-10).reverse()
@@ -1416,8 +1437,8 @@ document.body.addEventListener('click', (e) => {
 
 // --- API helpers ---
 async function readOfflineApi(path) {
-    if (path.startsWith('/support/')) {
-        throw new Error('Переписка поддержки недоступна офлайн. Подключитесь к интернету.');
+    if (path.startsWith('/support/broadcast')) {
+        throw new Error('Рассылка доступна только онлайн. Подключитесь к интернету.');
     }
     if (path === '/bookings/archive' || path.startsWith('/logs/archive/')) {
         throw new Error('Архив доступен только онлайн. Подключитесь к интернету.');
@@ -1877,7 +1898,7 @@ async function loadBookings() {
             ? '<span class="badge badge-info" style="margin-left:6px" title="Telegram-бот">\u2708\ufe0f</span>'
             : '';
         const numberLine = b.booking_number ? `<br><small style="color:var(--primary);font-weight:bold">#${b.booking_number}</small>` : '';
-        const actionId = JSON.stringify(String(b.id));
+        const actionId = `'${String(b.id)}'`;
         const isLocalOffline = String(b.id).startsWith('offline-');
         const isPendingConfirm = b.status === 'pending' || b.status === 'conflict' || b.status === 'disputed';
         const isPending = pendingDeletes[b.id] ? 'pending-delete' : '';
@@ -1937,7 +1958,7 @@ async function loadBookings() {
             const numberLine = b.booking_number
                 ? `<br><small style="color:var(--primary);font-weight:bold">#${b.booking_number}</small>`
                 : '';
-            const actionId = JSON.stringify(String(b.id));
+            const actionId = `'${String(b.id)}'`;
             const isLocalOffline = String(b.id).startsWith('offline-');
             const isPendingConfirm = b.status === 'pending' || b.status === 'conflict' || b.status === 'disputed';
             const isPending = pendingDeletes[b.id] ? 'pending-delete' : '';
@@ -3107,11 +3128,120 @@ function setRevenuePeriod(period) {
     renderRevenueAnalytics();
 }
 
+// --- Загрузка автоинструкторов: сегодня, неделя, 30 дней или свой период ---
+const INSTRUCTOR_LOAD_SPANS = { today: 1, week: 7, month: 30 };
+let instructorLoadMode = 'month';
+let instructorLoadRangeFrom = null;
+let instructorLoadRangeTo = null;
+
+function instructorLoadRangeFor(mode = instructorLoadMode, from = instructorLoadRangeFrom, to = instructorLoadRangeTo) {
+    const today = currentKzClock().date;
+    if (mode === 'range') {
+        const start = from || addKzDays(today, -29);
+        const end = to || today;
+        return start <= end ? { from: start, to: end } : { from: end, to: start };
+    }
+    const span = INSTRUCTOR_LOAD_SPANS[mode] || INSTRUCTOR_LOAD_SPANS.month;
+    return { from: addKzDays(today, -(span - 1)), to: today };
+}
+
+// Тот же период считаем и по адресу запроса: офлайн-снимок обязан совпадать с сервером.
+function instructorLoadRangeFromPath(path) {
+    const query = new URLSearchParams(String(path).split('?')[1] || '');
+    const today = currentKzClock().date;
+    const from = query.get('from');
+    const to = query.get('to') || today;
+    if (!from) return { from: addKzDays(to, -29), to };
+    return from <= to ? { from, to } : { from: to, to: from };
+}
+
+function instructorLoadPath(range = instructorLoadRangeFor()) {
+    return `/analytics/instructor-load?from=${range.from}&to=${range.to}`;
+}
+
+function instructorLoadCaption(range) {
+    const format = value => String(value).split('-').reverse().join('.');
+    const start = Date.parse(`${range.from}T00:00:00Z`);
+    const end = Date.parse(`${range.to}T00:00:00Z`);
+    const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    return `${format(range.from)} — ${format(range.to)} · ${days} дн.`;
+}
+
+function renderInstructorLoadBlock(load) {
+    const container = document.getElementById('instructor-load-chart');
+    const caption = document.getElementById('instructor-load-range');
+    if (caption) caption.textContent = instructorLoadCaption(instructorLoadRangeFor());
+    if (!container) return;
+    if (!load || !load.length) {
+        container.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Нет занятий за выбранный период</p>';
+        return;
+    }
+    const maxBookings = Math.max(...load.map(item => Number(item.bookings) || 0), 1);
+    container.innerHTML = load.map(item => {
+        const bookings = Number(item.bookings) || 0;
+        const width = Math.round((bookings / maxBookings) * 100);
+        return `<div class="load-bar-container">
+            <div class="load-bar-label">
+                <span style="font-weight:600;color:var(--text-main);">${escapeHtml(item.name)}</span>
+                <span style="color:var(--text-muted);font-size:12px;"><strong>${bookings}</strong> занятий</span>
+            </div>
+            <div class="load-bar">
+                <div class="load-bar-fill" style="width:${width}%">${bookings > 0 ? bookings : ''}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function refreshInstructorLoad() {
+    const range = instructorLoadRangeFor();
+    const caption = document.getElementById('instructor-load-range');
+    if (caption) caption.textContent = instructorLoadCaption(range);
+    const load = await apiGet(instructorLoadPath(range)).catch(() => null);
+    renderInstructorLoadBlock(load);
+}
+
+function markInstructorLoadMode(mode) {
+    document.querySelectorAll('#instructor-load-switch button').forEach(button => {
+        button.classList.toggle('active', button.dataset.instructorMode === mode);
+    });
+}
+
+function setInstructorLoadMode(mode) {
+    instructorLoadMode = mode;
+    const box = document.getElementById('instructor-load-range-box');
+    if (mode === 'range') {
+        const fromInput = document.getElementById('instructor-load-from');
+        const toInput = document.getElementById('instructor-load-to');
+        const fallback = instructorLoadRangeFor('month');
+        if (fromInput && !fromInput.value) fromInput.value = instructorLoadRangeFrom || fallback.from;
+        if (toInput && !toInput.value) toInput.value = instructorLoadRangeTo || fallback.to;
+        instructorLoadRangeFrom = fromInput?.value || fallback.from;
+        instructorLoadRangeTo = toInput?.value || fallback.to;
+    }
+    if (box) box.classList.toggle('hidden', mode !== 'range');
+    markInstructorLoadMode(mode);
+    refreshInstructorLoad();
+}
+
+function applyInstructorLoadRange() {
+    const fromInput = document.getElementById('instructor-load-from');
+    const toInput = document.getElementById('instructor-load-to');
+    if (!fromInput?.value || !toInput?.value) {
+        showToast('Укажите обе даты периода', 'error');
+        return;
+    }
+    instructorLoadMode = 'range';
+    instructorLoadRangeFrom = fromInput.value;
+    instructorLoadRangeTo = toInput.value;
+    markInstructorLoadMode('range');
+    refreshInstructorLoad();
+}
+
 async function loadAnalytics() {
     loadAnalyticsFinance();
     const [heatmap, load, bookings, sourceData, genderData, revenueData] = await Promise.all([
         apiGet('/analytics/heatmap'),
-        apiGet('/analytics/instructor-load'),
+        apiGet(instructorLoadPath()),
         apiGet('/bookings').catch(() => []),
         apiGet('/analytics/booking-sources/extended').catch(() => null),
         apiGet('/analytics/gender').catch(() => null),
@@ -3250,26 +3380,7 @@ async function loadAnalytics() {
     }
 
     // 4. Instructor Load
-    const lc = document.getElementById('instructor-load-chart');
-    if (lc) {
-        if (load && load.length) {
-            const maxB = Math.max(...load.map(l => l.bookings), 1);
-            lc.innerHTML = load.map(l => {
-                const pct = Math.round((l.bookings / maxB) * 100);
-                return `<div class="load-bar-container">
-                    <div class="load-bar-label">
-                        <span style="font-weight:600;color:var(--text-main);">${escapeHtml(l.name)}</span>
-                        <span style="color:var(--text-muted);font-size:12px;"><strong>${l.bookings}</strong> занятий (${pct}%)</span>
-                    </div>
-                    <div class="load-bar">
-                        <div class="load-bar-fill" style="width:${pct}%">${l.bookings > 0 ? l.bookings : ''}</div>
-                    </div>
-                </div>`;
-            }).join('');
-        } else { 
-            lc.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Нет данных за последние 30 дней</p>'; 
-        }
-    }
+    renderInstructorLoadBlock(load);
 }
 
 // --- Packages ---
@@ -5323,6 +5434,8 @@ window.shiftDashboardMonth = shiftDashboardMonth;
 window.setFinanceMode = setFinanceMode;
 window.shiftFinancePeriod = shiftFinancePeriod;
 window.applyFinanceRange = applyFinanceRange;
+window.setInstructorLoadMode = setInstructorLoadMode;
+window.applyInstructorLoadRange = applyInstructorLoadRange;
 window.toggleBroadcastMode = toggleBroadcastMode;
 window.saveBroadcastText = saveBroadcastText;
 window.selectBroadcastClient = selectBroadcastClient;

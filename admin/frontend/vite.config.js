@@ -2,9 +2,9 @@ import { defineConfig, loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // In Vercel, /api/admin is served by api/admin/[...path].js and the target
-  // comes from the server-only ADMIN_BACKEND_URL variable.  Keep an optional
-  // local proxy, but never bake a Render URL into the client build.
+  // На боевом сервере панель и API живут на одном домене: запрос /api/admin
+  // проксирует nginx (deploy/admin-frontend.conf). Переменная ниже нужна
+  // только для запуска dev-сервера и в сборку не попадает.
   const apiTarget = env.ADMIN_BACKEND_URL || env.VITE_API_URL
 
   return {
@@ -18,8 +18,8 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    // Production uses the Vercel Function. The local proxy gives the same
-    // /api/admin origin locally, so cookies and every UI action work in dev.
+    // Боевая сборка отдаётся nginx и работает со своего домена. Прокси нужен
+    // только для dev-сервера, чтобы cookie и действия панели работали локально.
     server: apiTarget ? {
       port: 3000,
       proxy: {

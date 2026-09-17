@@ -978,7 +978,23 @@
 
             <div class="card">
               <div class="card-header">
-                <div class="card-title">🚗 Загрузка автоинструкторов (30 дней)</div>
+                <div>
+                  <div class="card-title">🚗 Загрузка автоинструкторов</div>
+                  <p class="chart-hint" id="instructor-load-range">—</p>
+                </div>
+                <div class="analytics-period-switch" id="instructor-load-switch">
+                  <button type="button" data-instructor-mode="today" onclick="setInstructorLoadMode('today')">Сегодня</button>
+                  <button type="button" data-instructor-mode="week" onclick="setInstructorLoadMode('week')">Неделя</button>
+                  <button type="button" data-instructor-mode="month" class="active" onclick="setInstructorLoadMode('month')">30 дней</button>
+                  <button type="button" data-instructor-mode="range" onclick="setInstructorLoadMode('range')">Свой период</button>
+                </div>
+              </div>
+              <div class="row-inline hidden" id="instructor-load-range-box" style="margin-bottom:12px">
+                <label class="chart-hint">с</label>
+                <input type="date" id="instructor-load-from" class="form-control" style="width:150px">
+                <label class="chart-hint">по</label>
+                <input type="date" id="instructor-load-to" class="form-control" style="width:150px">
+                <button class="btn btn-primary btn-sm" onclick="applyInstructorLoadRange()">Показать</button>
               </div>
               <div id="instructor-load-chart"></div>
             </div>

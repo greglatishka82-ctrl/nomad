@@ -53,8 +53,8 @@ _BOT_POLLING_LOCK_ID = 2026082201
 async def _wait_for_bot_leader_lock(stop_event: asyncio.Event):
     """Hold one PostgreSQL advisory lock for all Telegram polling tasks.
 
-    Render may briefly run an old and a new web instance at the same time
-    during a restart. Telegram permits only one getUpdates consumer per bot
+    During a container restart an old and a new web instance may briefly run
+    at the same time. Telegram permits only one getUpdates consumer per bot
     token, so the new instance waits instead of causing 409 conflicts.
     """
     if engine.dialect.name != "postgresql":

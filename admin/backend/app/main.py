@@ -109,8 +109,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="NOMAD Admin API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    # Панель работает на VPS. Адреса прежних хостингов (Vercel, Cloudflare
-    # Pages) убраны — эти площадки больше не используются.
+    # Панель работает на VPS: боевой адрес админки и локальные адреса разработки.
     allow_origins=[
         "https://admin.nomad.57-129-153-111.sslip.io",
         "http://localhost:3000",

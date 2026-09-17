@@ -125,7 +125,7 @@ from app.models.models import (
 from app.services.auth import hash_password, verify_password
 from app.services.activity_log import record_admin_action
 from app.services.push_service import send_push_to_user
-from app.routers.support import get_unread_support_count
+from app.routers.support import get_unread_support_count, _is_support_chat_open
 from app.services.booking_service import (
     appointment_fits_schedule, count_booked_at_location, count_booked_vehicle_capacity, find_best_instructor,
     get_busy_instructor_ids, get_effective_schedule, is_instructor_available,
@@ -1609,6 +1609,82 @@ async def get_manual_booking_window(request: Request, db: AsyncSession = Depends
     return {"min_date": first_date.isoformat(), "max_date": last_date.isoformat()}
 
 
+OFFLINE_SUPPORT_WINDOW_DAYS = 30
+OFFLINE_SUPPORT_DIALOG_LIMIT = 200
+OFFLINE_SUPPORT_MESSAGE_LIMIT = 20
+
+
+async def _build_offline_support(db: AsyncSession) -> tuple[list[dict], list[dict]]:
+    """Последние сообщения поддержки для офлайн-копии админки.
+
+    Без интернета администратор должен видеть, что ему писали люди, поэтому в
+    снимок попадают диалоги с клиентами и инструкторами за последний месяц.
+    Рассылка и полная история переписки остаются только онлайн.
+    """
+    since = now_kz() - timedelta(days=OFFLINE_SUPPORT_WINDOW_DAYS)
+    client_rows = (await db.execute(
+        select(SupportMessage.client_id, func.max(SupportMessage.created_at).label("last_at"))
+        .where(SupportMessage.client_id.isnot(None), SupportMessage.created_at >= since)
+        .group_by(SupportMessage.client_id)
+        .order_by(func.max(SupportMessage.created_at).desc())
+        .limit(OFFLINE_SUPPORT_DIALOG_LIMIT)
+    )).all()
+    client_ids = [row.client_id for row in client_rows]
+    clients: dict[int, Client] = {}
+    if client_ids:
+        clients = {
+            item.id: item for item in (await db.execute(
+                select(Client).where(Client.id.in_(client_ids))
+            )).scalars().all()
+        }
+    rows: list[SupportMessage] = []
+    if client_ids:
+        rows += (await db.execute(
+            select(SupportMessage).where(
+                SupportMessage.client_id.in_(client_ids), SupportMessage.created_at >= since,
+            ).order_by(SupportMessage.id.asc())
+        )).scalars().all()
+    rows += (await db.execute(
+        select(SupportMessage).where(
+            SupportMessage.instructor_id.isnot(None), SupportMessage.created_at >= since,
+        ).order_by(SupportMessage.id.asc())
+    )).scalars().all()
+
+    grouped: dict[tuple[str, int], list[SupportMessage]] = {}
+    for message in rows:
+        key = ("instructor", message.instructor_id) if message.instructor_id else ("client", message.client_id)
+        grouped.setdefault(key, []).append(message)
+
+    messages = [
+        {
+            "id": message.id, "client_id": message.client_id, "instructor_id": message.instructor_id,
+            "sender": message.sender, "text": message.text, "is_read": message.is_read,
+            "is_admin_read": message.is_admin_read, "channel": message.channel or "mobile",
+            "created_at": message.created_at.isoformat(),
+        }
+        for key in grouped for message in grouped[key][-OFFLINE_SUPPORT_MESSAGE_LIMIT:]
+    ]
+    messages.sort(key=lambda item: item["id"])
+
+    dialogs = []
+    for row in client_rows:
+        client = clients.get(row.client_id)
+        if client is None or client.is_deleted:
+            continue
+        own = grouped.get(("client", row.client_id), [])
+        last = own[-1] if own else None
+        unread = sum(1 for message in own if message.sender == "user" and not message.is_admin_read)
+        dialogs.append({
+            "user_id": client.id, "user_name": client.name, "user_phone": client.phone,
+            "last_message": last.text[:80] if last else "",
+            "last_message_at": last.created_at.isoformat() if last else None,
+            "unread_from_user": unread, "has_new": unread > 0,
+            "channel": (last.channel or "mobile") if last else "mobile",
+            "support_chat_is_open": _is_support_chat_open(client),
+        })
+    return dialogs, messages
+
+
 @router.get("/offline-snapshot")
 async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_db)):
     """One coherent database snapshot for the offline administrator UI.
@@ -1679,8 +1755,9 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
     exam_sensor_settings = {
         "capacity": exam_sensor_resource.capacity if exam_sensor_resource else 0
     }
+    support_dialogs, support_messages = await _build_offline_support(db)
     return {
-        "version": 14,
+        "version": 15,
         "synced_at": now_kz().isoformat(),
         "booking_window": {"min_date": first_date.isoformat(), "max_date": last_date.isoformat()},
         "slot_rules": {
@@ -1700,6 +1777,7 @@ async def get_offline_snapshot(request: Request, db: AsyncSession = Depends(get_
             "/instructor-daily-schedules": daily_schedules, "/instructor-days-off": instructor_days_off,
             "/offline-mobile-bookings": offline_mobile_bookings,
             "/settings/exam-sensors": exam_sensor_settings,
+            "/support-dialogs": support_dialogs, "/support-messages": support_messages,
         },
     }
 
@@ -3516,7 +3594,7 @@ async def get_notification_counts(
     """Возвращает количество новых клиентов, непрочитанных сообщений поддержки и непрочитанных записей"""
     _get_admin_username(request)
     # Счётчики меняются сразу после открытия вкладки/диалога. Запрещаем браузеру
-    # и Vercel proxy повторно отдавать старое значение следующему polling-запросу.
+    # и промежуточному прокси повторно отдавать старое значение следующему запросу.
     response.headers["Cache-Control"] = "no-store, max-age=0"
     
     # Количество новых клиентов. Для новых версий используем watermark ID,
@@ -4449,16 +4527,40 @@ async def finance_analytics(
 
 
 @router.get("/analytics/instructor-load")
-async def instructor_load(request: Request, days: int = 30, db: AsyncSession = Depends(get_db)):
+async def instructor_load(
+    request: Request,
+    days: int = 30,
+    date_from: Optional[str] = Query(None, alias="from"),
+    date_to: Optional[str] = Query(None, alias="to"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Загрузка инструкторов за период: сегодня, неделя, 30 дней или свой диапазон.
+
+    Верхняя граница обязательна: будущие записи в загрузку не входят.
+    """
     _get_admin_username(request)
-    since = datetime.now(KZ_TZ).date() - timedelta(days=days)
+    today = today_kz()
+    try:
+        end = date.fromisoformat(date_to) if date_to else today
+        span = max(1, min(days, 366))
+        start = date.fromisoformat(date_from) if date_from else end - timedelta(days=span - 1)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Неверная дата периода")
+    if start > end:
+        start, end = end, start
     result = await db.execute(
         select(Instructor.name, func.count(Booking.id)).join(Booking).where(
-            and_(Booking.booking_date >= since, Booking.status.in_(["confirmed", "completed"]))
+            and_(
+                Booking.booking_date >= start,
+                Booking.booking_date <= end,
+                Booking.status.in_(["confirmed", "completed"]),
+            )
         ).group_by(Instructor.id, Instructor.name)
     )
-    rows = result.all()
-    return [{"name": r[0], "bookings": r[1]} for r in rows]
+    # Инструкторы без занятий за период в список не попадают (их отсекает join).
+    rows = [(name, int(count)) for name, count in result.all() if count]
+    rows.sort(key=lambda row: (-row[1], str(row[0] or "")))
+    return [{"name": name, "bookings": count} for name, count in rows]
 
 
 @router.get("/analytics/booking-sources")
