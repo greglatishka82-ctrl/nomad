@@ -13,6 +13,30 @@ ACTIVE_BOOKING_STATUSES = ("pending", "cancellation_pending", "reschedule_pendin
 ACTIVE_MOBILE_BOOKING_STATUSES = ("pending", "planned", "confirmed", "in_progress")
 EXAM_SENSOR_RESOURCE_KEY = "exam_sensor_kits"
 
+# Минуты в сутках. time(24, 0) в Python не существует, поэтому занятие,
+# начавшееся в 23:00, заканчивается в 00:00 и хранится как 23:59.
+DAY_MINUTES = 24 * 60
+
+
+def time_to_minutes(value: time) -> int:
+    return value.hour * 60 + value.minute
+
+
+def schedule_end_minutes(end: Optional[time]) -> int:
+    """График «до 00:00» означает конец суток, а не начало нового дня."""
+    if not end:
+        return 0
+    minutes = time_to_minutes(end)
+    return DAY_MINUTES if minutes == 0 else minutes
+
+
+def add_minutes(start_time: time, minutes: int) -> time:
+    """Конец занятия от его начала с переносом за полночь в 23:59."""
+    total = time_to_minutes(start_time) + minutes
+    if total >= DAY_MINUTES:
+        return time(23, 59)
+    return time(total // 60, total % 60)
+
 
 def _day_name(d: date) -> str:
     return RUSSIAN_DAY_NAMES[d.weekday()]
@@ -40,7 +64,8 @@ def appointment_fits_schedule(
     if not work_start or not work_end:
         return False
     # working_hours_end is the last allowed lesson start, not lesson end.
-    if work_start > start_time or work_end < start_time:
+    # График «до 00:00» приходит как 00:00 и означает конец суток.
+    if work_start > start_time or schedule_end_minutes(work_end) < time_to_minutes(start_time):
         return False
     if not _lunch_is_empty(lunch_start, lunch_end) and _overlaps(
         start_time, end_time, lunch_start, lunch_end
@@ -262,6 +287,15 @@ async def reserve_vehicle_capacity(
         if not resource or resource.capacity <= 0:
             return False
     await db.execute(select(Vehicle.id).order_by(Vehicle.id).with_for_update())
+    # Машины блокируются до повторного подсчёта, поэтому параллельные записи
+    # сериализуются здесь, а не только в отображении слотов. Лимит площадки
+    # считает фактические пересечения: экзамен занимает свои 20 минут, а
+    # вождение — полный час.
+    if await count_booked_at_location(
+        db, booking_date, start_time, end_time, settings.LOCATION_EXAM,
+        exclude_booking_id=exclude_booking_id,
+    ) >= settings.MAX_CARS_EXAM_LOCATION:
+        return False
     return await has_booking_capacity(
         db, booking_date, start_time, end_time, transmission, service_type, exclude_booking_id,
     )

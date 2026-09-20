@@ -20,9 +20,73 @@ ONSITE_MOBILE_BOOKING_STATUSES = ("planned", "confirmed", "in_progress")
 OFFSITE_ARRIVAL_TIME = timedelta(minutes=30)
 ONSITE_DAILY_PRIORITY_LIMIT = 2
 
+# Минуты в сутках. time(24, 0) в Python не существует, поэтому занятие,
+# начавшееся в 23:00, заканчивается в 00:00 и хранится как 23:59.
+DAY_MINUTES = 24 * 60
+LAST_MINUTE_OF_DAY = DAY_MINUTES - 1
+
 
 def _value(value):
     return value.value if hasattr(value, "value") else str(value)
+
+
+def time_to_minutes(value: time) -> int:
+    return value.hour * 60 + value.minute
+
+
+def schedule_end_minutes(end: Optional[time]) -> int:
+    """График «до 00:00» означает конец суток, а не начало нового дня.
+
+    Админ выставляет конец рабочего дня обычным полем времени, и полночь
+    приходит как 00:00 — без этой нормализации инструктор считался бы
+    неработающим весь день.
+    """
+    if not end:
+        return 0
+    minutes = time_to_minutes(end)
+    return DAY_MINUTES if minutes == 0 else minutes
+
+
+def add_minutes(start_time: time, minutes: int) -> time:
+    """Конец занятия от его начала.
+
+    Занятие, уходящее за полночь, храним как 23:59: time(24, 0) не
+    существует, а все проверки пересечений сравнивают end_time > start_time.
+    """
+    total = time_to_minutes(start_time) + minutes
+    if total >= DAY_MINUTES:
+        return time(23, 59)
+    return time(total // 60, total % 60)
+
+
+def service_duration_minutes(service_type: Optional[ServiceType]) -> int:
+    if getattr(service_type, "value", service_type) == ServiceType.EXAM.value:
+        return settings.EXAM_DURATION_MINUTES
+    return settings.TRAINING_DURATION_MINUTES
+
+
+def last_start_within_day(duration_minutes: int) -> int:
+    """Последний старт, при котором занятие ещё укладывается в текущие сутки.
+
+    time(24, 0) не существует, поэтому занятие не может начинаться позже
+    DAY_MINUTES - duration_minutes. Это единственная физическая граница.
+    """
+    return max(0, DAY_MINUTES - duration_minutes)
+
+
+def client_last_start_minutes(service_type: Optional[ServiceType]) -> int:
+    """Верхняя граница старта для клиента, в минутах от начала суток.
+
+    Жёстких часов школы здесь нет: вождение ограничено только графиком
+    инструктора и тем, что занятие должно уложиться в сутки. Экзамен
+    дополнительно ограничен бизнес-правилом EXAM_LAST_SLOT_HOUR; если оно
+    выключено, экзамен идёт по тому же графику, что и вождение.
+    """
+    limit = last_start_within_day(service_duration_minutes(service_type))
+    exam_limit = getattr(settings, "EXAM_LAST_SLOT_HOUR", None)
+    if exam_limit and getattr(service_type, "value", service_type) == ServiceType.EXAM.value:
+        limit = min(limit, int(exam_limit) * 60)
+    return limit
 
 
 def _get_day_name(d: date) -> str:
@@ -221,7 +285,11 @@ async def _is_instructor_available(
     # working_hours_end — последний допустимый СТАРТ записи, а не время,
     # к которому занятие должно завершиться. Например, при окончании в 19:00
     # слот 19:00 должен быть доступен и для часа вождения, и для экзамена.
-    if work_start > start_time or work_end < start_time:
+    # График «до 00:00» приходит как 00:00 и означает конец суток.
+    if work_start > start_time or schedule_end_minutes(work_end) < time_to_minutes(start_time):
+        return False
+    # Пробный экзамен клиент начинает не позже 20:00, вождение — до закрытия.
+    if time_to_minutes(start_time) > client_last_start_minutes(service_type):
         return False
     if not _is_empty_lunch(lunch_start, lunch_end) and _is_in_lunch(start_time, end_time, lunch_start, lunch_end):
         return False
@@ -387,6 +455,15 @@ async def reserve_vehicle_capacity(
         if not resource or resource.capacity <= 0:
             return False
     await db.execute(select(Vehicle.id).order_by(Vehicle.id).with_for_update())
+    # Машины блокируются до повторного подсчёта, поэтому параллельные записи
+    # сериализуются здесь, а не только в отображении слотов. Лимит площадки
+    # считает фактические пересечения: экзамен занимает свои 20 минут, а
+    # вождение — полный час.
+    if await _count_booked_at_location(
+        db, booking_date, start_time, end_time, settings.LOCATION_EXAM,
+        exclude_booking_id=exclude_booking_id,
+    ) >= settings.MAX_CARS_EXAM_LOCATION:
+        return False
     return await has_booking_capacity(
         db, booking_date, start_time, end_time, transmission, service_type, exclude_booking_id,
     )
@@ -515,9 +592,11 @@ async def get_available_slots(
     now = datetime.now(TIMEZONE)
     is_today = booking_date == now.date()
     current_time = now.time()
+    # Границу задают график инструктора и (для экзамена) EXAM_LAST_SLOT_HOUR.
+    # Часов школы здесь нет: при 24-часовой работе список слотов не режется.
+    last_start_minutes = client_last_start_minutes(service_type)
 
-    # Если сегодня и уже 21:00 или позже, день недоступен для записи
-    if is_today and current_time >= time(21, 0):
+    if is_today and time_to_minutes(current_time) > last_start_minutes:
         return []
 
     all_instructors = await _get_active_instructors(db)
@@ -528,16 +607,16 @@ async def get_available_slots(
     schedules = [s for s in schedules if s]
     if not schedules:
         return []
-    earliest_start_minutes = min(s[0].hour * 60 + s[0].minute for s in schedules)
-    
+    earliest_start_minutes = min(time_to_minutes(s[0]) for s in schedules)
+
     # working_hours_end — последний допустимый старт. Поэтому при графике
     # до 19:00 слот 19:00 включается независимо от длительности услуги.
-    absolute_max_start_minutes = max(s[1].hour * 60 + s[1].minute for s in schedules)
+    absolute_max_start_minutes = max(schedule_end_minutes(s[1]) for s in schedules)
 
-    absolute_max_start_minutes = min(absolute_max_start_minutes, 21 * 60)
+    absolute_max_start_minutes = min(absolute_max_start_minutes, last_start_minutes)
 
     if is_today:
-        after_cutoff = now.hour * 60 + now.minute >= absolute_max_start_minutes
+        after_cutoff = time_to_minutes(now.time()) > absolute_max_start_minutes
         if after_cutoff:
             return []
 
@@ -552,8 +631,7 @@ async def get_available_slots(
 
     while current_minutes <= absolute_max_start_minutes:
         current_t = time(current_minutes // 60, current_minutes % 60)
-        end_minutes = current_minutes + duration_minutes
-        end_t = time(end_minutes // 60, end_minutes % 60)
+        end_t = add_minutes(current_t, duration_minutes)
 
         # Если сегодняшний день, пропускаем слоты которые уже прошли
         if is_today and current_t <= current_time:
@@ -626,10 +704,14 @@ async def get_available_slots_for_instructor(
     if not schedule:
         return []
     work_start, work_end, lunch_start, lunch_end = schedule
-    inst_start_minutes = work_start.hour * 60 + work_start.minute
-    inst_end_minutes = work_end.hour * 60 + work_end.minute
+    inst_start_minutes = time_to_minutes(work_start)
+    # График «до 00:00» приходит как 00:00 — это конец суток. Сверху — только
+    # бизнес-ограничение экзамена и физическая граница суток.
+    inst_end_minutes = min(
+        schedule_end_minutes(work_end), client_last_start_minutes(service_type)
+    )
 
-    if is_today and current_time >= work_end:
+    if is_today and time_to_minutes(current_time) > inst_end_minutes:
         return []
 
     day_name = _get_day_name(booking_date)
@@ -673,15 +755,14 @@ async def get_available_slots_for_instructor(
 
     while current_minutes <= inst_end_minutes:
         current_t = time(current_minutes // 60, current_minutes % 60)
-        end_minutes = current_minutes + duration_minutes
-        end_t = time(end_minutes // 60, end_minutes % 60)
+        end_t = add_minutes(current_t, duration_minutes)
 
         if is_today and current_t <= current_time:
             current_minutes += duration_minutes
             continue
 
-        # Проверяем 개인ный обед инструктора
-        if work_start > current_t or work_end < current_t:
+        # Проверяем личный обед инструктора
+        if work_start > current_t or schedule_end_minutes(work_end) < time_to_minutes(current_t):
             current_minutes += duration_minutes
             continue
 

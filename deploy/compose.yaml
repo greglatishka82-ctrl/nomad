@@ -48,6 +48,10 @@ services:
   site-frontend:
     build: {context: .., dockerfile: deploy/site-frontend.Dockerfile}
     restart: unless-stopped
+    # APK раздаётся с диска сервера: файл не попадает в git (*.apk в .gitignore)
+    # и не пересобирается вместе с образом.
+    volumes:
+      - ./downloads:/usr/share/nginx/html/downloads:ro
   admin-frontend:
     build: {context: .., dockerfile: deploy/admin-frontend.Dockerfile}
     restart: unless-stopped

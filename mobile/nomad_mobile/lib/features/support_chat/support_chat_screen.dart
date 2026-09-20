@@ -10,6 +10,9 @@ import '../../shared/models/models.dart';
 import '../../shared/widgets/common_widgets.dart';
 import 'support_chat_provider.dart';
 
+/// Час из конфигурации в вид «08:00». Полночь приходит как 24.
+String _formatHour(int hour) => '${(hour % 24).toString().padLeft(2, '0')}:00';
+
 class SupportChatScreen extends ConsumerStatefulWidget {
   const SupportChatScreen({super.key});
 
@@ -116,8 +119,9 @@ class _SupportChatScreenState extends ConsumerState<SupportChatScreen> {
 
                 if (messages.isEmpty) {
                   final wh = configAsync.whenOrNull(
-                    data: (c) => '${c.workingHoursStart.toString().padLeft(2, '0')}:00–${c.workingHoursEnd.toString().padLeft(2, '0')}:00',
-                  ) ?? '09:00–19:00';
+                    data: (c) =>
+                        '${_formatHour(c.workingHoursStart)}–${_formatHour(c.workingHoursEnd)}',
+                  ) ?? '08:00–23:00';
                   return EmptyState(
                     icon: Icons.support_agent_outlined,
                     title: 'Напишите нам',

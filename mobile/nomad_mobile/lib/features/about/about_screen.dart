@@ -5,6 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 
+/// Час из конфигурации в вид «08:00». Полночь приходит как 24.
+String _formatHour(int hour) => '${(hour % 24).toString().padLeft(2, '0')}:00';
+
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
@@ -75,9 +78,10 @@ class AboutScreen extends ConsumerWidget {
                 _InfoRow(icon: Icons.location_on, text: config.locationMain),
                 if (config.locationExam.trim() != config.locationMain.trim())
                   _InfoRow(icon: Icons.location_on, text: config.locationExam),
-                const _InfoRow(
+                _InfoRow(
                   icon: Icons.access_time,
-                  text: 'Без выходных, с 09:00 до 19:00',
+                  text: 'Без выходных, с ${_formatHour(config.workingHoursStart)} '
+                      'до ${_formatHour(config.workingHoursEnd)}',
                 ),
               ],
             ),
@@ -166,7 +170,7 @@ class AboutScreen extends ConsumerWidget {
             // ── Version ──────────────────────────────────
             const Center(
               child: Text(
-                'Версия 1.0.0',
+                'Версия 1.0.10',
                 style: TextStyle(
                   color: AppColors.textHint,
                   fontSize: 12,

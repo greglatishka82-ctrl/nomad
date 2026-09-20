@@ -127,9 +127,10 @@ from app.services.activity_log import record_admin_action
 from app.services.push_service import send_push_to_user
 from app.routers.support import get_unread_support_count, _is_support_chat_open
 from app.services.booking_service import (
-    appointment_fits_schedule, count_booked_at_location, count_booked_vehicle_capacity, find_best_instructor,
+    add_minutes, appointment_fits_schedule, count_booked_at_location, count_booked_vehicle_capacity, find_best_instructor,
     get_busy_instructor_ids, get_effective_schedule, is_instructor_available,
-    get_vehicle_capacity, RUSSIAN_DAY_NAMES, reserve_vehicle_capacity, slot_has_capacity, teaches_service
+    get_vehicle_capacity, RUSSIAN_DAY_NAMES, reserve_vehicle_capacity, schedule_end_minutes,
+    slot_has_capacity, teaches_service, time_to_minutes
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -882,7 +883,12 @@ async def update_instructor(
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректное время в графике инструктора")
-    if not proposed_work_start or not proposed_work_end or proposed_work_start > proposed_work_end:
+    # График «до 00:00» приходит как 00:00 и означает конец суток, поэтому
+    # сравниваем не сами time, а минуты от начала дня.
+    if (
+        not proposed_work_start or not proposed_work_end
+        or time_to_minutes(proposed_work_start) > schedule_end_minutes(proposed_work_end)
+    ):
         raise HTTPException(status_code=400, detail="Время начала работы должно быть раньше времени окончания")
     if (
         proposed_lunch_start and proposed_lunch_end
@@ -1191,7 +1197,8 @@ async def save_instructor_daily_schedule(
     effective_start = proposed_work_start or instructor.working_hours_start
     effective_end = proposed_work_end or instructor.working_hours_end
     if not body.is_day_off and (
-        not effective_start or not effective_end or effective_start > effective_end
+        not effective_start or not effective_end
+        or time_to_minutes(effective_start) > schedule_end_minutes(effective_end)
     ):
         raise HTTPException(status_code=400, detail="Время начала работы должно быть раньше времени окончания")
     if (
@@ -1831,7 +1838,10 @@ async def get_slots(
         return {"date": booking_date, "location": location, "slots": [], "instructor_id": instructor_id}
 
     start_hour = min(s[0].hour for s in schedules)
-    end_hour = min(max(s[1].hour for s in schedules), 21)
+    # У админа расширенные права: сетка идёт до конца графика инструктора,
+    # без ограничения 21:00 и без ограничения экзамена 20:00.
+    end_minutes = max(schedule_end_minutes(s[1]) for s in schedules)
+    end_hour = end_minutes // 60
 
     # Получаем текущее время в часовом поясе Павлодара
     current_kz = datetime.now(KZ_TZ)
@@ -1839,7 +1849,7 @@ async def get_slots(
     current_time_kz = current_kz.time()
 
     # Если выбран сегодняшний день и последний слот уже недоступен
-    if target_date == today_kz and (current_time_kz.hour > end_hour or (current_time_kz.hour == end_hour and current_time_kz.minute >= 1)):
+    if target_date == today_kz and current_kz.hour * 60 + current_kz.minute > end_minutes:
         return {"date": booking_date, "location": location, "slots": []}
 
     query = select(Booking).options(selectinload(Booking.instructor), selectinload(Booking.client)).where(
@@ -1871,12 +1881,14 @@ async def get_slots(
     # Строим слоты
     slots = []
     current_minutes = start_hour * 60
-    last_start_minutes = end_hour * 60
+    # time(24, 0) не существует: 23:59 — последняя представимая минута суток.
+    last_start_minutes = min(end_minutes, 23 * 60 + 59)
 
     while current_minutes <= last_start_minutes:
         slot_end = current_minutes + duration
         slot_time = dtime(current_minutes // 60, current_minutes % 60)
-        slot_end_time = dtime(slot_end // 60, slot_end % 60)
+        # Занятие 23:00–00:00 хранится как 23:59: time(24, 0) не существует.
+        slot_end_time = add_minutes(slot_time, duration)
 
         # Если это сегодняшний день, пропускаем слоты которые уже прошли
         if target_date == today_kz and slot_time <= current_time_kz:
@@ -1994,8 +2006,7 @@ async def create_manual_booking(
         raise HTTPException(status_code=400, detail="Выбранное время уже прошло")
     
     duration = settings.TRAINING_DURATION_MINUTES if service == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-    et_delta = timedelta(hours=st.hour, minutes=st.minute) + timedelta(minutes=duration)
-    et = time(int(et_delta.total_seconds() // 3600), int((et_delta.total_seconds() % 3600) // 60))
+    et = add_minutes(st, duration)
 
     # Paper-log/manual entries have priority over online applications that
     # are still waiting for approval. Keep those applications for the admin
@@ -2508,9 +2519,6 @@ async def create_vehicle(
 ):
     username = _get_admin_username(request)
     name, transmission = _validated_vehicle_payload(body)
-    count = (await db.execute(select(func.count()).select_from(Vehicle))).scalar() or 0
-    if count >= 6:
-        raise HTTPException(status_code=400, detail="В автопарке может быть не больше 6 машин")
     vehicle = Vehicle(name=name, transmission=transmission)
     db.add(vehicle)
     try:
@@ -3042,8 +3050,7 @@ async def reassign_booking(
         st = time.fromisoformat(body.new_start_time)
         booking.start_time = st
         duration = settings.TRAINING_DURATION_MINUTES if booking.service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-        et = timedelta(hours=st.hour, minutes=st.minute) + timedelta(minutes=duration)
-        booking.end_time = time(int(et.total_seconds() // 3600), int((et.total_seconds() % 3600) // 60))
+        booking.end_time = add_minutes(st, duration)
     if body.new_instructor_id:
         booking.instructor_id = body.new_instructor_id
 
@@ -3245,8 +3252,7 @@ async def edit_booking(
         st = time.fromisoformat(body.new_start_time)
         booking.start_time = st
         duration = settings.TRAINING_DURATION_MINUTES if booking.service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-        et = timedelta(hours=st.hour, minutes=st.minute) + timedelta(minutes=duration)
-        booking.end_time = time(int(et.total_seconds() // 3600), int((et.total_seconds() % 3600) // 60))
+        booking.end_time = add_minutes(st, duration)
     if body.new_transmission:
         booking.transmission = body.new_transmission
     if body.new_location:
@@ -4473,7 +4479,7 @@ async def finance_analytics(
 
     points = []
     if granularity == "hour":
-        for hour in range(9, 21):
+        for hour in range(8, 24):
             key = "%02d" % hour
             points.append({"label": key, "current": totals.get(key, 0), "previous": prev_totals.get(key, 0)})
     elif granularity == "month":
@@ -5779,7 +5785,7 @@ def _validate_backup_booking_conflicts(backup_data: dict) -> None:
                         if row.get("service_type") == "exam"
                         else settings.TRAINING_DURATION_MINUTES
                     )
-                    end = (datetime.combine(booking_date, start) + timedelta(minutes=duration_minutes)).time()
+                    end = add_minutes(start, duration_minutes)
             except (KeyError, TypeError, ValueError):
                 raise HTTPException(
                     status_code=400,
@@ -7773,8 +7779,7 @@ async def check_manual_slot(
     bdate = date.fromisoformat(booking_date)
     stime = time.fromisoformat(start_time)
     duration = settings.TRAINING_DURATION_MINUTES
-    et_delta = timedelta(hours=stime.hour, minutes=stime.minute) + timedelta(minutes=duration)
-    etime = time(int(et_delta.total_seconds() // 3600), int((et_delta.total_seconds() % 3600) // 60))
+    etime = add_minutes(stime, duration)
 
     busy_ids = await get_busy_instructor_ids(db, bdate, stime, etime)
     instructors = (await db.execute(select(Instructor).where(Instructor.is_active == True))).scalars().all()

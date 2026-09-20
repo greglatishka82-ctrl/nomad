@@ -41,8 +41,14 @@ class Settings:
     MAX_CARS_EXAM_LOCATION = 6    # максимум машин на Циолковского 30
     MAX_CARS_MAIN_LOCATION = 6    # оставлено для совместимости; площадка одна
     MAX_INSTRUCTORS_PER_LOCATION = 3
-    WORKING_HOURS_START = 9
-    WORKING_HOURS_END = 19
+    # Рабочие часы школы — только для показа клиенту (лендинг, приложение, бот).
+    # На выбор слотов они НЕ влияют: границу задаёт график инструктора.
+    WORKING_HOURS_START = 8
+    WORKING_HOURS_END = 23
+    # Последний час старта пробного экзамена. Это единственное ограничение
+    # для клиента, заданное бизнес-правилом; 0 или None — без ограничения,
+    # тогда экзамен идёт по графику инструктора, как и вождение.
+    EXAM_LAST_SLOT_HOUR = 20
     LUNCH_START_HOUR = 13
     LUNCH_END_HOUR = 14
     MIN_RATING = 1.0

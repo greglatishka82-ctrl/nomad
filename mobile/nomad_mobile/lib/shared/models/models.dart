@@ -10,6 +10,8 @@ class AppConfig {
   final String locationExam;
   final int workingHoursStart;
   final int workingHoursEnd;
+  /// Последний час старта пробного экзамена. Вождение идёт до workingHoursEnd.
+  final int examLastSlotHour;
   final String phone;
   final String paymentMethod;
   final String carModelManual;
@@ -25,6 +27,7 @@ class AppConfig {
     required this.locationExam,
     required this.workingHoursStart,
     required this.workingHoursEnd,
+    required this.examLastSlotHour,
     required this.phone,
     required this.paymentMethod,
     required this.carModelManual,
@@ -39,8 +42,9 @@ class AppConfig {
         examDurationMinutes: j['exam_duration_minutes'] as int? ?? 20,
         locationMain: j['location_main'] as String? ?? '',
         locationExam: j['location_exam'] as String? ?? '',
-        workingHoursStart: j['working_hours_start'] as int? ?? 9,
-        workingHoursEnd: j['working_hours_end'] as int? ?? 19,
+        workingHoursStart: j['working_hours_start'] as int? ?? 8,
+        workingHoursEnd: j['working_hours_end'] as int? ?? 23,
+        examLastSlotHour: j['exam_last_slot_hour'] as int? ?? 20,
         phone: j['phone'] as String? ?? '',
         paymentMethod: j['payment_method'] as String? ?? '',
         carModelManual: j['car_model_manual'] as String? ?? '',

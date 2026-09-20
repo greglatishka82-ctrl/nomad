@@ -32,7 +32,8 @@ from app.models.models import (
     AuditLog, NotificationSent, MobileBooking, Event, ClientPackage
 )
 from app.services.booking_service import (
-    _is_instructor_available, get_available_slots, get_available_slots_for_instructor,
+    _is_instructor_available, add_minutes, client_last_start_minutes,
+    get_available_slots, get_available_slots_for_instructor,
     find_best_instructor, find_best_instructor_with_location, reserve_vehicle_capacity
 )
 from app.routers.mobile_auth import get_current_user
@@ -179,16 +180,24 @@ def _value(v):
     return v.value if hasattr(v, "value") else v
 
 
-def _booking_date_window() -> tuple[date, date]:
+def _booking_date_window(service_type: Optional[ServiceType] = None) -> tuple[date, date]:
     now = datetime.now(TIMEZONE)
     start = now.date()
-    if now.time() >= time(settings.WORKING_HOURS_END, 0):
+    # Пробный экзамен принимают только до 20:00 — после этого ближайший день
+    # завтра. Вождение идёт до закрытия школы, поэтому сегодня остаётся.
+    service_value = getattr(service_type, "value", service_type)
+    if (
+        service_value == ServiceType.EXAM.value
+        and now.hour * 60 + now.minute >= client_last_start_minutes(service_value)
+    ):
         start = start + timedelta(days=1)
     return start, start + timedelta(days=6)
 
 
-def _is_date_in_booking_window(target_date: date) -> bool:
-    first_day, last_day = _booking_date_window()
+def _is_date_in_booking_window(
+    target_date: date, service_type: Optional[ServiceType] = None
+) -> bool:
+    first_day, last_day = _booking_date_window(service_type)
     return first_day <= target_date <= last_day
 
 
@@ -357,18 +366,17 @@ async def create_booking(
     instructor_id = body.instructor_id
     location = settings.LOCATION_EXAM
 
-    if not _is_date_in_booking_window(body.booking_date):
-        raise HTTPException(status_code=400, detail="Запись доступна только на ближайшие 7 дней")
-    
     start_time_obj = datetime.strptime(body.start_time, "%H:%M").time()
     try:
         service_type_enum = ServiceType(body.service_type)
     except ValueError:
         raise HTTPException(status_code=400, detail="Неизвестный тип урока")
+
+    if not _is_date_in_booking_window(body.booking_date, service_type_enum):
+        raise HTTPException(status_code=400, detail="Запись доступна только на ближайшие 7 дней")
+
     duration_minutes = settings.TRAINING_DURATION_MINUTES if service_type_enum == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-    duration = timedelta(minutes=duration_minutes)
-    end_dt = datetime.combine(body.booking_date, start_time_obj) + duration
-    end_time_obj = end_dt.time()
+    end_time_obj = add_minutes(start_time_obj, duration_minutes)
     
     transmission_enum = "both"
     try:
@@ -402,9 +410,7 @@ async def create_booking(
 
     start_time_obj = datetime.strptime(body.start_time, "%H:%M").time()
 
-    duration = timedelta(minutes=duration_minutes)
-    end_dt = datetime.combine(body.booking_date, start_time_obj) + duration
-    end_time_obj = end_dt.time()
+    end_time_obj = add_minutes(start_time_obj, duration_minutes)
 
     # Check if slot is already booked (user duplicate check)
     result = await db.execute(
@@ -756,13 +762,12 @@ async def reschedule_booking(
     new_date = date.fromisoformat(body.new_date)
     new_start = time.fromisoformat(body.new_start_time)
 
-    if not _is_date_in_booking_window(new_date):
+    if not _is_date_in_booking_window(new_date, booking.service_type):
         raise HTTPException(status_code=400, detail="Перенос доступен только на ближайшие 7 дней")
 
-    # Вычисляем новое end_time
+    # Вычисляем новое end_time. Занятие 23:00–00:00 хранится как 23:59.
     duration_minutes = settings.TRAINING_DURATION_MINUTES if booking.service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-    et = timedelta(hours=new_start.hour, minutes=new_start.minute) + timedelta(minutes=duration_minutes)
-    new_end = time(int(et.total_seconds() // 3600), int((et.total_seconds() % 3600) // 60))
+    new_end = add_minutes(new_start, duration_minutes)
 
     instructor = await db.get(Instructor, booking.instructor_id)
     booking_service = booking.service_type if isinstance(booking.service_type, ServiceType) else ServiceType(booking.service_type)
@@ -1008,13 +1013,14 @@ async def get_slots(
     today_kz = now.date()
     current_time_kz = now.time()
 
-    if not _is_date_in_booking_window(target_date):
-        return {"slots": []}
-
     try:
         service_enum = ServiceType(service_type)
     except ValueError:
         service_enum = ServiceType.TRAINING
+
+    # Окно записи зависит от услуги: экзамен принимают только до 20:00.
+    if not _is_date_in_booking_window(target_date, service_enum):
+        return {"slots": []}
 
     try:
         trans_enum = TransmissionType(transmission)

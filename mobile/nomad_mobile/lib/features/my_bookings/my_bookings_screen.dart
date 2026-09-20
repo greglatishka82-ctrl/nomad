@@ -190,7 +190,6 @@ class BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paymentText = '${formatPrice(booking.price)}${booking.isUpcoming && booking.price > 0 && !booking.isPaid ? ' (оплата наличными или через Kaspi QR)' : ''}';
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -233,19 +232,34 @@ class BookingCard extends StatelessWidget {
                     text: booking.instructor!.name),
               ],
               const SizedBox(height: 12),
+              // Цена и КПП в одной строке. Обе части обязаны переноситься:
+              // раньше длинная подпись об оплате вылезала за карточку.
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(paymentText,
+                  Expanded(
+                    child: Text(
+                      formatPrice(booking.price),
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: AppColors.primary)),
+                          color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(transmissionLabel(booking.transmission),
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
+              if (booking.isUpcoming && booking.price > 0 && !booking.isPaid) ...[
+                const SizedBox(height: 2),
+                const Text(
+                  'Оплата наличными или через Kaspi QR',
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
               if (booking.hasCertificate || booking.hasReferralDiscount) ...[
                 const SizedBox(height: 6),
                 Text(

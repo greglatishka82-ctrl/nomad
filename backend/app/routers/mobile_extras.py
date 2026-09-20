@@ -43,6 +43,9 @@ async def get_config():
         "location_exam": settings.LOCATION_EXAM,
         "working_hours_start": settings.WORKING_HOURS_START,
         "working_hours_end": settings.WORKING_HOURS_END,
+        # Пробный экзамен клиент начинает не позже 20:00, даже если
+        # инструктор работает до 23:00.
+        "exam_last_slot_hour": settings.EXAM_LAST_SLOT_HOUR,
         "phone": "+7 702 718 22 33",
         "payment_method": "Наличными или через Kaspi QR",
         "car_model_manual": "Chevrolet Cobalt",

@@ -26,7 +26,7 @@ from app.models.models import (
     NotificationSent, Certificate, AuditLog, InstructorGender, MobileBooking, ClientPackage, Package,
     SupportMessage, Event
 )
-from app.services.booking_service import get_available_slots, get_available_slots_for_instructor, find_best_instructor, find_best_instructor_with_location, has_available_instructors, reserve_vehicle_capacity
+from app.services.booking_service import get_available_slots, get_available_slots_for_instructor, find_best_instructor, find_best_instructor_with_location, has_available_instructors, reserve_vehicle_capacity, add_minutes
 from app.services.client_lifecycle import (
     find_client_by_phone as _get_client_by_phone,
     reactivate_deleted_client,
@@ -211,6 +211,26 @@ def _kb_with_back(rows: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows + [[BACK_BUTTON]])
 
 
+# Сколько кнопок времени в одном ряду. Все доступные слоты показываем целиком:
+# раньше список резался до 12 кнопок, и при графике инструктора до 22:00
+# последним видимым слотом оказывалось 19:00.
+TIME_SLOTS_PER_ROW = 3
+
+
+def _time_buttons(slots: list, prefix: str = "time") -> list:
+    rows: list = []
+    row: list = []
+    for slot in slots:
+        label = slot.strftime("%H:%M")
+        row.append(InlineKeyboardButton(text=label, callback_data=f"{prefix}:{label}"))
+        if len(row) == TIME_SLOTS_PER_ROW:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    return rows
+
+
 async def _build_date_buttons(
     db: AsyncSession,
     service_type: ServiceType,
@@ -221,25 +241,11 @@ async def _build_date_buttons(
     now = datetime.now(TIMEZONE)
     today = now.date()
 
-    # Определяем последний слот динамически по инструкторам
-    all_instructors_result = await db.execute(select(Instructor).where(Instructor.is_active == True))
-    all_instructors = all_instructors_result.scalars().all()
-    if all_instructors:
-        max_last_slot_hour = max(
-            (inst.working_hours_end.hour for inst in all_instructors if inst.working_hours_end),
-            default=settings.WORKING_HOURS_END
-        )
-    else:
-        max_last_slot_hour = settings.WORKING_HOURS_END
-
-    # Ограничиваем максимум до 21:00 (слот 21:00 = занятие с 21:00 до 22:00)
-    max_last_slot_hour = min(max_last_slot_hour, 21)
-
-    after_cutoff = now.hour > max_last_slot_hour or (now.hour == max_last_slot_hour and now.minute >= 1)
-    start_offset = 1 if after_cutoff else 0
-
+    # Никаких жёстких часов школы: дата попадает в список только если на ней
+    # реально есть свободный слот. has_available_instructors считает слоты
+    # по графикам инструкторов, поэтому 24-часовая работа поддержана.
     buttons = []
-    i = start_offset
+    i = 0
     while i < BOOKING_WINDOW_DAYS:
         target_date = today + timedelta(days=i)
         if await has_available_instructors(db, target_date, service_type, transmission, instructor_gender):
@@ -357,12 +363,7 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
         async with async_session() as db:
             slots = await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender)
 
-        buttons = []
-        for slot in slots[:12]:
-            buttons.append([InlineKeyboardButton(
-                text=slot.strftime("%H:%M"),
-                callback_data=f"time:{slot.strftime('%H:%M')}"
-            )])
+        buttons = _time_buttons(slots)
         kb = _kb_with_back(buttons)
         await callback.message.edit_text("Выберите время:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_time)
@@ -583,13 +584,7 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
         return
 
     await state.update_data(booking_date=str(booking_date))
-    buttons = []
-    for slot in slots[:12]:
-        buttons.append([InlineKeyboardButton(
-            text=slot.strftime("%H:%M"),
-            callback_data=f"time:{slot.strftime('%H:%M')}"
-        )])
-    kb = _kb_with_back(buttons)
+    kb = _kb_with_back(_time_buttons(slots))
     await callback.message.edit_text("Выберите время:", reply_markup=kb)
     await state.set_state(BookingStates.choosing_time)
 
@@ -623,13 +618,7 @@ async def process_date(message: Message, state: FSMContext):
         return
 
     await state.update_data(booking_date=str(booking_date))
-    buttons = []
-    for slot in slots[:12]:
-        buttons.append([InlineKeyboardButton(
-            text=slot.strftime("%H:%M"),
-            callback_data=f"time:{slot.strftime('%H:%M')}"
-        )])
-    kb = _kb_with_back(buttons)
+    kb = _kb_with_back(_time_buttons(slots))
     await message.answer("Выберите время:", reply_markup=kb)
     await state.set_state(BookingStates.choosing_time)
 
@@ -768,8 +757,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         booking_date = date.fromisoformat(data["booking_date"])
         start_t = time.fromisoformat(data["start_time"])
         duration = settings.TRAINING_DURATION_MINUTES if service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-        et = timedelta(hours=start_t.hour, minutes=start_t.minute) + timedelta(minutes=duration)
-        end_t = time(int(et.total_seconds() // 3600), int((et.total_seconds() % 3600) // 60))
+        end_t = add_minutes(start_t, duration)
 
         dup_result = await db.execute(
             select(Booking).where(
@@ -1001,7 +989,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         f"Если подтверждение не пришло в течение 15 минут, свяжитесь с администратором автошколы.\n\n"
         f"📞 +7 702 718 22 33\n"
         f"📞 +7 707 881 08 48\n\n"
-        f"⏰ Заявки подтверждаются в рабочее время с 09:00 до 19:00.\n"
+        f"⏰ Заявки подтверждаются в рабочее время с 08:00 до 19:00.\n"
         f"Заявки, созданные после рабочего времени, рассматриваются и подтверждаются на следующий день."
     ) + package_note
     await message.answer(pending_msg, reply_markup=MAIN_KEYBOARD, parse_mode="HTML")
@@ -1447,13 +1435,7 @@ async def reschedule_choose_date(callback: CallbackQuery, state: FSMContext):
         return
 
     await state.update_data(reschedule_new_date=str(new_date))
-    buttons = []
-    for slot in slots[:12]:
-        buttons.append([InlineKeyboardButton(
-            text=slot.strftime("%H:%M"),
-            callback_data=f"resch_time:{slot.strftime('%H:%M')}"
-        )])
-    kb = _kb_with_back(buttons)
+    kb = _kb_with_back(_time_buttons(slots, "resch_time"))
     await callback.message.edit_text("Выберите новое время:", reply_markup=kb)
     await state.set_state(RescheduleStates.choosing_time)
 
@@ -1477,8 +1459,7 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
             return
 
         duration = settings.TRAINING_DURATION_MINUTES if booking.service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-        et = timedelta(hours=new_start.hour, minutes=new_start.minute) + timedelta(minutes=duration)
-        new_end = time(int(et.total_seconds() // 3600), int((et.total_seconds() % 3600) // 60))
+        new_end = add_minutes(new_start, duration)
 
         # Проверяем что ТЕКУЩИЙ инструктор свободен в новое время
         # (не ищем нового — инструктор не меняется)
@@ -1513,17 +1494,12 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
             conflict = mobile_conflict_result.scalar_one_or_none()
         if conflict:
             # У текущего инструктора занято — сообщаем клиенту
-            buttons = []
             slots = await get_available_slots_for_instructor(
                 db, new_date, booking.service_type, booking.transmission,
                 booking.location, current_instructor_id,
                 preserve_existing_assignment=True,
             )
-            for slot in slots[:12]:
-                buttons.append([InlineKeyboardButton(
-                    text=slot.strftime("%H:%M"),
-                    callback_data=f"resch_time:{slot.strftime('%H:%M')}"
-                )])
+            buttons = _time_buttons(slots, "resch_time")
             kb = _kb_with_back(buttons) if buttons else None
             await callback.message.edit_text(
                 "На это время у вашего инструктора уже есть запись. Выберите другое время:",

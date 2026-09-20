@@ -16,6 +16,9 @@ final instructorsProvider = FutureProvider<List<Instructor>>((ref) async {
       .toList();
 });
 
+/// Час из конфигурации в вид «08:00». Полночь приходит как 24.
+String _formatHour(int hour) => '${(hour % 24).toString().padLeft(2, '0')}:00';
+
 class InstructorsScreen extends ConsumerStatefulWidget {
   const InstructorsScreen({super.key});
 
@@ -282,10 +285,11 @@ class _ContactsTab extends ConsumerWidget {
             subtitle: config.locationExam,
             color: AppColors.accent,
           ),
-          const _ContactItem(
+          _ContactItem(
             icon: Icons.access_time,
             title: 'Режим работы',
-            subtitle: 'Без выходных, 9:00–19:00',
+            subtitle: 'Без выходных, ${_formatHour(config.workingHoursStart)}'
+                '–${_formatHour(config.workingHoursEnd)}',
             color: AppColors.warning,
           ),
           const SizedBox(height: 16),

@@ -1,7 +1,7 @@
 name: nomad_mobile
 description: Академия вождения NOMAD — мобильное приложение
 publish_to: none
-version: 1.0.7+9
+version: 1.0.10+12
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

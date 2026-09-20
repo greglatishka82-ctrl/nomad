@@ -325,7 +325,7 @@ async function applyQueuedMutationToSnapshot(method, path, body, localId = null)
             const duration = booking.service_type === 'exam'
                 ? (snapshot.slot_rules?.exam_duration_minutes || 20)
                 : (snapshot.slot_rules?.training_duration_minutes || 60);
-            booking.end_time = formatMinutes(minutesFromTime(body.new_start_time) + duration);
+            booking.end_time = formatMinutes(clampEndMinutes(minutesFromTime(body.new_start_time), duration));
         }
         if (body.new_transmission) booking.transmission = body.new_transmission;
         if (body.new_instructor_id) {
@@ -650,8 +650,18 @@ function minutesFromTime(value) {
     const [hours, minutes] = String(value || '00:00').slice(0, 5).split(':').map(Number);
     return hours * 60 + minutes;
 }
+// График «до 00:00» приходит как 00:00 и означает конец суток, а не начало дня.
+function scheduleEndMinutes(value) {
+    const minutes = minutesFromTime(value);
+    return minutes === 0 ? 24 * 60 : minutes;
+}
+// time(24, 0) в Python не существует: сервер хранит конец занятия за полночь как 23:59.
+const LAST_MINUTE_OF_DAY = 23 * 60 + 59;
 function formatMinutes(value) {
     return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+}
+function clampEndMinutes(startMinutes, duration) {
+    return Math.min(startMinutes + duration, LAST_MINUTE_OF_DAY);
 }
 function currentKzClock() {
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -703,9 +713,9 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
     const weekdayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     const targetWeekday = weekdayNames[new Date(`${bookingDate}T12:00:00`).getDay()];
     const isOverlapping = (start, end, otherStart, otherEnd) => start < otherEnd && end > otherStart;
-    const bookingEnd = booking => minutesFromTime(booking.end_time || formatMinutes(
-        minutesFromTime(booking.start_time) + (booking.service_type === 'exam' ? examDuration : trainingDuration)
-    ));
+    const bookingEnd = booking => minutesFromTime(booking.end_time || formatMinutes(clampEndMinutes(
+        minutesFromTime(booking.start_time), booking.service_type === 'exam' ? examDuration : trainingDuration
+    )));
     const scheduleFor = instructor => {
         const key = `${instructor.id}:${bookingDate}`;
         const daily = dailySchedules.get(key);
@@ -714,7 +724,7 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
         const end = daily?.working_hours_end || instructor.working_hours_end;
         if (!start || !end) return null;
         return {
-            start: minutesFromTime(start), end: minutesFromTime(end),
+            start: minutesFromTime(start), end: scheduleEndMinutes(end),
             // A per-day row fully overrides lunch. Null means no lunch for
             // that date, matching get_effective_schedule on the server.
             lunchStart: daily ? daily.lunch_start : instructor.lunch_start,
@@ -728,15 +738,16 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
     }
     const now = currentKzClock();
     const startHour = Math.min(...validSchedules.map(schedule => Math.floor(schedule.start / 60)));
-    const endHour = Math.min(Math.max(...validSchedules.map(schedule => Math.floor(schedule.end / 60))), 21);
-    if (bookingDate === now.date && (Math.floor(now.minutes / 60) > endHour || (
-        Math.floor(now.minutes / 60) === endHour && now.minutes % 60 >= 1
-    ))) {
+    // У админа расширенные права: сетка идёт до конца графика инструктора,
+    // без ограничения 21:00 и без ограничения экзамена 20:00.
+    const lastScheduleMinutes = Math.max(...validSchedules.map(schedule => schedule.end));
+    const lastStart = Math.min(lastScheduleMinutes, LAST_MINUTE_OF_DAY);
+    if (bookingDate === now.date && now.minutes > lastScheduleMinutes) {
         return { date: bookingDate, service_type: serviceType, transmission, instructor_id: selectedInstructorId || null, slots: [], offline: true };
     }
     const slots = [];
-    for (let start = startHour * 60; start <= endHour * 60; start += duration) {
-        const end = start + duration;
+    for (let start = startHour * 60; start <= lastStart; start += duration) {
+        const end = clampEndMinutes(start, duration);
         if (bookingDate === now.date && start <= now.minutes) continue;
         const busyIds = new Set(activeBookings
             .filter(booking => isOverlapping(start, end, minutesFromTime(booking.start_time), bookingEnd(booking)))
@@ -826,7 +837,7 @@ async function offlineBookingList(path) {
             client_phone: body.client_phone || '', instructor_id: body.instructor_id,
             instructor_name: instructor?.name || 'Назначается', service_type: body.service_type,
             transmission: body.transmission, location: body.location || 'Циолковского 30', date: body.booking_date,
-            start_time: body.start_time, end_time: formatMinutes(minutesFromTime(body.start_time) + (body.service_type === 'exam' ? 20 : 60)),
+            start_time: body.start_time, end_time: formatMinutes(clampEndMinutes(minutesFromTime(body.start_time), body.service_type === 'exam' ? 20 : 60)),
             status: 'confirmed', price: body.service_type === 'exam' ? 3500 : 10000,
         };
         if (!existing) items.push(item);
@@ -2867,7 +2878,6 @@ async function saveVehicle(id) {
 }
 
 async function addVehicle() {
-    if (fleetVehicles.length >= 6) return showToast('В автопарке может быть не более 6 машин', 'error');
     const name = prompt('Название машины', `Машина ${fleetVehicles.length + 1}`);
     if (name === null) return;
     if (!name.trim()) return showToast('Укажите название машины', 'error');
@@ -5187,11 +5197,11 @@ async function addQueuedBookingToSnapshot(booking, operationId, localClientId) {
         client_phone: booking.client_phone, instructor_name: booking.instructor_name || instructor?.name || 'Назначается',
         client_id: localClientId, instructor_id: booking.instructor_id, service_type: booking.service_type,
         transmission: booking.transmission, location: 'Циолковского 30', date: booking.booking_date,
-        start_time: booking.start_time, end_time: formatMinutes(minutesFromTime(booking.start_time) + (
+        start_time: booking.start_time, end_time: formatMinutes(clampEndMinutes(minutesFromTime(booking.start_time), (
             booking.service_type === 'exam'
                 ? (snapshot.slot_rules?.exam_duration_minutes || 20)
                 : (snapshot.slot_rules?.training_duration_minutes || 60)
-        )),
+        ))),
         status: 'confirmed', price: booking.service_type === 'exam' ? 3500 : 10000,
     };
     snapshot.bookings.push(localBooking);

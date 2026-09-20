@@ -170,13 +170,17 @@ class _InfoCard extends StatelessWidget {
           if (profile.referralCode != null) ...[
             const Divider(height: 24, color: AppColors.surfaceContainerHigh),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _InfoRow(
-                  icon: Icons.qr_code,
-                  label: 'Реферальный код',
-                  value: profile.referralCode!,
-                  bold: true,
+                // _InfoRow внутри своей Row тянется на всю ширину, поэтому его
+                // обязательно оборачивать в Expanded: без этого вложенный
+                // Expanded получает бесконечную ширину и раскладка ломается.
+                Expanded(
+                  child: _InfoRow(
+                    icon: Icons.qr_code,
+                    label: 'Реферальный код',
+                    value: profile.referralCode!,
+                    bold: true,
+                  ),
                 ),
                 Builder(
                   builder: (context) => GestureDetector(

@@ -40,16 +40,20 @@ class _DetailBody extends StatelessWidget {
   Future<void> _reschedule(BuildContext context) async {
     final config = await ref.read(appConfigProvider.future);
     if (!context.mounted) return;
+    final serviceType = booking.serviceType;
     final firstDay = bookingWindowStart(
-      workingHoursEnd: config.workingHoursEnd,
+      serviceType: serviceType,
+      examLastSlotHour: config.examLastSlotHour,
     );
     final lastDay = bookingWindowEnd(
-      workingHoursEnd: config.workingHoursEnd,
+      serviceType: serviceType,
+      examLastSlotHour: config.examLastSlotHour,
     );
     final picked = await showDatePicker(
       context: context,
       initialDate: initialBookingDate(
-        workingHoursEnd: config.workingHoursEnd,
+        serviceType: serviceType,
+        examLastSlotHour: config.examLastSlotHour,
       ),
       firstDate: firstDay,
       lastDate: lastDay,
@@ -226,7 +230,7 @@ class _DetailBody extends StatelessWidget {
                   Text('📞 +7 707 881 08 48', style: TextStyle(fontSize: 12)),
                   SizedBox(height: 4),
                   Text(
-                    '⏰ Заявки подтверждаются с 09:00 до 19:00.',
+                    '⏰ Заявки подтверждаются с 08:00 до 19:00.',
                     style:
                         TextStyle(fontSize: 11, color: AppColors.textSecondary),
                   ),

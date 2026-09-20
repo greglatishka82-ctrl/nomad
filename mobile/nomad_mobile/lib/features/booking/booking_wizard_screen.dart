@@ -260,6 +260,7 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
     if (_state.step == 3) {
       return _Step4Date(
         selected: _state.date,
+        serviceType: _state.serviceType,
         onSelect: (d) {
           _update(_state.copyWith(date: d, clearSlot: true));
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -430,8 +431,10 @@ class _Step2ServiceType extends ConsumerWidget {
 
 class _Step4Date extends ConsumerWidget {
   final DateTime? selected;
+  final String? serviceType;
   final void Function(DateTime) onSelect;
-  const _Step4Date({required this.selected, required this.onSelect});
+  const _Step4Date(
+      {required this.selected, required this.serviceType, required this.onSelect});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -441,10 +444,14 @@ class _Step4Date extends ConsumerWidget {
       error: (_, __) =>
           const Center(child: Text('Ошибка загрузки конфигурации')),
       data: (config) {
-        final firstDay =
-            bookingWindowStart(workingHoursEnd: config.workingHoursEnd);
-        final lastDay =
-            bookingWindowEnd(workingHoursEnd: config.workingHoursEnd);
+        final firstDay = bookingWindowStart(
+          serviceType: serviceType,
+          examLastSlotHour: config.examLastSlotHour,
+        );
+        final lastDay = bookingWindowEnd(
+          serviceType: serviceType,
+          examLastSlotHour: config.examLastSlotHour,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
