@@ -74,6 +74,48 @@ def last_start_within_day(duration_minutes: int) -> int:
     return max(0, DAY_MINUTES - duration_minutes)
 
 
+def next_client_slot_start_minutes(
+    service_type: Optional[ServiceType],
+    now: Optional[datetime] = None,
+) -> int:
+    """First client-visible slot for today in the Pavlodar time zone.
+
+    At 20:30 the 21:00 driving lesson can no longer be requested: the first
+    evening slot becomes 22:00.  At 20:29 and earlier 21:00 remains available.
+    Exam slots keep their separate 20:00 business limit.
+    """
+    local_now = now or datetime.now(TIMEZONE)
+    if local_now.tzinfo:
+        local_now = local_now.astimezone(TIMEZONE)
+    now_minutes = local_now.hour * 60 + local_now.minute
+    duration_minutes = service_duration_minutes(service_type)
+    next_slot = ((now_minutes // duration_minutes) + 1) * duration_minutes
+    if (
+        getattr(service_type, "value", service_type) == ServiceType.TRAINING.value
+        and 20 * 60 + 30 <= now_minutes < 21 * 60
+    ):
+        next_slot = max(next_slot, 22 * 60)
+    return next_slot
+
+
+def is_client_slot_start_allowed(
+    booking_date: date,
+    start_time: time,
+    service_type: Optional[ServiceType],
+    now: Optional[datetime] = None,
+) -> bool:
+    """Reject stale client slot submissions using the same rule as availability."""
+    local_now = now or datetime.now(TIMEZONE)
+    if local_now.tzinfo:
+        local_now = local_now.astimezone(TIMEZONE)
+    start_minutes = time_to_minutes(start_time)
+    if start_minutes > client_last_start_minutes(service_type):
+        return False
+    if booking_date != local_now.date():
+        return True
+    return start_minutes >= next_client_slot_start_minutes(service_type, local_now)
+
+
 def client_last_start_minutes(service_type: Optional[ServiceType]) -> int:
     """Верхняя граница старта для клиента, в минутах от начала суток.
 
@@ -625,7 +667,10 @@ async def get_available_slots(
     if is_today:
         # Слоты всегда начинаются с границы длительности услуги. Для экзамена
         # это :00, :20 и :40, а не только начало каждого часа.
-        current_minutes = max(earliest_start_minutes, ((now.hour * 60 + now.minute) // duration_minutes + 1) * duration_minutes)
+        current_minutes = max(
+            earliest_start_minutes,
+            next_client_slot_start_minutes(service_type, now),
+        )
     else:
         current_minutes = earliest_start_minutes
 
@@ -749,7 +794,10 @@ async def get_available_slots_for_instructor(
 
     slots = []
     if is_today:
-        current_minutes = max(inst_start_minutes, ((now.hour * 60 + now.minute) // duration_minutes + 1) * duration_minutes)
+        current_minutes = max(
+            inst_start_minutes,
+            next_client_slot_start_minutes(service_type, now),
+        )
     else:
         current_minutes = inst_start_minutes
 

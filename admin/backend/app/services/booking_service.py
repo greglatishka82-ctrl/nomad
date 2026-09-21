@@ -352,17 +352,31 @@ async def is_instructor_available(
 
 async def find_best_instructor(
     db: AsyncSession, booking_date: date, start_time: time, end_time: time,
-    transmission: str, service_type: str,
+    transmission: str, service_type: str, instructor_gender: str | None = None,
 ):
+    """Assign the least-loaded available instructor, optionally by gender."""
+    gender = (instructor_gender or "any").lower()
+    if gender not in ("male", "female", "any"):
+        gender = "any"
     busy_ids = await get_busy_instructor_ids(db, booking_date, start_time, end_time)
     result = await db.execute(select(Instructor).where(Instructor.is_active == True))
     instructors = result.scalars().all()
+    if gender != "any":
+        instructors = [
+            instructor for instructor in instructors
+            if str(instructor.gender or "any").lower() == gender
+        ]
     suitable = []
     for instructor in instructors:
         if await is_instructor_available(db, instructor, booking_date, start_time, end_time, transmission, busy_ids, service_type=service_type):
             suitable.append(instructor)
     if not suitable:
-        duty_result = await db.execute(select(Instructor).where(and_(Instructor.is_active == True, Instructor.is_duty == True)))
+        duty_query = select(Instructor).where(
+            and_(Instructor.is_active == True, Instructor.is_duty == True)
+        )
+        if gender != "any":
+            duty_query = duty_query.where(Instructor.gender == gender)
+        duty_result = await db.execute(duty_query)
         duty = duty_result.scalar_one_or_none()
         if duty and await is_instructor_available(db, duty, booking_date, start_time, end_time, transmission, busy_ids, allow_duty=True, service_type=service_type):
             return duty

@@ -670,7 +670,7 @@ function currentKzClock() {
     }).formatToParts(new Date()).reduce((out, part) => ({ ...out, [part.type]: part.value }), {});
     return { date: `${parts.year}-${parts.month}-${parts.day}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
 }
-async function buildOfflineSlots(bookingDate, serviceType, transmission, selectedInstructorId) {
+async function buildOfflineSlots(bookingDate, serviceType, transmission, selectedInstructorId, instructorGender = 'any') {
     const snapshot = await offlineRead('api-cache', 'offline-snapshot');
     if (!snapshot?.instructors || !snapshot?.bookings) {
         throw new Error('Нет локальной копии расписания. Сначала откройте админку при наличии интернета.');
@@ -701,9 +701,12 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
         return booking.date === bookingDate && statuses.includes(booking.status);
     });
     const allInstructors = snapshot.instructors.filter(instructor => instructor.is_active !== false);
+    const genderPreference = selectedInstructorId ? 'any' : instructorGender;
     const instructors = selectedInstructorId
         ? allInstructors.filter(instructor => String(instructor.id) === String(selectedInstructorId))
-        : allInstructors;
+        : allInstructors.filter(instructor =>
+            genderPreference === 'any' || String(instructor.gender || 'any').toLowerCase() === genderPreference
+        );
     const dailySchedules = new Map((snapshot.data?.['/instructor-daily-schedules'] || []).map(item => [
         `${item.instructor_id}:${item.schedule_date}`, item,
     ]));
@@ -3249,14 +3252,30 @@ function applyInstructorLoadRange() {
 
 async function loadAnalytics() {
     loadAnalyticsFinance();
-    const [heatmap, load, bookings, sourceData, genderData, revenueData] = await Promise.all([
+    const [heatmap, load, bookings, sourceData, genderData, revenueData, instructorSelection] = await Promise.all([
         apiGet('/analytics/heatmap'),
         apiGet(instructorLoadPath()),
         apiGet('/bookings').catch(() => []),
         apiGet('/analytics/booking-sources/extended').catch(() => null),
         apiGet('/analytics/gender').catch(() => null),
-        apiGet('/analytics/revenue').catch(() => null)
+        apiGet('/analytics/revenue').catch(() => null),
+        apiGet('/analytics/instructor-selection').catch(() => null)
     ]);
+
+    const instructorSelectionBody = document.getElementById('instructor-selection-analytics');
+    if (instructorSelectionBody) {
+        if (Array.isArray(instructorSelection) && instructorSelection.length) {
+            instructorSelectionBody.innerHTML = instructorSelection.map(item => `
+                <tr>
+                    <td>${escapeHtml(item.name || '—')}</td>
+                    <td>${Number(item.auto || 0).toLocaleString('ru-RU')}</td>
+                    <td>${Number(item.choice || 0).toLocaleString('ru-RU')}</td>
+                </tr>
+            `).join('');
+        } else {
+            instructorSelectionBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Нет данных</td></tr>';
+        }
+    }
 
     analyticsRevenueData = revenueData;
     renderRevenueAnalytics();
@@ -4888,6 +4907,18 @@ let manualClientSuggestions = [];
 let manualClientSearchTimer = null;
 let slotsLoadRequestId = 0;
 
+function getManualInstructorSelection() {
+    const value = document.getElementById('mb-instructor')?.value || 'auto:any';
+    const match = /^manual:(\d+)$/.exec(value);
+    if (match) {
+        return { instructorId: Number(match[1]), instructorGender: 'any' };
+    }
+    return {
+        instructorId: null,
+        instructorGender: value === 'auto:male' ? 'male' : value === 'auto:female' ? 'female' : 'any',
+    };
+}
+
 async function showManualBookingForm() {
     document.getElementById('manual-booking-form').classList.remove('hidden');
     // Загружаем инструкторов
@@ -4898,13 +4929,20 @@ async function showManualBookingForm() {
         }
         manualBookingInstructors = instructors;
         const select = document.getElementById('mb-instructor');
-        select.innerHTML = '<option value="">Автоматически подобрать</option>' + manualBookingInstructors
+        const activeInstructors = manualBookingInstructors
             // Старые и импортированные записи могли не иметь is_active. В таком
             // случае инструктор считается активным; исключаем только явно выключенных.
-            .filter(i => i.is_active !== false)
-            .map(i => `
-            <option value="${i.id}" data-transmission="${escapeHtml(i.transmission || '')}">${escapeHtml(i.name)}</option>
-        `).join('');
+            .filter(i => i.is_active !== false);
+        select.innerHTML = [
+            '<option value="auto:any">Автоматически подобрать — не важно</option>',
+            '<option value="auto:male">Автоматически подобрать мужчину</option>',
+            '<option value="auto:female">Автоматически подобрать женщину</option>',
+            '<optgroup label="Конкретный инструктор">',
+            ...activeInstructors.map(i => `
+                <option value="manual:${i.id}" data-transmission="${escapeHtml(i.transmission || '')}">${escapeHtml(i.name)}</option>
+            `),
+            '</optgroup>',
+        ].join('');
         select.onchange = () => {
             updateManualTransmissionFromInstructor();
             loadSlots();
@@ -4994,7 +5032,7 @@ async function loadSlots() {
     const date = document.getElementById('mb-date').value;
     const service = document.getElementById('mb-service').value;
     const transmission = document.getElementById('mb-transmission').value;
-    const instructorId = document.getElementById('mb-instructor').value;
+    const { instructorId, instructorGender } = getManualInstructorSelection();
     
     if (!date) {
         document.getElementById('slots-panel').innerHTML = '<div class="slots-list"><p style="color:var(--text-secondary);text-align:center;padding:24px 0;font-size:13px">Выберите дату</p></div>';
@@ -5005,17 +5043,19 @@ async function loadSlots() {
     let url = `/slots?booking_date=${date}&service_type=${service}&transmission=${transmission}`;
     if (instructorId) {
         url += `&instructor_id=${instructorId}`;
+    } else if (instructorGender !== 'any') {
+        url += `&instructor_gender=${instructorGender}`;
     }
     
     let data;
     if (isAdminOffline) {
-        data = await buildOfflineSlots(date, service, transmission, instructorId);
+        data = await buildOfflineSlots(date, service, transmission, instructorId, instructorGender);
     } else {
         try {
             data = await apiGet(url);
         } catch (error) {
             if (!isAdminOffline) throw error;
-            data = await buildOfflineSlots(date, service, transmission, instructorId);
+            data = await buildOfflineSlots(date, service, transmission, instructorId, instructorGender);
         }
     }
     // Если пока выполнялся запрос пользователь уже сменил дату, инструктора
@@ -5099,7 +5139,7 @@ function updateManualTransmissionFromInstructor() {
         transmissionSelect.value = 'automatic';
         return;
     }
-    const instructorId = instructorSelect.value;
+    const { instructorId } = getManualInstructorSelection();
     if (!instructorId || !manualBookingInstructors.length) {
         transmissionSelect.disabled = false;
         return;
@@ -5123,19 +5163,15 @@ function selectSlot(time, recommendedInstructorId = null) {
     const slotEl = document.querySelector(`.slot-item[onclick*="'${time}'"]`);
     if (slotEl) slotEl.classList.add('slot-selected');
     document.getElementById('mb-time').value = time;
-    if (recommendedInstructorId) {
-        const instructorSelect = document.getElementById('mb-instructor');
-        if (instructorSelect && !instructorSelect.value) {
-            instructorSelect.value = String(recommendedInstructorId);
-            updateManualTransmissionFromInstructor();
-        }
-    }
+    // Recommended instructor remains an automatic assignment.  Never replace
+    // the selected automatic preference with a concrete name here, otherwise
+    // an offline booking would be recorded as an explicit client choice.
 }
 
 async function saveManualBooking() {
     const name = document.getElementById('mb-name').value.trim();
     const phone = document.getElementById('mb-phone').value.trim();
-    const instructorId = parseInt(document.getElementById('mb-instructor').value);
+    const { instructorId, instructorGender } = getManualInstructorSelection();
     const service = document.getElementById('mb-service').value;
     const location = document.getElementById('mb-location').value;
     const transmission = document.getElementById('mb-transmission').value;
@@ -5152,6 +5188,7 @@ async function saveManualBooking() {
             client_name: name,
             client_phone: phone || null,
             instructor_id: instructorId || null,
+            instructor_gender: instructorGender,
             service_type: service,
             location: location,
             transmission: transmission,
@@ -5163,8 +5200,9 @@ async function saveManualBooking() {
             if (result.offline) {
                 await addQueuedBookingToSnapshot({
                     client_name: name || phone || 'Клиент', client_phone: phone,
-                    instructor_id: instructorId || null, service_type: service,
-                    instructor_name: manualBookingInstructors.find(i => String(i.id) === String(instructorId))?.name || 'Назначается',
+                    instructor_id: instructorId || null, instructor_gender: instructorGender, service_type: service,
+                    instructor_name: manualBookingInstructors.find(i => String(i.id) === String(instructorId))?.name
+                        || (instructorGender === 'male' ? 'Подбирается мужчина' : instructorGender === 'female' ? 'Подбирается женщина' : 'Назначается'),
                     transmission, booking_date: date, start_time: time,
                 }, result.queued_operation_id, result.local_client_id);
             }

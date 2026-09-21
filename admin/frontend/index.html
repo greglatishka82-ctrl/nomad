@@ -357,9 +357,11 @@
 
                 <div class="form-row">
                   <div class="form-group flex-1">
-                    <label>Инструктор (опционально)</label>
+                    <label>Инструктор</label>
                     <select id="mb-instructor" onchange="updateManualTransmissionFromInstructor(); loadSlots()">
-                      <option value="">Автоматически подобрать</option>
+                      <option value="auto:any">Автоматически подобрать — не важно</option>
+                      <option value="auto:male">Автоматически подобрать мужчину</option>
+                      <option value="auto:female">Автоматически подобрать женщину</option>
                     </select>
                   </div>
                   <div class="form-group flex-1">
@@ -965,6 +967,21 @@
                   <span style="color:var(--text-muted);font-weight:600;">Пробный экзамен (3 500 ₸)</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Выбор инструктора</div>
+                <p class="chart-hint">Только завершённые занятия. «Авто» — каждое автоматическое назначение; «Выбор» — конкретное имя, выбранное администратором, либо второй подряд и далее одинаковый ручной выбор в Telegram/APK.</p>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead><tr><th>Инструктор</th><th>Авто</th><th>Выбор</th></tr></thead>
+                <tbody id="instructor-selection-analytics"><tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Загрузка…</td></tr></tbody>
+              </table>
             </div>
           </div>
 

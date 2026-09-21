@@ -15,8 +15,12 @@ import '../my_bookings/bookings_provider.dart';
 class _WizardState {
   final int step;
   final String? transmission; // manual | automatic (ШАГ 0)
-  final String? instructorGender; // male | female | any (ШАГ 1)
-  final String? serviceType; // training | exam (ШАГ 2)
+  final String? instructorGender; // male | female | any
+  final String? serviceType; // training | exam
+  final int? instructorId; // null = automatic assignment
+  final String? instructorName;
+  final List<Map<String, dynamic>> instructors;
+  final bool instructorsLoading;
   final String? location; // всегда Циолковского 30
   final DateTime? date; // ШАГ 3
   final String? slot; // "10:00" (ШАГ 4)
@@ -29,6 +33,10 @@ class _WizardState {
     this.transmission,
     this.instructorGender,
     this.serviceType,
+    this.instructorId,
+    this.instructorName,
+    this.instructors = const [],
+    this.instructorsLoading = false,
     this.location,
     this.date,
     this.slot,
@@ -42,6 +50,10 @@ class _WizardState {
     String? transmission,
     String? instructorGender,
     String? serviceType,
+    int? instructorId,
+    String? instructorName,
+    List<Map<String, dynamic>>? instructors,
+    bool? instructorsLoading,
     String? location,
     DateTime? date,
     String? slot,
@@ -51,12 +63,17 @@ class _WizardState {
     bool clearDate = false,
     bool clearSlot = false,
     bool clearCertificateCode = false,
+    bool clearInstructor = false,
   }) =>
       _WizardState(
         step: step ?? this.step,
         transmission: transmission ?? this.transmission,
         instructorGender: instructorGender ?? this.instructorGender,
         serviceType: serviceType ?? this.serviceType,
+        instructorId: clearInstructor ? null : (instructorId ?? this.instructorId),
+        instructorName: clearInstructor ? null : (instructorName ?? this.instructorName),
+        instructors: instructors ?? this.instructors,
+        instructorsLoading: instructorsLoading ?? this.instructorsLoading,
         location: location ?? this.location,
         date: clearDate ? null : (date ?? this.date),
         slot: clearSlot ? null : (slot ?? this.slot),
@@ -93,12 +110,15 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
     _update(_state.copyWith(slotsLoading: true, slots: []));
     try {
       final dio = ref.read(dioProvider);
-      final params = {
+      final Map<String, dynamic> params = {
         'booking_date': _state.date!.toIso8601String().substring(0, 10),
         'service_type': _state.serviceType,
         'transmission': _state.transmission,
         'instructor_gender': _state.instructorGender ?? 'any',
       };
+      if (_state.instructorId != null) {
+        params['instructor_id'] = _state.instructorId;
+      }
       params['location_preference'] = kFixedBookingLocation;
       final resp = await dio.get('/api/mobile/slots', queryParameters: params);
       final data = resp.data as Map<String, dynamic>;
@@ -109,12 +129,37 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
     }
   }
 
+  Future<void> _loadInstructors() async {
+    if (_state.instructorGender == null ||
+        _state.serviceType == null ||
+        _state.transmission == null ||
+        _state.instructorGender == 'any') {
+      _update(_state.copyWith(instructors: const [], instructorsLoading: false));
+      return;
+    }
+    _update(_state.copyWith(instructorsLoading: true, instructors: const []));
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/api/mobile/instructors', queryParameters: {
+        'transmission': _state.transmission,
+        'service_type': _state.serviceType,
+        'instructor_gender': _state.instructorGender,
+      });
+      final instructors = (response.data as List)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+      _update(_state.copyWith(instructors: instructors, instructorsLoading: false));
+    } catch (_) {
+      _update(_state.copyWith(instructorsLoading: false));
+    }
+  }
+
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
       final dio = ref.read(dioProvider);
 
-      final body = {
+      final Map<String, dynamic> body = {
         'service_type': _state.serviceType,
         'transmission': _state.transmission,
         'instructor_gender': _state.instructorGender ?? 'any',
@@ -122,6 +167,9 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
         'start_time': _state.slot,
         'location': kFixedBookingLocation,
       };
+      if (_state.instructorId != null) {
+        body['instructor_id'] = _state.instructorId;
+      }
       if (_state.certificateCode != null &&
           _state.certificateCode!.isNotEmpty) {
         body['certificate_code'] = _state.certificateCode!;
@@ -154,8 +202,8 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const stepsCount = 6;
-    const stepLabels = ['КПП', 'Пол', 'Тип', 'Дата', 'Время', 'Итог'];
+    const stepsCount = 7;
+    const stepLabels = ['КПП', 'Тип', 'Пол', 'Инструктор', 'Дата', 'Время', 'Итог'];
 
     return Scaffold(
       appBar: AppBar(
@@ -189,6 +237,11 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
                       _update(_state.copyWith(step: next));
                       if (next == 3) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _loadInstructors();
+                        });
+                      }
+                      if (next == 4) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
                           _loadSlots();
                         });
                       }
@@ -205,17 +258,20 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
 
   bool _canNext() {
     switch (_state.step) {
-      case 0: // КПП
+      case 0:
         return _state.transmission != null;
-      case 1: // Пол инструктора
-        return _state.instructorGender != null;
-      case 2: // Тип
+      case 1:
         return _state.serviceType != null;
-      case 3: // Дата
+      case 2:
+        return _state.instructorGender != null;
+      case 3:
+        return _state.instructorGender == 'any' ||
+            (!_state.instructorsLoading && _state.instructorId != null);
+      case 4:
         return _state.date != null;
-      case 4: // Время
+      case 5:
         return _state.slot != null;
-      case 5: // Итог
+      case 6:
         return true;
       default:
         return false;
@@ -224,53 +280,59 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
 
   Widget _buildStep() {
     if (_state.step == 0) {
-      // ШАГ 1: КПП
       return _Step1Transmission(
         selected: _state.transmission,
-        onSelect: (v) =>
-            _update(_state.copyWith(transmission: v, clearSlot: true)),
+        onSelect: (v) => _update(_state.copyWith(transmission: v, clearSlot: true)),
       );
     }
-
     if (_state.step == 1) {
-      // ШАГ 2: Пол инструктора
-      return _Step1Gender(
-        selected: _state.instructorGender,
-        onSelect: (v) =>
-            _update(_state.copyWith(instructorGender: v, clearSlot: true)),
-      );
-    }
-
-    if (_state.step == 2) {
-      // ШАГ 3: Тип
       return _Step2ServiceType(
         selected: _state.serviceType,
-        onSelect: (v) {
-          _update(_state.copyWith(
-            serviceType: v,
-            location: kFixedBookingLocation,
-            clearDate: true,
-            clearSlot: true,
-            clearCertificateCode: true,
-          ));
-        },
+        onSelect: (v) => _update(_state.copyWith(
+          serviceType: v,
+          location: kFixedBookingLocation,
+          clearDate: true,
+          clearSlot: true,
+          clearCertificateCode: true,
+        )),
       );
     }
-
+    if (_state.step == 2) {
+      return _Step1Gender(
+        selected: _state.instructorGender,
+        onSelect: (v) => _update(_state.copyWith(
+          instructorGender: v,
+          instructors: const [],
+          clearInstructor: true,
+          clearSlot: true,
+        )),
+      );
+    }
     if (_state.step == 3) {
+      return _Step3Instructor(
+        gender: _state.instructorGender ?? 'any',
+        instructors: _state.instructors,
+        loading: _state.instructorsLoading,
+        selectedId: _state.instructorId,
+        onSelect: (instructor) => _update(_state.copyWith(
+          instructorId: instructor['id'] as int?,
+          instructorName: instructor['name']?.toString(),
+          clearDate: true,
+          clearSlot: true,
+        )),
+      );
+    }
+    if (_state.step == 4) {
       return _Step4Date(
         selected: _state.date,
         serviceType: _state.serviceType,
         onSelect: (d) {
           _update(_state.copyWith(date: d, clearSlot: true));
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _loadSlots();
-          });
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadSlots());
         },
       );
     }
-
-    if (_state.step == 4) {
+    if (_state.step == 5) {
       return _Step5Time(
         slots: _state.slots,
         selected: _state.slot,
@@ -278,14 +340,12 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
         onSelect: (s) => _update(_state.copyWith(slot: s)),
       );
     }
-
-    if (_state.step == 5) {
+    if (_state.step == 6) {
       return _Step6Confirm(
         state: _state,
         onCertChange: (v) => _update(_state.copyWith(certificateCode: v)),
       );
     }
-
     return const SizedBox();
   }
 }
@@ -381,6 +441,76 @@ class _Step1Gender extends ConsumerWidget {
     );
   }
 }
+
+// ── Шаг 3: Инструктор ───────────────────────────────────────────────────
+
+class _Step3Instructor extends StatelessWidget {
+  final String gender;
+  final List<Map<String, dynamic>> instructors;
+  final bool loading;
+  final int? selectedId;
+  final void Function(Map<String, dynamic>) onSelect;
+
+  const _Step3Instructor({
+    required this.gender,
+    required this.instructors,
+    required this.loading,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (gender == 'any') {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepTitle('Инструктор'),
+          SizedBox(height: 24),
+          _ChoiceCard(
+            selected: true,
+            icon: Icons.auto_awesome,
+            title: 'Подберём автоматически',
+            subtitle: 'Система назначит подходящего свободного инструктора',
+            price: '',
+            color: AppColors.success,
+            onTap: _noop,
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StepTitle('Выберите инструктора'),
+        const SizedBox(height: 8),
+        const Text('Показаны активные инструкторы с выбранными КПП, услугой и полом.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        const SizedBox(height: 20),
+        if (loading)
+          const Center(child: CircularProgressIndicator())
+        else if (instructors.isEmpty)
+          const Text('Подходящих инструкторов сейчас нет.',
+              style: TextStyle(color: AppColors.textSecondary))
+        else
+          ...instructors.map((instructor) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ChoiceCard(
+              selected: selectedId == instructor['id'],
+              icon: Icons.person,
+              title: instructor['name']?.toString() ?? 'Инструктор',
+              subtitle: 'Доступность будет проверена при выборе времени',
+              price: '',
+              color: AppColors.primary,
+              onTap: () => onSelect(instructor),
+            ),
+          )),
+      ],
+    );
+  }
+}
+
+void _noop() {}
 
 // ── Шаг 3: Тип занятия ───────────────────────────────────────────────────────
 
@@ -671,6 +801,10 @@ class _Step6ConfirmBodyState extends State<_Step6ConfirmBody> {
         _ConfirmRow(label: 'Тип', value: serviceTypeLabel(s.serviceType ?? '')),
         _ConfirmRow(
             label: 'Коробка', value: transmissionLabel(s.transmission ?? '')),
+        _ConfirmRow(
+            label: 'Инструктор',
+            value: s.instructorName ?? 'Автоматический подбор',
+        ),
         const _ConfirmRow(label: 'Площадка', value: kFixedBookingLocation),
         _ConfirmRow(
             label: 'Дата',

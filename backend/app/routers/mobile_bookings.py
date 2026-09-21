@@ -34,6 +34,7 @@ from app.models.models import (
 from app.services.booking_service import (
     _is_instructor_available, add_minutes, client_last_start_minutes,
     get_available_slots, get_available_slots_for_instructor,
+    is_client_slot_start_allowed,
     find_best_instructor, find_best_instructor_with_location, reserve_vehicle_capacity
 )
 from app.routers.mobile_auth import get_current_user
@@ -376,6 +377,8 @@ async def create_booking(
         raise HTTPException(status_code=400, detail="Запись доступна только на ближайшие 7 дней")
 
     duration_minutes = settings.TRAINING_DURATION_MINUTES if service_type_enum == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
+    if not is_client_slot_start_allowed(body.booking_date, start_time_obj, service_type_enum):
+        raise HTTPException(status_code=409, detail="Этот слот уже недоступен. Обновите список и выберите другое время")
     end_time_obj = add_minutes(start_time_obj, duration_minutes)
     
     transmission_enum = "both"
@@ -394,6 +397,9 @@ async def create_booking(
         instructor = await db.get(Instructor, instructor_id)
         if not instructor or not instructor.is_active:
             raise HTTPException(status_code=404, detail="Instructor not found or inactive")
+        instructor_gender_value = getattr(instructor.gender, "value", instructor.gender) or "any"
+        if gender_enum != "any" and instructor_gender_value not in ("any", getattr(gender_enum, "value", gender_enum)):
+            raise HTTPException(status_code=400, detail="Инструктор не соответствует выбранному полу")
         if not await _is_instructor_available(
             db, instructor, body.booking_date, start_time_obj, end_time_obj,
             transmission_enum, service_type=service_type_enum,
@@ -571,6 +577,7 @@ async def create_booking(
         payment_status="paid" if price == 0 else "unpaid",
         paid_amount=base_price if package_purchase else 0,
         source="mobile",
+        instructor_selection_mode="manual" if body.instructor_id else "auto",
         package_id=package_purchase.package_id if package_purchase else None,
         package_bonus_exam_used=package_bonus_exam_used,
         certificate_id=certificate_id,
@@ -764,6 +771,8 @@ async def reschedule_booking(
 
     if not _is_date_in_booking_window(new_date, booking.service_type):
         raise HTTPException(status_code=400, detail="Перенос доступен только на ближайшие 7 дней")
+    if not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
+        raise HTTPException(status_code=409, detail="Этот слот уже недоступен. Обновите список и выберите другое время")
 
     # Вычисляем новое end_time. Занятие 23:00–00:00 хранится как 23:59.
     duration_minutes = settings.TRAINING_DURATION_MINUTES if booking.service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
@@ -1039,10 +1048,6 @@ async def get_slots(
     if instructor_id:
         slots = await get_available_slots_for_instructor(
             db, target_date, service_enum, trans_enum, location, instructor_id,
-            # This endpoint's explicit-instructor mode is used by installed app
-            # versions for rescheduling an existing assignment. Creating a new
-            # booking is still revalidated against the current instructor card.
-            preserve_existing_assignment=True,
         )
     else:
         slots = await get_available_slots(db, target_date, service_enum, trans_enum, location, gender_enum, location_preference=location_preference)
@@ -1069,11 +1074,31 @@ async def get_available_slots_endpoint(
 
 
 @router.get("/instructors")
-async def get_instructors(db: AsyncSession = Depends(get_db)):
+async def get_instructors(
+    transmission: Optional[str] = None,
+    service_type: Optional[str] = None,
+    instructor_gender: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
         select(Instructor).where(Instructor.is_active == True).order_by(Instructor.name)
     )
     instructors = result.scalars().all()
+    requested_gender = instructor_gender or "any"
+    filtered = []
+    for instructor in instructors:
+        gender_value = getattr(instructor.gender, "value", instructor.gender) or "any"
+        transmission_value = getattr(instructor.transmission, "value", instructor.transmission) or "both"
+        lesson_type = str(instructor.lesson_type or "both").lower()
+        if requested_gender != "any" and gender_value not in ("any", requested_gender):
+            continue
+        if transmission == "manual" and transmission_value not in ("manual", "both"):
+            continue
+        if transmission == "automatic" and transmission_value not in ("automatic", "both"):
+            continue
+        if service_type and lesson_type not in ("both", service_type):
+            continue
+        filtered.append(instructor)
 
     return [
         {
@@ -1086,5 +1111,5 @@ async def get_instructors(db: AsyncSession = Depends(get_db)):
             "description": i.description or "",
             "avatar_url": i.avatar_url,
         }
-        for i in instructors
+        for i in filtered
     ]

@@ -26,7 +26,7 @@ from app.models.models import (
     NotificationSent, Certificate, AuditLog, InstructorGender, MobileBooking, ClientPackage, Package,
     SupportMessage, Event
 )
-from app.services.booking_service import get_available_slots, get_available_slots_for_instructor, find_best_instructor, find_best_instructor_with_location, has_available_instructors, reserve_vehicle_capacity, add_minutes
+from app.services.booking_service import get_available_slots, get_available_slots_for_instructor, find_best_instructor, find_best_instructor_with_location, has_available_instructors, reserve_vehicle_capacity, add_minutes, is_client_slot_start_allowed
 from app.services.client_lifecycle import (
     find_client_by_phone as _get_client_by_phone,
     reactivate_deleted_client,
@@ -164,6 +164,7 @@ class BookingStates(StatesGroup):
     choosing_location = State()  # Новый шаг для выбора площадки
     choosing_transmission = State()
     choosing_instructor_gender = State()
+    choosing_instructor = State()
     choosing_date = State()
     choosing_time = State()
     entering_phone = State()
@@ -237,6 +238,7 @@ async def _build_date_buttons(
     transmission: TransmissionType,
     instructor_gender: InstructorGender = "any",
     prefix: str = "date",
+    instructor_id: Optional[int] = None,
 ) -> list:
     now = datetime.now(TIMEZONE)
     today = now.date()
@@ -248,7 +250,12 @@ async def _build_date_buttons(
     i = 0
     while i < BOOKING_WINDOW_DAYS:
         target_date = today + timedelta(days=i)
-        if await has_available_instructors(db, target_date, service_type, transmission, instructor_gender):
+        slots = (
+            await get_available_slots_for_instructor(db, target_date, service_type, transmission, settings.LOCATION_EXAM, instructor_id)
+            if instructor_id else
+            await get_available_slots(db, target_date, service_type, transmission, settings.LOCATION_EXAM, instructor_gender, stop_after_first=True)
+        )
+        if slots:
             buttons.append([InlineKeyboardButton(
                 text=target_date.strftime("%d.%m.%Y"),
                 callback_data=f"{prefix}:{target_date.strftime('%d.%m.%Y')}"
@@ -325,7 +332,28 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
             await callback.message.edit_text("Выберите коробку передач:", reply_markup=kb)
             await state.set_state(BookingStates.choosing_transmission)
 
+    elif current == BookingStates.choosing_instructor.state:
+        kb = _kb_with_back([
+            [InlineKeyboardButton(text="👨 Мужчина", callback_data="gender:male")],
+            [InlineKeyboardButton(text="👩 Девушка", callback_data="gender:female")],
+            [InlineKeyboardButton(text="🤷 Не важно", callback_data="gender:any")],
+        ])
+        await callback.message.edit_text("Предпочтения по инструктору:", reply_markup=kb)
+        await state.set_state(BookingStates.choosing_instructor_gender)
+
     elif current == BookingStates.choosing_date.state:
+        data = await state.get_data()
+        if data.get("selected_instructor_id"):
+            async with async_session() as db:
+                instructor = await db.get(Instructor, data["selected_instructor_id"])
+            if instructor:
+                rows = [
+                    [InlineKeyboardButton(text="🤖 Подобрать автоматически", callback_data="instructor:auto")],
+                    [InlineKeyboardButton(text=instructor.name, callback_data=f"instructor:{instructor.id}")],
+                ]
+                await callback.message.edit_text("Выберите инструктора или оставьте автоподбор:", reply_markup=_kb_with_back(rows))
+                await state.set_state(BookingStates.choosing_instructor)
+                return
         kb = _kb_with_back([
             [InlineKeyboardButton(text="👨 Мужчина", callback_data="gender:male")],
             [InlineKeyboardButton(text="👩 Девушка", callback_data="gender:female")],
@@ -344,7 +372,7 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
         instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
 
         async with async_session() as db:
-            buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
+            buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender, instructor_id=data.get("selected_instructor_id"))
         kb = _kb_with_back(buttons)
         await callback.message.edit_text("Выберите дату:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_date)
@@ -532,15 +560,71 @@ async def process_instructor_gender(callback: CallbackQuery, state: FSMContext):
     instructor_gender = gender_map.get(gender, "any")
 
     async with async_session() as db:
-        buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
-    if not buttons:
-        await callback.message.edit_text("К сожалению, на ближайшие 5 дней нет свободных дат. Попробуйте позже.")
-        await state.clear()
+        instructors = (await db.execute(select(Instructor).where(Instructor.is_active == True))).scalars().all()
+    eligible = []
+    for instructor in instructors:
+        gender_value = getattr(instructor.gender, "value", instructor.gender) or "any"
+        if instructor_gender != "any" and gender_value not in ("any", instructor_gender):
+            continue
+        if transmission == "manual" and instructor.transmission not in ("manual", "both"):
+            continue
+        if transmission == "automatic" and instructor.transmission not in ("automatic", "both"):
+            continue
+        lesson_type = str(getattr(instructor, "lesson_type", "both") or "both").lower()
+        if lesson_type not in ("both", service_type.value):
+            continue
+        eligible.append(instructor)
+    if instructor_gender == "any":
+        await state.update_data(selected_instructor_id=None, instructor_selection_mode="auto", offered_instructors=[])
+        async with async_session() as db:
+            buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
+        if not buttons:
+            await callback.message.edit_text("К сожалению, на ближайшие 5 дней нет свободных дат. Попробуйте позже.")
+            await state.clear()
+            return
+        await callback.message.edit_text("Выберите дату:", reply_markup=_kb_with_back(buttons))
+        await state.set_state(BookingStates.choosing_date)
         return
-    kb = _kb_with_back(buttons)
-    await callback.message.edit_text("Выберите дату:", reply_markup=kb)
-    await state.set_state(BookingStates.choosing_date)
+    if not eligible:
+        await callback.message.edit_text("Сейчас нет подходящих активных инструкторов. Выберите другой вариант.")
+        return
+    offered = [instructor.id for instructor in eligible]
+    await state.update_data(offered_instructors=offered)
+    rows = [[InlineKeyboardButton(text="🤖 Подобрать автоматически", callback_data="instructor:auto")]]
+    rows += [[InlineKeyboardButton(text=instructor.name, callback_data=f"instructor:{instructor.id}")] for instructor in eligible]
+    await callback.message.edit_text("Выберите инструктора или оставьте автоподбор:", reply_markup=_kb_with_back(rows))
+    await state.set_state(BookingStates.choosing_instructor)
 
+
+
+
+@router.callback_query(BookingStates.choosing_instructor, F.data.startswith("instructor:"))
+async def process_instructor_choice(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    value = callback.data.split(":", 1)[1]
+    data = await state.get_data()
+    if value == "auto":
+        await state.update_data(selected_instructor_id=None, instructor_selection_mode="auto")
+    else:
+        try:
+            instructor_id = int(value)
+        except ValueError:
+            await callback.answer("Выберите инструктора из списка.", show_alert=True)
+            return
+        if instructor_id not in data.get("offered_instructors", []):
+            await callback.answer("Этот инструктор недоступен. Выберите из списка.", show_alert=True)
+            return
+        await state.update_data(selected_instructor_id=instructor_id, instructor_selection_mode="manual")
+    service_type = ServiceType.TRAINING if data["service_type"] == "training" else ServiceType.EXAM
+    transmission = data["transmission"]
+    instructor_gender = data.get("instructor_gender", "any")
+    async with async_session() as db:
+        buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender, instructor_id=data.get("selected_instructor_id"))
+    if not buttons:
+        await callback.message.edit_text("На ближайшие 5 дней у выбранного инструктора нет свободных дат. Выберите другого.")
+        return
+    await callback.message.edit_text("Выберите дату:", reply_markup=_kb_with_back(buttons))
+    await state.set_state(BookingStates.choosing_date)
 
 @router.callback_query(BookingStates.choosing_date, F.data.startswith("date:"))
 async def process_date_callback(callback: CallbackQuery, state: FSMContext):
@@ -571,11 +655,13 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
     instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
 
     async with async_session() as db:
-        slots = await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender)
+        slots = (await get_available_slots_for_instructor(db, booking_date, service_type, transmission, location, data["selected_instructor_id"])
+                 if data.get("selected_instructor_id") else
+                 await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender))
 
     if not slots:
         async with async_session() as db:
-            buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender)
+            buttons = await _build_date_buttons(db, service_type, transmission, instructor_gender, instructor_id=data.get("selected_instructor_id"))
         kb = _kb_with_back(buttons)
         await callback.message.edit_text(
             "На эту дату нет свободных слотов. Выберите другую дату:",
@@ -611,7 +697,9 @@ async def process_date(message: Message, state: FSMContext):
     instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
 
     async with async_session() as db:
-        slots = await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender)
+        slots = (await get_available_slots_for_instructor(db, booking_date, service_type, transmission, location, data["selected_instructor_id"])
+                 if data.get("selected_instructor_id") else
+                 await get_available_slots(db, booking_date, service_type, transmission, location, instructor_gender))
 
     if not slots:
         await message.answer("На эту дату нет свободных слотов. Попробуйте другую дату:")
@@ -757,6 +845,13 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         booking_date = date.fromisoformat(data["booking_date"])
         start_t = time.fromisoformat(data["start_time"])
         duration = settings.TRAINING_DURATION_MINUTES if service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
+        if not is_client_slot_start_allowed(booking_date, start_t, service_type):
+            await message.answer(
+                "Этот слот уже недоступен. Выберите другое свободное время через «Записаться».",
+                reply_markup=MAIN_KEYBOARD,
+            )
+            await state.clear()
+            return
         end_t = add_minutes(start_t, duration)
 
         dup_result = await db.execute(
@@ -869,9 +964,20 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         gender_map = {"male": "male", "female": "female", "any": "any"}
         instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
 
-        instructor, location_from_search = await find_best_instructor_with_location(
-            db, booking_date, start_t, end_t, transmission, service_type, instructor_gender
-        )
+        selected_instructor_id = data.get("selected_instructor_id")
+        if selected_instructor_id:
+            instructor = await db.get(Instructor, selected_instructor_id)
+            location_from_search = booking_location
+            if instructor:
+                available = await get_available_slots_for_instructor(
+                    db, booking_date, service_type, transmission, booking_location, instructor.id
+                )
+                if start_t not in available:
+                    instructor = None
+        else:
+            instructor, location_from_search = await find_best_instructor_with_location(
+                db, booking_date, start_t, end_t, transmission, service_type, instructor_gender
+            )
         if not instructor:
             if certificate_discount > 0:
                 cert.remaining += certificate_discount
@@ -955,6 +1061,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
             package_bonus_exam_used=package_bonus_exam_used,
             certificate_amount=certificate_discount if certificate_discount > 0 else 0,
             referral_discount_amount=referral_discount if referral_discount > 0 else 0,
+            instructor_selection_mode=data.get("instructor_selection_mode", "auto"),
             admin_viewed=False,
             admin_confirmed=False,
         )
@@ -1455,6 +1562,10 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
         booking = result.scalar_one_or_none()
         if not booking:
             await callback.message.edit_text("Запись не найдена.")
+            await state.clear()
+            return
+        if not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
+            await callback.message.edit_text("Этот слот уже недоступен. Выберите другое время.")
             await state.clear()
             return
 

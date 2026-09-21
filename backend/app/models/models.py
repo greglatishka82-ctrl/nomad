@@ -220,6 +220,14 @@ class GenderAnalytics(Base):
     updated_at = Column(DateTime, nullable=True)
 
 
+class InstructorSelectionAnalyticsSettings(Base):
+    """Persistent start point for instructor-choice analytics."""
+    __tablename__ = "instructor_selection_analytics_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    started_at = Column(DateTime, nullable=False)
+
+
 class Booking(Base):
     __tablename__ = "bookings"
 
@@ -246,6 +254,7 @@ class Booking(Base):
     paid_amount = Column(Integer, default=0, nullable=False)
     paid_at = Column(DateTime, nullable=True)
     source = Column(String(30), default="telegram", nullable=False)
+    instructor_selection_mode = Column(String(16), default="auto", nullable=False)
     package_id = Column(Integer, ForeignKey("packages.id"), nullable=True)
     # A package lesson and its complimentary exam are accounted for separately.
     package_bonus_exam_used = Column(Boolean, default=False, nullable=False)

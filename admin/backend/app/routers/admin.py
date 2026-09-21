@@ -120,7 +120,8 @@ from app.models.models import (
     Certificate, FAQItem, AuditLog, Event, ArchivedLog, NotificationSent, InstructorGender,
     MobileBooking, MobileUser, MobileUserPackage, MobileAppReview, ReferralRecord, SupportMessage, FAQ, InstructorDayOff,
     InstructorDailySchedule, InstructorRotation, AdminState, WaitingListEntry, ClientBlock,
-    CertificateRequest, GenderAnalytics, MobileSession, Vehicle, BookingResource
+    CertificateRequest, GenderAnalytics, MobileSession, Vehicle, BookingResource,
+    InstructorSelectionAnalyticsSettings
 )
 from app.services.auth import hash_password, verify_password
 from app.services.activity_log import record_admin_action
@@ -1600,7 +1601,10 @@ async def list_archived_bookings(request: Request, db: AsyncSession = Depends(ge
 class ManualBookingCreate(BaseModel):
     client_name: Optional[str] = None
     client_phone: Optional[str] = None
+    # A concrete ID is an explicit caller choice.  Gender is only a
+    # preference for automatic assignment and never counts as that choice.
     instructor_id: Optional[int] = None
+    instructor_gender: Optional[str] = "any"
     service_type: str
     transmission: str
     booking_date: str
@@ -1806,6 +1810,7 @@ async def get_slots(
     service_type: str = "training",
     transmission: str = "automatic",
     instructor_id: Optional[int] = None,
+    instructor_gender: Optional[str] = "any",
     db: AsyncSession = Depends(get_db),
 ):
     _get_admin_username(request)
@@ -1817,6 +1822,9 @@ async def get_slots(
     service = s_map.get(service_type, ST.TRAINING)
     trans = t_map.get(transmission, TT.AUTOMATIC)
     transmission_value = trans.value if hasattr(trans, "value") else str(trans)
+    gender_preference = (instructor_gender or "any").lower()
+    if gender_preference not in ("male", "female", "any"):
+        raise HTTPException(status_code=422, detail="Некорректное предпочтение по полу инструктора")
     location = settings.LOCATION_EXAM
     duration = settings.TRAINING_DURATION_MINUTES if service == ST.TRAINING else settings.EXAM_DURATION_MINUTES
 
@@ -1829,6 +1837,11 @@ async def get_slots(
     ]
     if instructor_id is not None:
         instructors = [i for i in instructors if i.id == instructor_id]
+    elif gender_preference != "any":
+        instructors = [
+            instructor for instructor in instructors
+            if str(instructor.gender or "any").lower() == gender_preference
+        ]
     schedules = []
     for instructor in instructors:
         schedule = await get_effective_schedule(db, instructor, target_date)
@@ -1990,6 +2003,9 @@ async def create_manual_booking(
 
     service = s_map.get(body.service_type, ServiceType.TRAINING)
     transmission = t_map.get(body.transmission, "automatic")
+    gender_preference = (body.instructor_gender or "any").lower()
+    if gender_preference not in ("male", "female", "any"):
+        raise HTTPException(status_code=422, detail="Некорректное предпочтение по полу инструктора")
     booking_date = date.fromisoformat(body.booking_date)
     await _ensure_manual_booking_date_in_window(db, booking_date)
     st = time.fromisoformat(body.start_time)
@@ -2077,9 +2093,16 @@ async def create_manual_booking(
         if not await is_instructor_available(db, instructor, booking_date, st, et, transmission, busy_ids, service_type=service.value):
             raise HTTPException(status_code=400, detail="Инструктор не ведёт этот тип урока, занят или не работает в выбранное время")
     else:
-        instructor = await find_best_instructor(db, booking_date, st, et, transmission, service.value)
+        instructor = await find_best_instructor(
+            db, booking_date, st, et, transmission, service.value, gender_preference,
+        )
         if not instructor:
-            raise HTTPException(status_code=400, detail="Нет свободного инструктора для выбранного времени")
+            gender_label = {"male": "мужчину", "female": "женщину"}.get(gender_preference)
+            detail = (
+                f"Нет свободного инструктора: {gender_label}"
+                if gender_label else "Нет свободного инструктора для выбранного времени"
+            )
+            raise HTTPException(status_code=400, detail=detail)
 
     has_capacity = await reserve_vehicle_capacity(db, booking_date, st, et, transmission, service.value)
     if not has_capacity:
@@ -2204,6 +2227,9 @@ async def create_manual_booking(
         paid_amount=price if package_paid else 0,
         paid_at=now_kz() if package_paid else None,
         source="manual",
+        # Admin-selected name is immediately a conscious choice.  Gender and
+        # no-preference are still system assignment and remain ``auto``.
+        instructor_selection_mode="admin_manual" if body.instructor_id else "auto",
         package_id=package_purchase.package_id if package_purchase else None,
         package_bonus_exam_used=package_bonus_exam_used,
         admin_confirmed=True,
@@ -4530,6 +4556,71 @@ async def finance_analytics(
         "all_time_revenue": int(all_time) + int(all_time_certificates) + int(all_time_packages),
         "updated_at": now_kz().replace(tzinfo=KZ_TZ).isoformat(),
     }
+
+
+@router.get("/analytics/instructor-selection")
+async def instructor_selection_analytics(
+    request: Request, db: AsyncSession = Depends(get_db),
+):
+    """Completed lessons: every auto assignment and the client's current conscious manual series."""
+    _get_admin_username(request)
+    analytics_settings = await db.get(InstructorSelectionAnalyticsSettings, 1)
+    if not analytics_settings:
+        return []
+    instructors = (await db.execute(
+        select(Instructor.id, Instructor.name).order_by(Instructor.name, Instructor.id)
+    )).all()
+    result = {
+        instructor_id: {
+            "instructor_id": instructor_id,
+            "name": name,
+            "auto": 0,
+            "choice": 0,
+        }
+        for instructor_id, name in instructors
+    }
+    rows = (await db.execute(
+        select(
+            Booking.client_id, Booking.instructor_id, Booking.instructor_selection_mode,
+            Booking.completed_at, Booking.booking_date, Booking.start_time,
+        ).where(
+            Booking.status == "completed",
+            Booking.instructor_id.is_not(None),
+            Booking.created_at >= analytics_settings.started_at,
+        ).order_by(
+            Booking.client_id, Booking.completed_at, Booking.booking_date, Booking.start_time, Booking.id
+        )
+    )).all()
+
+    # Telegram/APK manual choices use the current consecutive series:
+    # manual→manual→change contributes zero, auto→manual→manual contributes
+    # one.  A name selected by an administrator is a direct caller choice and
+    # therefore contributes immediately, independently of that series.
+    client_series = {}
+    for client_id, instructor_id, mode, _completed_at, _date, _time in rows:
+        item = result.get(instructor_id)
+        if not item:
+            continue
+        if mode == "admin_manual":
+            item["choice"] += 1
+            # Do not let an admin choice become the first item of a later
+            # Telegram/APK consecutive series.
+            client_series[client_id] = (None, 0)
+        elif mode == "manual":
+            previous_id, streak = client_series.get(client_id, (None, 0))
+            client_series[client_id] = (
+                instructor_id,
+                streak + 1 if previous_id == instructor_id else 1,
+            )
+        else:
+            item["auto"] += 1
+            client_series[client_id] = (None, 0)
+
+    for instructor_id, streak in client_series.values():
+        if instructor_id and streak >= 2 and instructor_id in result:
+            result[instructor_id]["choice"] += streak - 1
+
+    return sorted(result.values(), key=lambda item: (item["name"] or "", item["instructor_id"]))
 
 
 @router.get("/analytics/instructor-load")

@@ -200,6 +200,7 @@ async def _run_explicit_migrations():
         "CREATE INDEX IF NOT EXISTS ix_bookings_vehicle_slot ON bookings (vehicle_id, booking_date, start_time, end_time);",
         "CREATE TABLE IF NOT EXISTS booking_resources (key VARCHAR(50) PRIMARY KEY, capacity INTEGER NOT NULL DEFAULT 1 CHECK (capacity >= 0));",
         "INSERT INTO booking_resources (key, capacity) VALUES ('exam_sensor_kits', 1) ON CONFLICT (key) DO NOTHING;",
+        "CREATE TABLE IF NOT EXISTS instructor_selection_analytics_settings (id INTEGER PRIMARY KEY CHECK (id = 1), started_at TIMESTAMP NOT NULL);",
         
         # Booking migrations
         "ALTER TABLE clients ALTER COLUMN telegram_id DROP NOT NULL;",
@@ -229,6 +230,7 @@ async def _run_explicit_migrations():
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_amount INTEGER NOT NULL DEFAULT 0;",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP;",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source VARCHAR(30) NOT NULL DEFAULT 'telegram';",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS instructor_selection_mode VARCHAR(16) NOT NULL DEFAULT 'auto';",
         # Fields used by approval, numbering and offline conflict handling.  These
         # must be explicit: older production databases already have `bookings`,
         # therefore create_all() alone cannot add them.
