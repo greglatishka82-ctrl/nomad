@@ -11,7 +11,10 @@ from sqlalchemy.orm import selectinload
 
 from app.config import TIMEZONE, settings
 from app.database import async_session
-from app.models.models import Booking, Certificate, Client, ClientPackage, GenderAnalytics, Instructor
+from app.models.models import (
+    Booking, Certificate, Client, ClientPackage, GenderAnalytics, Instructor,
+    InstructorSelectionAnalyticsSettings,
+)
 
 router = Router()
 
@@ -33,7 +36,6 @@ _MONTHS = ("", "Январь", "Февраль", "Март", "Апрель", "М
 _WEEKDAYS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 _ACTIVE_STATUSES = {"pending", "planned", "confirmed", "reschedule_pending", "cancellation_pending"}
 _ACTIVE_ASSIGNMENT_STATUSES = _ACTIVE_STATUSES | {"in_progress"}
-_PROBLEM_STATUSES = {"conflict", "disputed"}
 _ANALYTICS_LOAD_STATUSES = {"confirmed", "completed"}
 _WEEKDAYS_FULL = ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье")
 _MIN_YEAR, _MAX_YEAR = 2000, 2100
@@ -176,7 +178,6 @@ def _status_lines(summary: dict, total: int) -> list[str]:
         f"Сейчас идут: {statuses['in_progress']}",
         f"Неявки: {statuses['no_show']}",
         f"Отменены: {statuses['cancelled']}",
-        f"Конфликтные/спорные: {sum(statuses[item] for item in _PROBLEM_STATUSES)}",
         f"Явка: {summary['attendance']}%",
     ]
 
@@ -239,6 +240,72 @@ def _gender_analytics_lines(gender: GenderAnalytics | None) -> list[str]:
 
 def _analytics_load_count(bookings: list[Booking]) -> int:
     return sum(booking.status in _ANALYTICS_LOAD_STATUSES for booking in bookings)
+
+
+async def _instructor_selection_lines(db) -> list[str]:
+    """Build the same completed-lesson instructor-choice metrics as admin analytics."""
+    analytics_settings = await db.get(InstructorSelectionAnalyticsSettings, 1)
+    if not analytics_settings:
+        return []
+
+    instructors = (await db.execute(
+        select(Instructor.id, Instructor.name).order_by(Instructor.name, Instructor.id)
+    )).all()
+    result = {
+        instructor_id: {"name": name, "auto": 0, "choice": 0}
+        for instructor_id, name in instructors
+    }
+    rows = (await db.execute(
+        select(
+            Booking.client_id, Booking.instructor_id, Booking.instructor_selection_mode,
+            Booking.completed_at, Booking.booking_date, Booking.start_time,
+        ).where(
+            Booking.status == "completed",
+            Booking.instructor_id.is_not(None),
+            Booking.created_at >= analytics_settings.started_at,
+        ).order_by(
+            Booking.client_id, Booking.completed_at, Booking.booking_date, Booking.start_time, Booking.id
+        )
+    )).all()
+
+    client_series = {}
+    for client_id, instructor_id, mode, _completed_at, _date, _time in rows:
+        item = result.get(instructor_id)
+        if not item:
+            continue
+        if mode == "admin_manual":
+            item["choice"] += 1
+            client_series[client_id] = (None, 0)
+        elif mode == "manual":
+            previous_id, streak = client_series.get(client_id, (None, 0))
+            client_series[client_id] = (
+                instructor_id,
+                streak + 1 if previous_id == instructor_id else 1,
+            )
+        else:
+            item["auto"] += 1
+            client_series[client_id] = (None, 0)
+
+    for instructor_id, streak in client_series.values():
+        if instructor_id and streak >= 2 and instructor_id in result:
+            result[instructor_id]["choice"] += streak - 1
+
+    counted = [
+        item for item in result.values()
+        if item["auto"] > 0 or item["choice"] > 0
+    ]
+    lines = ["", "Выбор инструктора:"]
+    if not counted:
+        return lines + ["Завершённых занятий по выбору инструктора пока нет"]
+
+    lines.append(f"Только завершённые занятия с {analytics_settings.started_at:%d.%m.%Y}")
+    total_auto = total_choice = 0
+    for item in counted:
+        total_auto += item["auto"]
+        total_choice += item["choice"]
+        lines.append(f"- {item['name'] or '—'} — Авто: {item['auto']} | Выбор: {item['choice']}")
+    lines.append(f"Итого: Авто — {total_auto} | Выбор — {total_choice}")
+    return lines
 
 
 def _most_loaded_day(load_by_date: dict[date, int]) -> tuple[date, int] | None:
@@ -312,6 +379,7 @@ async def _build_date_report(target: date, *, include_week_leader: bool = False)
             Certificate.used_at >= day_start, Certificate.used_at < day_end
         )) or 0
         gender_analytics = await db.get(GenderAnalytics, 1)
+        instructor_selection_lines = await _instructor_selection_lines(db)
         week_load_by_date: dict[date, int] | None = None
         if include_week_leader:
             week_start = target - timedelta(days=target.weekday())
@@ -335,7 +403,6 @@ async def _build_date_report(target: date, *, include_week_leader: bool = False)
     for count, label in (
         (statuses["no_show"], "Неявок"),
         (summary["unpaid"], "Неоплаченных записей"),
-        (sum(statuses[item] for item in _PROBLEM_STATUSES), "Конфликтных/спорных"),
         (summary["unassigned_active"], "Активных записей без инструктора"),
     ):
         if count:
@@ -354,6 +421,7 @@ async def _build_date_report(target: date, *, include_week_leader: bool = False)
     if rated:
         best = max(rated, key=lambda row: (row["rating"], row["total"]))
         lines.append(f"Лучший рейтинг: {best['name']} {best['rating']:.1f}")
+    lines += instructor_selection_lines
     lines += _daily_extra_lines(
         summary=summary,
         gender=gender_analytics,
@@ -396,6 +464,7 @@ async def _build_all_time_report() -> str:
         certificates_used = await db.scalar(select(func.count()).select_from(Certificate).where(Certificate.is_used.is_(True))) or 0
         certificate_balance = await db.scalar(select(func.coalesce(func.sum(Certificate.remaining), 0))) or 0
         gender_analytics = await db.get(GenderAnalytics, 1)
+        instructor_selection_lines = await _instructor_selection_lines(db)
 
     summary = _summarize(bookings, instructors)
     period = "записей пока нет"
@@ -409,6 +478,7 @@ async def _build_all_time_report() -> str:
     ]
     lines += _status_lines(summary, len(bookings)) + ["", "Финансы по всем записям:"] + _finance_lines(summary)
     lines += ["", "Услуги и каналы:"] + _service_lines(summary)
+    lines += instructor_selection_lines
     lines += ["", "Аналитика:", *_gender_analytics_lines(gender_analytics)]
     all_time_load_by_date: dict[date, int] = defaultdict(int)
     for booking in bookings:
