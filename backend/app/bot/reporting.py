@@ -278,17 +278,16 @@ async def _instructor_selection_lines(db) -> list[str]:
             client_series[client_id] = (None, 0)
         elif mode == "manual":
             previous_id, streak = client_series.get(client_id, (None, 0))
-            client_series[client_id] = (
-                instructor_id,
-                streak + 1 if previous_id == instructor_id else 1,
-            )
+            streak = streak + 1 if previous_id == instructor_id else 1
+            client_series[client_id] = (instructor_id, streak)
+            # The first Telegram/APK name choice only starts a client series.
+            # Every repeated consecutive choice is durable immediately; a later
+            # instructor change resets only this client's series, never totals.
+            if streak >= 2:
+                item["choice"] += 1
         else:
             item["auto"] += 1
             client_series[client_id] = (None, 0)
-
-    for instructor_id, streak in client_series.values():
-        if instructor_id and streak >= 2 and instructor_id in result:
-            result[instructor_id]["choice"] += streak - 1
 
     counted = [
         item for item in result.values()
