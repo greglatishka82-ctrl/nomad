@@ -2398,6 +2398,18 @@ async function exportBookings() {
     window.open(`${API}/export/bookings?${params}`, '_blank');
 }
 
+async function downloadCompletedDailyReport() {
+    if (offlineReplayInProgress) await waitForOfflineReplay();
+    if (isAdminOffline) { showToast('Отчёт доступен после восстановления интернета', 'error'); return; }
+    const response = await fetch(API + '/reports/completed-daily', { credentials: 'include' });
+    if (!response.ok) { showToast('Не удалось сформировать отчёт', 'error'); return; }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'nomad-completed-report.html';
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+}
+
 async function exportClients() {
     if (offlineReplayInProgress) await waitForOfflineReplay();
     if (isAdminOffline) { showToast('Экспорт доступен после восстановления интернета', 'error'); return; }
@@ -5453,6 +5465,7 @@ window.deleteFaq = deleteFaq;
 window.deleteDialog = deleteDialog;
 window.navigateTo = navigateTo;
 window.exportBookings = exportBookings;
+window.downloadCompletedDailyReport = downloadCompletedDailyReport;
 window.exportClients = exportClients;
 window.loadArchive = loadArchive;
 window.loadArchivedAudit = loadArchivedAudit;

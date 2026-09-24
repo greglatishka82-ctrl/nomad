@@ -294,8 +294,7 @@
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn btn-primary" onclick="showManualBookingForm()">➕ Ручная запись клиента</button>
               <button class="btn btn-secondary" onclick="navigateTo('packages')">🎁 Выпустить сертификат</button>
-              <button class="btn btn-outline" onclick="exportBookings()">📥 Экспорт записей (CSV)</button>
-              <button class="btn btn-outline" onclick="exportClients()">📥 Экспорт клиентов (CSV)</button>
+              <button class="btn" style="background:#d9467a;color:#fff;border-color:#d9467a;box-shadow:0 2px 8px rgba(217,70,122,.28)" onclick="downloadCompletedDailyReport()">🧾 Отчёт</button>
               <button class="btn btn-success" onclick="exportFullBackup()">💾 Полная резервная копия</button>
               <button class="btn btn-danger" onclick="showRestoreBackupDialog()">♻️ Восстановить из бэкапа</button>
             </div>
