@@ -254,6 +254,7 @@ async def _run_explicit_migrations():
         "ALTER TABLE packages ADD COLUMN IF NOT EXISTS code VARCHAR(24);",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS package_bonus_exam_used BOOLEAN NOT NULL DEFAULT FALSE;",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cancellation_previous_status VARCHAR(50);",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS package_session_returned BOOLEAN NOT NULL DEFAULT FALSE;",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reschedule_previous_status VARCHAR(50);",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS requested_reschedule_date DATE;",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS requested_reschedule_start_time TIME;",

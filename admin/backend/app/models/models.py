@@ -262,6 +262,9 @@ class Booking(Base):
     package_id = Column(Integer, ForeignKey("packages.id"), nullable=True)
     package_bonus_exam_used = Column(Boolean, default=False, nullable=False)
     cancellation_previous_status = Column(String(50), nullable=True)
+    # Set when the reserved package lesson has been given back to the client.
+    # Guarantees that one cancellation credits the package exactly once.
+    package_session_returned = Column(Boolean, default=False, server_default="false", nullable=False)
     reschedule_previous_status = Column(String(50), nullable=True)
     requested_reschedule_date = Column(Date, nullable=True)
     requested_reschedule_start_time = Column(Time, nullable=True)

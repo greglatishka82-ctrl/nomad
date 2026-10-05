@@ -98,20 +98,30 @@ async def _ensure_days_off_have_no_active_bookings(
         )
 
 
-async def _restore_booking_package_if_needed(db: AsyncSession, booking: "Booking") -> None:
-    """Return a reserved package entitlement exactly once on final cancellation."""
+async def _restore_booking_package_if_needed(db: AsyncSession, booking: "Booking") -> bool:
+    """Return a reserved package entitlement exactly once per booking.
+
+    The return is recorded on the booking itself, so a second cancellation of
+    the same record (for example after it was put back to confirmed) can never
+    credit the same lesson twice.
+    """
     if not booking.package_id:
-        return
+        return False
+    if booking.package_session_returned:
+        return False
     purchase = (await db.execute(select(ClientPackage).where(
         ClientPackage.client_id == booking.client_id,
         ClientPackage.package_id == booking.package_id,
     ).order_by(ClientPackage.purchased_at.desc()))).scalars().first()
-    if purchase:
-        if booking.package_bonus_exam_used:
-            purchase.remaining_bonus_exams += 1
-        else:
-            purchase.remaining_sessions += 1
-        purchase.is_active = True
+    if not purchase:
+        return False
+    if booking.package_bonus_exam_used:
+        purchase.remaining_bonus_exams += 1
+    else:
+        purchase.remaining_sessions += 1
+    purchase.is_active = True
+    booking.package_session_returned = True
+    return True
 
 
 from app.models.models import (
@@ -7859,10 +7869,15 @@ async def resolve_disputed_booking(
         return {"ok": True, "booking_number": booking.booking_number}
 
     elif body.action == "reject":
+        # A rejected dispute cancels the lesson, so its package entitlement
+        # must come back exactly like any other confirmed cancellation.
+        restored = await _restore_booking_package_if_needed(db, booking)
         booking.status = "cancelled"
         booking.conflict_reason = None
         await db.commit()
-        await _audit(db, username, "dispute_resolved_reject", f"Спорная запись #{booking_id} отклонена")
+        await _audit(db, username, "dispute_resolved_reject",
+                     f"Спорная запись #{booking_id} отклонена, возврат занятия в пакет: "
+                     f"{'да' if restored else 'нет'}")
         client = booking.client
         if client and client.telegram_id and settings.BOT_TOKEN:
             try:
@@ -8506,6 +8521,10 @@ async def offline_sync(
                 if not booking:
                     results.append({"id": op_id, "status": "error", "detail": "Запись уже отсутствует на сервере"})
                     continue
+                # An offline cancellation must behave exactly like the online
+                # button: the package lesson returns to the client.
+                if new_status == "cancelled":
+                    await _restore_booking_package_if_needed(db, booking)
                 booking.status = new_status
                 booking.completed_at = now_kz() if new_status == "completed" else None
                 booking.archived_at = None
@@ -8522,6 +8541,7 @@ async def offline_sync(
                 if not booking:
                     results.append({"id": op_id, "status": "ok", "already_absent": True})
                     continue
+                await _restore_booking_package_if_needed(db, booking)
                 booking.status = "cancelled"
                 await db.commit()
                 results.append({"id": op_id, "status": "ok"})
