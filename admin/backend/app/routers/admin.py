@@ -4228,14 +4228,46 @@ def _build_revenue_analytics(rows: list[tuple], current: datetime) -> dict:
             "points": points,
         }
 
-    hour_totals = {hour: {"revenue": 0, "bookings": 0} for hour in range(24)}
-    day_totals = {weekday: {"revenue": 0, "bookings": 0} for weekday in range(7)}
+    # Keep the all-time leaders of seven-calendar-day periods. Each date is
+    # the end of a period containing that date and the six preceding days.
+    # A record is replaced only by a strictly larger amount, so an earlier
+    # equal record remains the leader until it is genuinely beaten.
+    daily_hours: dict[date, dict[int, dict[str, int]]] = {}
+    daily_days: dict[date, dict[str, int]] = {}
     for moment, revenue in lessons:
-        hour = moment.hour
-        hour_totals[hour]["revenue"] += revenue
-        hour_totals[hour]["bookings"] += 1
-        day_totals[moment.weekday()]["revenue"] += revenue
-        day_totals[moment.weekday()]["bookings"] += 1
+        day = moment.date()
+        hour_totals = daily_hours.setdefault(day, {})
+        hour_total = hour_totals.setdefault(moment.hour, {"revenue": 0, "bookings": 0})
+        hour_total["revenue"] += revenue
+        hour_total["bookings"] += 1
+        day_total = daily_days.setdefault(day, {"revenue": 0, "bookings": 0})
+        day_total["revenue"] += revenue
+        day_total["bookings"] += 1
+
+    hour_window_totals = {hour: {"revenue": 0, "bookings": 0} for hour in range(24)}
+    hour_records: dict[int, dict[str, int]] = {}
+    day_records: dict[int, dict[str, int]] = {}
+    first_day = earliest_date
+    last_day = current.date()
+    cursor_day = first_day
+    while cursor_day <= last_day:
+        for hour, totals in daily_hours.get(cursor_day, {}).items():
+            hour_window_totals[hour]["revenue"] += totals["revenue"]
+            hour_window_totals[hour]["bookings"] += totals["bookings"]
+        expired_day = cursor_day - timedelta(days=7)
+        for hour, totals in daily_hours.get(expired_day, {}).items():
+            hour_window_totals[hour]["revenue"] -= totals["revenue"]
+            hour_window_totals[hour]["bookings"] -= totals["bookings"]
+
+        for hour, totals in hour_window_totals.items():
+            if totals["bookings"] and (hour not in hour_records or totals["revenue"] > hour_records[hour]["revenue"]):
+                hour_records[hour] = {"revenue": totals["revenue"], "bookings": totals["bookings"]}
+
+        today_totals = daily_days.get(cursor_day)
+        weekday = cursor_day.weekday()
+        if today_totals and (weekday not in day_records or today_totals["revenue"] > day_records[weekday]["revenue"]):
+            day_records[weekday] = {"revenue": today_totals["revenue"], "bookings": today_totals["bookings"]}
+        cursor_day += timedelta(days=1)
 
     profitable_hours = [
         {
@@ -4244,15 +4276,13 @@ def _build_revenue_analytics(rows: list[tuple], current: datetime) -> dict:
             "label": f"{hour:02d}:00–{(hour + 1):02d}:00",
             **totals,
         }
-        for hour, totals in hour_totals.items()
-        if totals["bookings"] > 0
+        for hour, totals in hour_records.items()
     ]
     profitable_hours.sort(key=lambda item: (-item["revenue"], -item["bookings"], item["start_hour"]))
 
     profitable_days = [
         {"weekday": weekday, "label": WEEKDAY_NAMES[weekday], **totals}
-        for weekday, totals in day_totals.items()
-        if totals["bookings"] > 0
+        for weekday, totals in day_records.items()
     ]
     profitable_days.sort(key=lambda item: (-item["revenue"], -item["bookings"], item["weekday"]))
 
@@ -4267,7 +4297,7 @@ def _build_revenue_analytics(rows: list[tuple], current: datetime) -> dict:
 
 @router.get("/analytics/revenue")
 async def revenue_analytics(request: Request, db: AsyncSession = Depends(get_db)):
-    """Return live interval revenue curves and all-time profit leaders."""
+    """Return live interval revenue curves and all-time records of seven-day periods."""
     _get_admin_username(request)
     rows = (await db.execute(
         select(Booking.booking_date, Booking.start_time, Booking.price)
