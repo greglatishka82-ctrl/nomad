@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NOMAD ADMIN PANEL - PROFESSIONAL LIGHT/SLATE DESIGN SYSTEM (V3)
+   GREENTIME ADMIN PANEL - PROFESSIONAL LIGHT/SLATE DESIGN SYSTEM (V3)
    Pixel-Perfect Ergonomics, Clean Alignment, Crisp Typography & Rich Cards
    ========================================================================== */
 
@@ -16,20 +16,20 @@
   /* Borders & Dividers */
   --border-color: #e2e8f0;
   --border-light: #f1f5f9;
-  --border-focus: #2563eb;
+  --border-focus: #00C853;
   --border-hover: #cbd5e1;
   
-  /* Brand & Status Accents */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
-  --primary-border: #bfdbfe;
-  --primary-glow: rgba(37, 99, 235, 0.15);
+  /* Brand & Status Accents — палитра GREENTIME */
+  --primary: #00C853;
+  --primary-hover: #00A844;
+  --primary-light: #E8FBF0;
+  --primary-border: #A9EDC6;
+  --primary-glow: rgba(0, 200, 83, 0.16);
 
-  --secondary: #0ea5e9;
-  --secondary-hover: #0284c7;
-  --secondary-light: #f0f9ff;
-  --secondary-border: #bae6fd;
+  --secondary: #00D1FF;
+  --secondary-hover: #00A8CC;
+  --secondary-light: #E6FAFF;
+  --secondary-border: #A9EEFF;
 
   --success: #10b981;
   --success-hover: #059669;
@@ -49,9 +49,9 @@
   --danger-border: #fecaca;
   --danger-text: #991b1b;
 
-  --info: #0284c7;
-  --info-light: #f0f9ff;
-  --info-border: #bae6fd;
+  --info: #00A8CC;
+  --info-light: #E6FAFF;
+  --info-border: #A9EEFF;
   --info-text: #0369a1;
 
   /* Text Colors */
@@ -234,7 +234,7 @@ a:hover {
 .brand-logo {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #00C853 0%, #00D1FF 100%);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -242,7 +242,7 @@ a:hover {
   font-weight: 800;
   font-size: 1rem;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 200, 83, 0.22);
   line-height: 1;
   flex-shrink: 0;
 }
@@ -561,7 +561,7 @@ a:hover {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #00E676 0%, #00A844 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -774,9 +774,9 @@ a:hover {
   margin-bottom: 20px;
 }
 .analytics-gender-card { min-height: 142px; }
-.analytics-gender-card.male { border-left: 4px solid #2563eb; }
-.analytics-gender-card.male .stat-icon { color: #2563eb; background: #eaf1ff; }
-.analytics-gender-card.male .analytics-channel-track span { background: #2563eb; }
+.analytics-gender-card.male { border-left: 4px solid #4C8DFF; }
+.analytics-gender-card.male .stat-icon { color: #4C8DFF; background: #EAF1FF; }
+.analytics-gender-card.male .analytics-channel-track span { background: #4C8DFF; }
 .analytics-gender-card.female { border-left: 4px solid #db2777; }
 .analytics-gender-card.female .stat-icon { color: #db2777; background: #fce7f3; }
 .analytics-gender-card.female .analytics-channel-track span { background: #db2777; }
@@ -905,14 +905,16 @@ a:hover {
 
 .btn-primary {
   background: var(--primary);
-  color: #fff;
+  /* На насыщенном зелёном белый текст читается плохо — используем тёмный */
+  color: #04220F;
   border-color: var(--primary);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 200, 83, 0.2);
 }
 .btn-primary:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  color: #04220F;
+  box-shadow: 0 2px 6px rgba(0, 200, 83, 0.25);
 }
 
 .btn-secondary {
@@ -1289,7 +1291,7 @@ a:hover {
 .fleet-icon { margin-right: 0; }
 .fleet-transmission { border-radius: var(--radius-full); padding: 4px 9px; font-size: .75rem; font-weight: 700; }
 .fleet-manual { background: #fef3c7; color: #92400e; }
-.fleet-automatic { background: #dbeafe; color: #1d4ed8; }
+.fleet-automatic { background: #E8FBF0; color: #007A33; }
 .fleet-usage { background: #e0f2fe; color: #075985; }
 .fleet-edit-panel { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color); }
 .fleet-edit-panel .form-group { margin-bottom: 12px; }
@@ -1412,7 +1414,7 @@ a:hover {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
+  background: linear-gradient(135deg, #00C853 0%, #5CE1FF 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1420,7 +1422,7 @@ a:hover {
   font-weight: 700;
   font-size: 0.92rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 200, 83, 0.18);
 }
 
 .inst-name-block {
@@ -1774,7 +1776,7 @@ a:hover {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #00E676 0%, #00A844 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1825,7 +1827,7 @@ a:hover {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #00C853 0%, #00D1FF 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1906,7 +1908,7 @@ a:hover {
 
 .load-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(90deg, #00E676 0%, #00C853 100%);
   border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
@@ -2321,7 +2323,7 @@ a:hover {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #00E676 0%, #00A844 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -2461,7 +2463,7 @@ a:hover {
 .login-logo-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #00C853 0%, #00D1FF 100%);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -2469,7 +2471,7 @@ a:hover {
   font-size: 1.5rem;
   font-weight: 800;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.25);
   margin-bottom: 12px;
 }
 

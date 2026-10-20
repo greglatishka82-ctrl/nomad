@@ -34,14 +34,15 @@ async def _seed_admin():
             await db.commit()
             logger.info(f"Default admin '{settings.ADMIN_USERNAME}' created")
 
-async def _scheduler_loop(bot):
+async def _scheduler_loop(bot, client_bot_polling_enabled: bool = True):
     while True:
         try:
             await run_automatic_lesson_transitions()
             await send_lesson_reminders(bot)
-            await send_confirmation_reminders(bot)
-            await send_rating_requests(bot)
-            await check_unconfirmed_bookings(bot)
+            if client_bot_polling_enabled:
+                await send_confirmation_reminders(bot)
+                await send_rating_requests(bot)
+                await check_unconfirmed_bookings(bot)
         except Exception as e:
             logger.error(f"Scheduler error: {e}")
         await asyncio.sleep(60)
@@ -94,7 +95,9 @@ async def _release_bot_leader_lock(connection) -> None:
         await connection.close()
 
 
-async def _run_bot_workers(stop_event: asyncio.Event) -> None:
+async def _run_bot_workers(
+    stop_event: asyncio.Event, client_bot_polling_enabled: bool = True
+) -> None:
     """Run bot polling only while this service instance owns the DB lock."""
     lock_connection, is_leader = await _wait_for_bot_leader_lock(stop_event)
     if not is_leader:
@@ -113,8 +116,12 @@ async def _run_bot_workers(stop_event: asyncio.Event) -> None:
         import app.bot.handlers as client_handlers
 
         bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
-        dp = Dispatcher()
-        dp.include_router(bot_router)
+        dp = None
+        if client_bot_polling_enabled:
+            dp = Dispatcher()
+            dp.include_router(bot_router)
+        else:
+            logger.info("Client bot polling disabled; scheduled notifications remain active")
 
         if settings.INSTRUCTOR_BOT_TOKEN:
             instructor_bot = Bot(token=settings.INSTRUCTOR_BOT_TOKEN)
@@ -140,8 +147,9 @@ async def _run_bot_workers(stop_event: asyncio.Event) -> None:
         instructor_handlers.client_bot = bot
         instructor_handlers.instructor_bot = instructor_bot
 
-        tasks.append(asyncio.create_task(_scheduler_loop(bot)))
-        tasks.append(asyncio.create_task(dp.start_polling(bot)))
+        tasks.append(asyncio.create_task(_scheduler_loop(bot, client_bot_polling_enabled)))
+        if dp is not None:
+            tasks.append(asyncio.create_task(dp.start_polling(bot)))
         logger.info("Telegram bot workers started")
 
         await stop_event.wait()
@@ -193,7 +201,7 @@ async def lifespan(app: FastAPI):
 
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="NOMAD Site API", lifespan=lifespan)
+app = FastAPI(title="GREENTIME Site API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -220,7 +228,7 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/")
 async def root():
-    return {"message": "NOMAD Site API", "docs": "/docs"}
+    return {"message": "GREENTIME Site API", "docs": "/docs"}
 
 
 @app.get("/health")

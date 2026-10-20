@@ -137,7 +137,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Для этого номера уже создан аккаунт. Войдите в него.")
 
     import uuid
-    referral_code = f"NOMAD-{uuid.uuid4().hex[:6].upper()}"
+    referral_code = f"GREEN-{uuid.uuid4().hex[:6].upper()}"
     referred_by_client_id = None
     referral_discount_available = False
     if body.referral_code and not existing_user:
@@ -301,4 +301,4 @@ async def logout(
 
 @router.post("/forgot-password")
 async def forgot_password():
-    return {"message": "Для смены пароля обратитесь к администратору NOMAD"}
+    return {"message": "Для смены пароля обратитесь к администратору GREENTIME"}

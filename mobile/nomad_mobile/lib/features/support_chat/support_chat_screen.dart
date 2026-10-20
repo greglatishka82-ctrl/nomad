@@ -91,7 +91,7 @@ class _SupportChatScreenState extends ConsumerState<SupportChatScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Поддержка NOMAD'),
+            Text('Поддержка GREENTIME'),
             Text('Обычно отвечаем в течение часа',
                 style: TextStyle(fontSize: 11, color: Colors.white70)),
           ],

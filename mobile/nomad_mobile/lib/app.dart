@@ -34,7 +34,7 @@ class _NomadAppState extends ConsumerState<NomadApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
-      title: 'NOMAD',
+      title: 'GREENTIME',
       theme: AppTheme.light(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,

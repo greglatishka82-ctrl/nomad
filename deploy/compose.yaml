@@ -1,4 +1,4 @@
-name: nomad
+name: greentime
 services:
   db:
     image: postgres:16-alpine
@@ -18,7 +18,7 @@ services:
     build: {context: .., dockerfile: deploy/backend.Dockerfile}
     restart: unless-stopped
     env_file: .env
-    environment: {PORT: 8000, START_BOTS: "false"}
+    environment: {PORT: 8000, START_BOTS: "false", MOBILE_BOOKING_ENABLED: "false"}
     depends_on: {db: {condition: service_healthy}}
     volumes: [site_static:/app/app/static]
     healthcheck:
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment: {START_BOTS: "true"}
-    command: ["python", "bot_worker.py"]
+    command: ["python", "bot_worker.py", "--disable-client-bot"]
     depends_on: {db: {condition: service_healthy}}
     volumes: [site_static:/app/app/static]
   admin-api:
@@ -64,8 +64,19 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on: [site-api, admin-api, site-frontend, admin-frontend]
+# Тома объявлены внешними и названы по старому проекту: данные PostgreSQL,
+# загруженные файлы и сертификаты Caddy переезжают вместе со сменой имени
+# проекта, ничего не пересоздаётся и не теряется.
 volumes:
   postgres_data:
+    name: nomad_postgres_data
+    external: true
   site_static:
+    name: nomad_site_static
+    external: true
   caddy_data:
+    name: nomad_caddy_data
+    external: true
   caddy_config:
+    name: nomad_caddy_config
+    external: true

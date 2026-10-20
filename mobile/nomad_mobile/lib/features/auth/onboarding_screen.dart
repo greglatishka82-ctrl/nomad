@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'NOMAD',
+                    'GREENTIME',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,

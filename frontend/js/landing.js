@@ -133,7 +133,7 @@ function toggleChat() {
         win.classList.remove('hidden');
         btn.style.display = 'none';
         if (!document.getElementById('chat-messages').children.length) {
-            addMessage('bot', 'Здравствуйте! Я помощник АвтоПрактик NOMAD. Задайте любой вопрос об обучении, ценах, расписании или площадках.');
+            addMessage('bot', 'Здравствуйте! Я помощник школы GREENTIME. Спросите что угодно об обучении, ценах, расписании или площадке.');
         }
         document.getElementById('chat-input').focus();
     } else {
@@ -242,33 +242,10 @@ window.addEventListener('scroll', throttledScroll(() => {
 }, 100));
 
 // ===== MOBILE MENU =====
+// Всё оформление открытого меню задаётся классом .nav.open в CSS —
+// инлайновые стили здесь не нужны и только мешают теме.
 document.getElementById('mobile-toggle').addEventListener('click', function() {
-    const nav = document.getElementById('nav');
-    nav.classList.toggle('open');
-    
-    if (nav.classList.contains('open')) {
-        nav.style.display = 'flex';
-        nav.style.flexDirection = 'column';
-        nav.style.position = 'absolute';
-        nav.style.top = '72px';
-        nav.style.left = '0';
-        nav.style.right = '0';
-        nav.style.background = 'rgba(10, 14, 39, 0.98)';
-        nav.style.backdropFilter = 'blur(20px)';
-        nav.style.padding = '24px';
-        nav.style.borderBottom = '1px solid var(--border)';
-    } else {
-        nav.style.display = '';
-        nav.style.flexDirection = '';
-        nav.style.position = '';
-        nav.style.top = '';
-        nav.style.left = '';
-        nav.style.right = '';
-        nav.style.background = '';
-        nav.style.backdropFilter = '';
-        nav.style.padding = '';
-        nav.style.borderBottom = '';
-    }
+    document.getElementById('nav').classList.toggle('open');
 });
 
 // ===== SMOOTH SCROLL FOR NAV LINKS =====
@@ -280,22 +257,9 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(href);
         if (target) {
-            // Close mobile menu first
-            const nav = document.getElementById('nav');
-            if (nav.classList.contains('open')) {
-                nav.classList.remove('open');
-                nav.style.display = '';
-                nav.style.flexDirection = '';
-                nav.style.position = '';
-                nav.style.top = '';
-                nav.style.left = '';
-                nav.style.right = '';
-                nav.style.background = '';
-                nav.style.backdropFilter = '';
-                nav.style.padding = '';
-                nav.style.borderBottom = '';
-            }
-            
+            // Закрываем мобильное меню перед переходом
+            document.getElementById('nav').classList.remove('open');
+
             // Use native smooth scroll
             target.scrollIntoView({
                 behavior: 'smooth',
@@ -316,15 +280,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (res.ok) {
             const stats = await res.json();
             
-            // Update locations counter (first stat)
-            const locationsCounter = document.querySelector('.hero-stat:first-child .counter');
-            if (locationsCounter && stats.locations_count) {
-                locationsCounter.dataset.target = stats.locations_count;
-            }
-            
-            // Update instructors counter (last stat)
-            const instructorsCounter = document.querySelector('.hero-stat:last-child .counter');
-            const instructorsLabel = document.querySelector('.hero-stat:last-child span');
+            // Количество инструкторов (первая карточка со счётчиком)
+            const instructorsCounter = document.querySelector('.hero-stat .counter');
+            const instructorsLabel = document.getElementById('instructors-label');
             if (instructorsCounter && stats.instructors_count) {
                 instructorsCounter.dataset.target = stats.instructors_count;
                 // Правильное склонение
@@ -386,19 +344,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Initialize counters
-    const counters = document.querySelectorAll('.counter');
-    const counterObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const counter = new Counter(entry.target);
-                counter.start();
-                counterObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.5 });
-    
-    counters.forEach(counter => counterObserver.observe(counter));
-    
+    // Счётчик в hero виден сразу, поэтому запускаем его напрямую: так цифра
+    // гарантированно доходит до значения из /api/stats, а не остаётся на
+    // стартовом «3» из разметки.
+    document.querySelectorAll('.counter').forEach(el => {
+        const counter = new Counter(el);
+        counter.start();
+        // Страховка: если таймеры в фоне «придушатся», ставим точное значение.
+        setTimeout(() => { el.textContent = counter.target + counter.suffix; }, counter.duration + 300);
+    });
+
     // Initialize magnetic buttons (desktop only)
     if (window.innerWidth > 768) {
         document.querySelectorAll('.magnetic').forEach(btn => {
@@ -414,61 +369,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Load FAQ
+    // Если API недоступен, показываем базовые вопросы — страница не должна
+    // зависать на «Загрузка...».
+    const FAQ_FALLBACK = [
+        { question: 'Сколько стоит занятие?', answer: 'Одно практическое занятие длится 1 час и стоит 7 000 ₸. Других платежей нет.' },
+        { question: 'Где проходят занятия?', answer: 'На площадке по адресу Циолковского 30 в Павлодаре.' },
+        { question: 'Можно выбрать механику или автомат?', answer: 'Да. Автомобили есть и с МКПП, и с АКПП — выбираете при записи.' },
+        { question: 'Как записаться?', answer: 'Через Telegram-бот или по телефону +7 702 718 22 33.' },
+        { question: 'Сколько занятий нужно?', answer: 'Зависит от вашей подготовки: кто-то уверенно едет уже после нескольких занятий, кому-то нужно больше практики.' }
+    ];
+
+    function renderFaq(list, items) {
+        list.innerHTML = items.map(f =>
+            `<details class="faq-item">
+                <summary>${f.question}</summary>
+                <p>${f.answer}</p>
+            </details>`
+        ).join('');
+    }
+
+    const faqList = document.getElementById('faq-list');
     try {
         const res = await fetch('/api/faq');
         if (res.ok) {
             const items = await res.json();
-            const list = document.getElementById('faq-list');
-            if (items.length) {
-                list.innerHTML = items.map(f =>
-                    `<details class="faq-item">
-                        <summary>${f.question}</summary>
-                        <p>${f.answer}</p>
-                    </details>`
-                ).join('');
-            } else {
-                list.innerHTML = '<p style="color:var(--text-secondary);text-align:center">Вопросы скоро появятся</p>';
-            }
+            renderFaq(faqList, items && items.length ? items : FAQ_FALLBACK);
+        } else {
+            renderFaq(faqList, FAQ_FALLBACK);
         }
     } catch (e) {
         console.error('Failed to load FAQ:', e);
+        renderFaq(faqList, FAQ_FALLBACK);
     }
 
     // Load instructors
+    const INSTRUCTOR_FALLBACK = [
+        { name: 'Алексей Иванов', transmission: 'Механика (МКПП)', experience_years: 8, description: 'Спокойный и опытный инструктор, обучает безопасному вождению в городских условиях.' },
+        { name: 'Сергей Петров', transmission: 'Автомат (АКПП)', experience_years: 6, description: 'Специалист по подготовке к экзамену в СпецЦОНе, разбирает каждую ошибку.' },
+        { name: 'Дмитрий Сидоров', transmission: 'МКПП / АКПП', experience_years: 10, description: 'Инструктор высшей категории, индивидуальная методика для любых уровней.' }
+    ];
+
+    function renderInstructors(instructors) {
+        const container = document.getElementById('instructors-cards');
+        if (!container) return;
+        container.innerHTML = instructors.map(i =>
+            `<div class="instructor-card tilt-card">
+                <div class="card-shine"></div>
+                <div class="instructor-avatar">👨‍🏫</div>
+                <h3>${i.name}</h3>
+                <span class="instructor-spec">${i.transmission || 'МКПП / АКПП'}</span>
+                <p class="instructor-exp">⏱️ Стаж: ${i.experience_years || 0} лет</p>
+                ${i.description ? `<p class="instructor-desc">${i.description}</p>` : ''}
+            </div>`
+        ).join('');
+
+        container.querySelectorAll('.tilt-card').forEach(card => {
+            if (typeof TiltCard !== 'undefined' && window.innerWidth > 768) new TiltCard(card);
+        });
+    }
+
     try {
         const res = await fetch('/api/instructors');
         let instructors = [];
-        if (res.ok) {
-            instructors = await res.json();
-        }
-        
-        // Fallback default instructors if API has no data
-        if (!instructors || !instructors.length) {
-            instructors = [
-                { name: 'Алексей Иванов', transmission: 'Механика (МКПП)', experience_years: 8, description: 'Спокойный и опытный инструктор, обучает безопасному вождению в городских условиях.' },
-                { name: 'Сергей Петров', transmission: 'Автомат (АКПП)', experience_years: 6, description: 'Специалист по подготовке к сдачи экзаменов в СпецЦОНе с первого раза.' },
-                { name: 'Дмитрий Сидоров', transmission: 'МКПП / АКПП', experience_years: 10, description: 'Инструктор высшей категории, индивидуальная методика для любых уровней.' }
-            ];
-        }
-
-        const container = document.getElementById('instructors-cards');
-        if (container) {
-            container.innerHTML = instructors.map(i =>
-                `<div class="instructor-card tilt-card">
-                    <div class="card-shine"></div>
-                    <div class="instructor-avatar">👨‍🏫</div>
-                    <h3>${i.name}</h3>
-                    <span class="instructor-spec">${i.transmission || 'МКПП / АКПП'}</span>
-                    <p class="instructor-exp">⏱️ Стаж: ${i.experience_years || 0} лет</p>
-                    ${i.description ? `<p class="instructor-desc">${i.description}</p>` : ''}
-                </div>`
-            ).join('');
-            
-            container.querySelectorAll('.tilt-card').forEach(card => {
-                if (typeof TiltCard !== 'undefined') new TiltCard(card);
-            });
-        }
+        if (res.ok) instructors = await res.json();
+        renderInstructors(instructors && instructors.length ? instructors : INSTRUCTOR_FALLBACK);
     } catch (e) {
         console.error('Failed to load instructors:', e);
+        renderInstructors(INSTRUCTOR_FALLBACK);
     }
 });

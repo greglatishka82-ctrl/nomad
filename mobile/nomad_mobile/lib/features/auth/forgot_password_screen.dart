@@ -30,7 +30,7 @@ class ForgotPasswordScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Напишите или позвоните администратору NOMAD. Он назначит новый пароль и передаст его вам в Telegram или WhatsApp.',
+                'Напишите или позвоните администратору GREENTIME. Он назначит новый пароль и передаст его вам в Telegram или WhatsApp.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary, height: 1.5),
               ),

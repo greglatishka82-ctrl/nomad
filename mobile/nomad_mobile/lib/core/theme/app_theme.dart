@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // ── Brand (from Stitch DESIGN.md) ──────────────────────────────────────────
-  static const primary = Color(0xFF031634);
-  static const primaryContainer = Color(0xFF1A2B4A);
-  static const accent = Color(0xFFFE6A34);
-  static const secondaryContainer = Color(0xFFFE6A34);
+  // ── Brand GREENTIME ────────────────────────────────────────────────────────
+  // Зелёный #00C853 — развитие, движение. Голубой #00D1FF — ясность.
+  // Тёмно-синий — базовый фон фирменных блоков.
+  static const primary = Color(0xFF06131F);
+  static const primaryContainer = Color(0xFF0B2A3C);
+  static const accent = Color(0xFF00C853);
+  static const accentDark = Color(0xFF00873A);
+  static const secondaryContainer = Color(0xFF00D1FF);
+  static const onAccent = Color(0xFF04220F);
 
   // ── Surfaces (from Stitch DESIGN.md) ───────────────────────────────────────
   static const background = Color(0xFFF8F9FF);
@@ -21,8 +25,8 @@ class AppColors {
   static const onSurface = Color(0xFF0B1C30);
   static const onSurfaceVariant = Color(0xFF44474E);
   static const onPrimary = Color(0xFFFFFFFF);
-  static const onPrimaryContainer = Color(0xFF8293B7);
-  static const onSecondaryContainer = Color(0xFF5D1900);
+  static const onPrimaryContainer = Color(0xFF9DB6C7);
+  static const onSecondaryContainer = Color(0xFF00391A);
   static const textPrimary = Color(0xFF0B1C30);
   static const textSecondary = Color(0xFF44474E);
   static const textHint = Color(0xFF9CA3AF);
@@ -35,27 +39,27 @@ class AppColors {
   // ── Semantic (from Stitch) ─────────────────────────────────────────────────
   static const error = Color(0xFFBA1A1A);
   static const errorContainer = Color(0xFFFFDAD6);
-  static const success = Color(0xFF22C55E);
+  static const success = Color(0xFF00C853);
   static const warning = Color(0xFFF59E0B);
 
   // ── Status ─────────────────────────────────────────────────────────────────
-  static const statusPlanned = Color(0xFF3B82F6);
-  static const statusConfirmed = Color(0xFF22C55E);
+  static const statusPlanned = Color(0xFF00D1FF);
+  static const statusConfirmed = Color(0xFF00A844);
   static const statusCompleted = Color(0xFF6B7280);
   static const statusCancelled = Color(0xFFEF4444);
   static const statusNoShow = Color(0xFFF59E0B);
 
-  // ── Shadows (from Stitch DESIGN.md) ────────────────────────────────────────
+  // ── Shadows ────────────────────────────────────────────────────────────────
   static final cardShadow = [
     BoxShadow(
-      color: const Color(0xFF031634).withValues(alpha: 0.1),
+      color: const Color(0xFF06131F).withValues(alpha: 0.1),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
   ];
   static final cardShadowLg = [
     BoxShadow(
-      color: const Color(0xFF031634).withValues(alpha: 0.15),
+      color: const Color(0xFF06131F).withValues(alpha: 0.15),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -92,7 +96,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.onAccent,
           elevation: 0,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
@@ -122,7 +126,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.accent,
+          foregroundColor: AppColors.accentDark,
           textStyle: const TextStyle(
             fontFamily: 'Roboto',
             fontSize: 14,
@@ -162,7 +166,7 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceContainerLowest,
-        selectedItemColor: AppColors.accent,
+        selectedItemColor: AppColors.accentDark,
         unselectedItemColor: AppColors.onSurfaceVariant,
         selectedLabelStyle: TextStyle(
           fontSize: 12,

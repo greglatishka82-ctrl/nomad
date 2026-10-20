@@ -106,11 +106,12 @@ async def lifespan(app: FastAPI):
 
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="NOMAD Admin API", lifespan=lifespan)
+app = FastAPI(title="GREENTIME Admin API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     # Панель работает на VPS: боевой адрес админки и локальные адреса разработки.
     allow_origins=[
+        "https://admin.greentime.57-129-153-111.sslip.io",
         "https://admin.nomad.57-129-153-111.sslip.io",
         "http://localhost:3000",
         "http://localhost:5173",
@@ -134,7 +135,7 @@ app.include_router(public.router)  # Подключаем после admin, чт
 @app.get("/")
 async def root():
     """Сервис отдаёт только API: страница админки лежит в admin/frontend."""
-    return {"message": "NOMAD Admin API", "docs": "/docs"}
+    return {"message": "GREENTIME Admin API", "docs": "/docs"}
 
 
 @app.get("/health")

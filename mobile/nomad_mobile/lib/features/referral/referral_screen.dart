@@ -103,7 +103,7 @@ class ReferralScreen extends ConsumerWidget {
                           icon: const Icon(Icons.share, size: 18),
                           label: const Text('Поделиться'),
                           onPressed: () => Share.share(
-                            'Запишись в автошколу NOMAD в Павлодаре!\n'
+                            'Запишись в школу GREENTIME в Павлодаре!\n'
                             'Используй мой код: ${info.referralCode}\n'
                             '${info.referralLink}',
                           ),

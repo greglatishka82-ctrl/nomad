@@ -232,6 +232,19 @@ def _time_buttons(slots: list, prefix: str = "time") -> list:
     return rows
 
 
+def _money(value: int) -> str:
+    """7000 -> '7 000' (неразрывные пробелы не нужны, обычный подходит)."""
+    return f"{int(value):,}".replace(",", " ")
+
+
+def _service_buttons() -> list:
+    """Кнопки выбора услуги. Пробный экзамен — только если он включён."""
+    rows = [[InlineKeyboardButton(text="🚗 Обучение вождению", callback_data="service:training")]]
+    if settings.EXAM_ENABLED:
+        rows.append([InlineKeyboardButton(text="🏁 Пробный экзамен", callback_data="service:exam")])
+    return rows
+
+
 async def _build_date_buttons(
     db: AsyncSession,
     service_type: ServiceType,
@@ -276,10 +289,7 @@ async def _get_client_by_telegram(telegram_id: str) -> Optional[Client]:
 
 
 async def _show_service_keyboard(target, client_name: str):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚗 Обучение вождению", callback_data="service:training")],
-        [InlineKeyboardButton(text="🏁 Пробный экзамен", callback_data="service:exam")],
-    ])
+    kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
     text = f"{client_name}, выберите услугу:" if client_name else "Выберите услугу:"
     await target.answer(text, reply_markup=kb)
 
@@ -296,20 +306,14 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
     elif current == BookingStates.choosing_location.state:
         # Возврат к выбору услуги
         data = await state.get_data()
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚗 Обучение вождению", callback_data="service:training")],
-            [InlineKeyboardButton(text="🏁 Пробный экзамен", callback_data="service:exam")],
-        ])
+        kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
         await callback.message.edit_text(f"{data.get('client_name', '')}, выберите услугу:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_service)
 
     elif current == BookingStates.choosing_transmission.state:
         # Возврат к выбору услуги
         data = await state.get_data()
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚗 Обучение вождению", callback_data="service:training")],
-            [InlineKeyboardButton(text="🏁 Пробный экзамен", callback_data="service:exam")],
-        ])
+        kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
         await callback.message.edit_text(f"{data.get('client_name', '')}, выберите услугу:", reply_markup=kb)
         await state.set_state(BookingStates.choosing_service)
 
@@ -318,10 +322,7 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
         service = data.get("service_type", "training")
         if service == "exam":
             # Для экзамена КПП не выбирается — возвращаемся к выбору услуги
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🚗 Обучение вождению", callback_data="service:training")],
-                [InlineKeyboardButton(text="🏁 Пробный экзамен", callback_data="service:exam")],
-            ])
+            kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
             await callback.message.edit_text(f"{data.get('client_name', '')}, выберите услугу:", reply_markup=kb)
             await state.set_state(BookingStates.choosing_service)
         else:
@@ -436,14 +437,20 @@ async def cmd_start(message: Message, state: FSMContext):
     else:
         # Новый пользователь — показываем приветственный текст
         welcome_text = (
-            "Добро пожаловать! 👋\n\n"
-            "Секрет успеха - правильное обучение.\n\n"
+            "Добро пожаловать в <b>GREENTIME</b>! 👋\n"
+            "<i>Решил - действуй</i>\n\n"
+            "Школа практического вождения в Павлодаре.\n\n"
             "Вот что мы предлагаем:\n\n"
-            "🚗 <b>Вождение — 10 000 ₸/час</b>\n"
+            f"🚗 <b>Вождение — {_money(settings.PRICE_TRAINING_NEW)} ₸/час</b>\n"
             "Занятие с инструктором на площадке Циолковского 30.\n\n"
-            f"📋 <b>Пробный экзамен — {settings.PRICE_EXAM // 1000} {settings.PRICE_EXAM % 1000:03d} ₸</b>\n"
-            "1 круг / 20 минут — проверить себя перед настоящим экзаменом."
+            "Механика и автомат на выбор, запись на удобное время."
         )
+        if settings.EXAM_ENABLED:
+            welcome_text += (
+                "\n\n"
+                f"📋 <b>Пробный экзамен — {_money(settings.PRICE_EXAM)} ₸</b>\n"
+                "1 круг / 20 минут — проверить себя перед настоящим экзаменом."
+            )
         await message.answer(welcome_text, reply_markup=MAIN_KEYBOARD, parse_mode="HTML")
 
 
@@ -482,8 +489,14 @@ async def process_name(message: Message, state: FSMContext):
 
 @router.callback_query(BookingStates.choosing_service, F.data.startswith("service:"))
 async def process_service(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
     service = callback.data.split(":")[1]
+    if service == "exam" and not settings.EXAM_ENABLED:
+        await callback.answer(
+            "Пробный экзамен пока не проводится. Доступно обучение вождению.",
+            show_alert=True,
+        )
+        return
+    await callback.answer()
     await state.update_data(service_type=service)
 
     # Пробный экзамен — только автомат и только на новой площадке
@@ -1093,7 +1106,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
     )
     pending_msg = (
         f"⏳ <b>Ваша заявка находится в обработке. Ожидайте подтверждения.</b>\n\n"
-        f"Если подтверждение не пришло в течение 15 минут, свяжитесь с администратором автошколы.\n\n"
+        f"Если подтверждение не пришло в течение 15 минут, свяжитесь с администратором школы GREENTIME.\n\n"
         f"📞 +7 702 718 22 33\n"
         f"📞 +7 707 881 08 48\n\n"
         f"⏰ Заявки подтверждаются в рабочее время с 08:00 до 19:00.\n"

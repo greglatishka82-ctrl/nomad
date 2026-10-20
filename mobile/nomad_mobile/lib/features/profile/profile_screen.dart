@@ -103,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       _MenuButton(
                         icon: Icons.info,
-                        title: 'О NOMAD',
+                        title: 'О GREENTIME',
                         onTap: () => context.push('/about'),
                       ),
                       const SizedBox(height: 16),

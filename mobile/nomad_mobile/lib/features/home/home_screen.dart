@@ -28,6 +28,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final upcomingAsync = ref.watch(upcomingBookingsProvider);
+    final configAsync = ref.watch(appConfigProvider);
+    final examEnabled = configAsync.valueOrNull?.examEnabled ?? false;
     final userName = authState.userName ?? 'Привет';
 
     // Баннер «Приду / Не приду» доступен только в последний час перед занятием.
@@ -62,7 +64,7 @@ class HomeScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'NOMAD Academy',
+                        'GREENTIME',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -223,11 +225,16 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _QuickActionCard(
-                          icon: Icons.assignment_turned_in,
-                          label: 'Пробный экзамен',
+                          icon: examEnabled
+                              ? Icons.assignment_turned_in
+                              : Icons.event_available,
+                          label: examEnabled
+                              ? 'Пробный экзамен'
+                              : 'Мои записи',
                           color: AppColors.surfaceVariant,
-                          iconColor: AppColors.accent,
-                          onTap: () => context.push('/booking/new?type=exam'),
+                          iconColor: AppColors.accentDark,
+                          onTap: () => context.push(
+                              examEnabled ? '/booking/new?type=exam' : '/bookings'),
                         ),
                       ),
                     ],

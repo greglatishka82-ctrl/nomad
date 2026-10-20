@@ -12,6 +12,13 @@ def _env(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+def _env_bool(key: str, default: bool = False) -> bool:
+    value = os.getenv(key)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Павлодар — именованная часовая зона Казахстана. Она не зависит от
 # часового пояса сервера и используется всеми Telegram-ботами.
 TIMEZONE = ZoneInfo("Asia/Almaty")
@@ -22,6 +29,10 @@ class Settings:
     INSTRUCTOR_BOT_TOKEN: str = _env("INSTRUCTOR_BOT_TOKEN")
     REPORT_BOT_TOKEN: str = _env("REPORT_BOT_TOKEN")
     REPORT_OWNER_PHONE: str = _env("REPORT_OWNER_PHONE")
+    MOBILE_BOOKING_ENABLED: bool = _env_bool("MOBILE_BOOKING_ENABLED", True)
+    # Пробный экзамен временно не продаём: услуга скрыта на сайте, в боте и
+    # приложении. Старые записи с типом EXAM продолжают читаться.
+    EXAM_ENABLED: bool = _env_bool("EXAM_ENABLED", False)
     ADMIN_USERNAME: str = _env("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD: str = _env("ADMIN_PASSWORD", "admin123")
     DATABASE_URL: str = _env("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'nomad.db'}")
@@ -31,10 +42,21 @@ class Settings:
     GROQ_BASE_URL: str = _env("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
     GROQ_MODEL: str = _env("GROQ_MODEL", "openai/gpt-oss-20b")
 
+    # Бренд
+    BRAND_NAME = "GREENTIME"
+    BRAND_TAGLINE = "Решил - действуй"
+    BRAND_SUBTITLE = "Школа практического вождения"
+    PHONE = "+7 702 718 22 33"
+    PHONE_RAW = "+77027182233"
+    TELEGRAM_BOT_URL = "https://t.me/nomadrive_bot"
+    PUBLIC_SITE_URL: str = _env(
+        "PUBLIC_SITE_URL", "https://greentime.57-129-153-111.sslip.io"
+    )
+
     LOCATION_MAIN = "Циолковского 30"
     LOCATION_EXAM = "Циолковского 30"
-    PRICE_TRAINING = 10000
-    PRICE_TRAINING_NEW = 10000
+    PRICE_TRAINING = 7000
+    PRICE_TRAINING_NEW = 7000
     PRICE_EXAM = 3500
     TRAINING_DURATION_MINUTES = 60
     EXAM_DURATION_MINUTES = 20

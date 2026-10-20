@@ -1,5 +1,5 @@
-const CACHE = 'nomad-admin-shell-v14';
-const SHELL_KEY = '/__nomad-admin-shell';
+const CACHE = 'greentime-admin-shell-v15';
+const SHELL_KEY = '/__greentime-admin-shell';
 
 async function fetchAndCache(request) {
   const response = await fetch(request);
@@ -34,7 +34,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter((name) => name.startsWith('nomad-admin-shell-') && name !== CACHE)
+      .filter((name) => (name.startsWith('greentime-admin-shell-') || name.startsWith('nomad-admin-shell-')) && name !== CACHE)
       .map((name) => caches.delete(name)));
     await self.clients.claim();
   })());

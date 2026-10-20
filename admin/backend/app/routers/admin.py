@@ -3861,7 +3861,7 @@ async def certificate_create(request: Request, body: CertificateCreate, db: Asyn
         if existing:
             return {"id": existing.id, "code": existing.code, "nominal": existing.nominal}
     if body.nominal not in (settings.PRICE_EXAM, 5000, settings.PRICE_TRAINING_NEW):
-        raise HTTPException(status_code=400, detail="Certificate nominal must be 3500, 5000 or 10000")
+        raise HTTPException(status_code=400, detail="Certificate nominal must be 3500, 5000, 7000 or 10000")
     code = secrets.token_hex(8).upper()
     cert = Certificate(code=code, nominal=body.nominal, remaining=body.nominal,
                        offline_operation_id=operation_id)
@@ -4074,7 +4074,7 @@ async def export_archived_logs(request: Request, db: AsyncSession = Depends(get_
             item.archived_at.isoformat(sep=" ", timespec="seconds") if item.archived_at else "",
         ])
     await _audit(db, username, "export_archived_logs", "Администратор выгрузил архив логов.")
-    filename = f"nomad_logs_{today_kz().isoformat()}.csv"
+    filename = f"greentime_logs_{today_kz().isoformat()}.csv"
     return StreamingResponse(
         iter(["\ufeff" + output.getvalue()]),
         media_type="text/csv; charset=utf-8",
@@ -4862,8 +4862,8 @@ async def completed_daily_report(request: Request, db: AsyncSession = Depends(ge
     body = "".join(f"<tr><td>{escape(t)}</td><td>#{escape(n)}</td><td><b>{escape(c)}</b><small>{escape(phone)}</small></td><td>{escape(i)}</td><td>{escape(service)}<small>{escape(box)}</small></td><td>{escape(place)}</td><td>{escape(source)}</td></tr>" for t,n,c,phone,i,service,box,place,source in rows) or "<tr><td colspan='7' class='empty'>Завершённых занятий пока нет.</td></tr>"
     date_label = day.strftime("%d.%m.%Y")
     made = datetime.now(KZ_TZ).strftime("%d.%m.%Y, %H:%M")
-    html = f"""<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>NOMAD — отчёт {date_label}</title><style>*{{box-sizing:border-box}}body{{margin:0;background:#f3f6fa;color:#172033;font:14px Arial,sans-serif}}main{{max-width:1200px;margin:32px auto;background:#fff;border-radius:20px;padding:34px;box-shadow:0 14px 42px #17203316}}header{{display:flex;justify-content:space-between;border-bottom:1px solid #e7ebf1;padding-bottom:22px}}.brand{{color:#e85d2a;font-weight:800;letter-spacing:.1em}}h1{{margin:7px 0 4px;font-size:28px}}p,small,footer{{color:#6b7484}}button{{border:0;border-radius:10px;padding:11px 17px;background:#e85d2a;color:#fff;font-weight:700}}section{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:25px 0}}section div{{border:1px solid #e7ebf1;border-radius:14px;padding:16px;background:#fbfcfe;color:#6b7484}}section b{{display:block;color:#172033;font-size:28px;margin-top:5px}}table{{width:100%;border-collapse:collapse}}th{{text-align:left;color:#6b7484;font-size:11px;text-transform:uppercase;padding:11px 10px;border-bottom:2px solid #e7ebf1}}td{{padding:13px 10px;border-bottom:1px solid #edf0f4;vertical-align:top}}td small{{display:block;margin-top:3px}}.empty{{text-align:center;padding:34px}}footer{{display:block;margin-top:22px;font-size:12px}}@media print{{body{{background:#fff}}main{{margin:0;padding:0;box-shadow:none}}button{{display:none}}}}</style></head><body><main><header><div><div class="brand">◆ NOMAD</div><h1>Отчёт по завершённым занятиям</h1><p>{date_label} · данные на момент формирования</p></div><button onclick="window.print()">Распечатать / PDF</button></header><section><div>Завершено занятий<b>{len(rows)}</b></div><div>Вождение<b>{driving}</b></div><div>Пробный экзамен<b>{exams}</b></div></section><table><thead><tr><th>Время</th><th>Номер</th><th>Клиент</th><th>Инструктор</th><th>Услуга / КПП</th><th>Площадка</th><th>Источник</th></tr></thead><tbody>{body}</tbody></table><footer>Сформировано {made} (время Казахстана). В отчёте только завершённые занятия.</footer></main></body></html>"""
-    return HTMLResponse(html, headers={"Content-Disposition": f'attachment; filename="nomad-completed-{day.isoformat()}.html"'})
+    html = f"""<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>GREENTIME — отчёт {date_label}</title><style>*{{box-sizing:border-box}}body{{margin:0;background:#f3f6fa;color:#172033;font:14px Arial,sans-serif}}main{{max-width:1200px;margin:32px auto;background:#fff;border-radius:20px;padding:34px;box-shadow:0 14px 42px #17203316}}header{{display:flex;justify-content:space-between;border-bottom:1px solid #e7ebf1;padding-bottom:22px}}.brand{{color:#00A844;font-weight:800;letter-spacing:.1em}}h1{{margin:7px 0 4px;font-size:28px}}p,small,footer{{color:#6b7484}}button{{border:0;border-radius:10px;padding:11px 17px;background:#00C853;color:#04220F;font-weight:700}}section{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:25px 0}}section div{{border:1px solid #e7ebf1;border-radius:14px;padding:16px;background:#fbfcfe;color:#6b7484}}section b{{display:block;color:#172033;font-size:28px;margin-top:5px}}table{{width:100%;border-collapse:collapse}}th{{text-align:left;color:#6b7484;font-size:11px;text-transform:uppercase;padding:11px 10px;border-bottom:2px solid #e7ebf1}}td{{padding:13px 10px;border-bottom:1px solid #edf0f4;vertical-align:top}}td small{{display:block;margin-top:3px}}.empty{{text-align:center;padding:34px}}footer{{display:block;margin-top:22px;font-size:12px}}@media print{{body{{background:#fff}}main{{margin:0;padding:0;box-shadow:none}}button{{display:none}}}}</style></head><body><main><header><div><div class="brand">◆ GREENTIME</div><h1>Отчёт по завершённым занятиям</h1><p>{date_label} · данные на момент формирования</p></div><button onclick="window.print()">Распечатать / PDF</button></header><section><div>Завершено занятий<b>{len(rows)}</b></div><div>Вождение<b>{driving}</b></div><div>Пробный экзамен<b>{exams}</b></div></section><table><thead><tr><th>Время</th><th>Номер</th><th>Клиент</th><th>Инструктор</th><th>Услуга / КПП</th><th>Площадка</th><th>Источник</th></tr></thead><tbody>{body}</tbody></table><footer>Сформировано {made} (время Казахстана). В отчёте только завершённые занятия.</footer></main></body></html>"""
+    return HTMLResponse(html, headers={"Content-Disposition": f'attachment; filename="greentime-completed-{day.isoformat()}.html"'})
 
 @router.get("/export/clients")
 async def export_clients(request: Request, db: AsyncSession = Depends(get_db)):
@@ -5329,7 +5329,7 @@ async def export_full_backup(request: Request, format: str = "html", db: AsyncSe
     
     # Если запрошен JSON формат
     if format == "json":
-        filename = f"nomad_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.json"
+        filename = f"greentime_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.json"
         return StreamingResponse(
             iter([json_output]),
             media_type="application/json",
@@ -5337,14 +5337,14 @@ async def export_full_backup(request: Request, format: str = "html", db: AsyncSe
         )
     
     # По умолчанию возвращаем HTML с интерактивным просмотрщиком
-    filename = f"nomad_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.html"
+    filename = f"greentime_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.html"
     
     html_content = f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Резервная копия NOMAD - {now.strftime('%Y-%m-%d %H:%M:%S')}</title>
+    <title>Резервная копия GREENTIME - {now.strftime('%Y-%m-%d %H:%M:%S')}</title>
     <style>
         * {{
             margin: 0;
@@ -5588,7 +5588,7 @@ async def export_full_backup(request: Request, format: str = "html", db: AsyncSe
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Резервная копия NOMAD</h1>
+            <h1>📦 Резервная копия GREENTIME</h1>
             <p>Дата создания: {now.strftime('%d.%m.%Y %H:%M:%S')} | Создал: {username}</p>
         </div>
         
@@ -5891,7 +5891,7 @@ async def export_full_backup(request: Request, format: str = "html", db: AsyncSe
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'nomad_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.json';
+            a.download = 'greentime_backup_{now.strftime('%Y-%m-%d_%H-%M-%S')}.json';
             a.click();
             URL.revokeObjectURL(url);
         }}

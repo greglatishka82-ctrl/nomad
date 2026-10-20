@@ -34,6 +34,10 @@ router = APIRouter(prefix="/api/mobile", tags=["mobile-extras"])
 @router.get("/config")
 async def get_config():
     return {
+        "brand_name": settings.BRAND_NAME,
+        "brand_tagline": settings.BRAND_TAGLINE,
+        "brand_subtitle": settings.BRAND_SUBTITLE,
+        "exam_enabled": settings.EXAM_ENABLED,
         "price_training": settings.PRICE_TRAINING,
         "price_training_new": settings.PRICE_TRAINING_NEW,
         "price_exam": settings.PRICE_EXAM,
@@ -208,9 +212,9 @@ async def get_referral(
 ):
     code = user.referral_code
     if not code:
-        code = f"NOMAD-{user.id:04d}"
+        code = f"GREEN-{user.id:04d}"
 
-    link = f"https://nomad.57-129-153-111.sslip.io/?ref={code}"
+    link = f"{settings.PUBLIC_SITE_URL}/?ref={code}"
 
     return {
         "referral_code": code,

@@ -166,7 +166,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              'Введите ваши данные для доступа в личный кабинет академии NOMAD.',
+                              'Введите ваши данные для доступа в личный кабинет школы GREENTIME.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.onSurfaceVariant,
@@ -357,7 +357,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: const Text(
-                '© 2026 NOMAD Driving Academy',
+                '© 2026 GREENTIME',
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.onSurfaceVariant,

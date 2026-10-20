@@ -134,7 +134,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Icon(Icons.school, color: AppColors.primary, size: 28),
                   SizedBox(width: 8),
                   Text(
-                    'NOMAD Academy',
+                    'GREENTIME',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
@@ -177,7 +177,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Присоединяйтесь к сообществу профессиональных водителей NOMAD.',
+                        'Присоединяйтесь к сообществу водителей GREENTIME.',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.onSurfaceVariant,
@@ -450,7 +450,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       // ── Footer ──────────────────────────────────
                       const Center(
                         child: Text(
-                          '© 2026 NOMAD Driving Academy',
+                          '© 2026 GREENTIME',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.onSurfaceVariant,

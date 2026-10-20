@@ -72,7 +72,7 @@ class NotificationService {
       channelName: 'Ответ поддержки',
       sound: 'support',
       title: 'Ответ поддержки 💬',
-      body: 'Вам ответили в поддержке NOMAD.',
+      body: 'Вам ответили в поддержке GREENTIME.',
     ),
   };
 

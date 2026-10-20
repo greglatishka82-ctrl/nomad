@@ -36,10 +36,15 @@ class Settings:
     EXAM_DURATION_MINUTES = 20
     LOCATION_MAIN = "Циолковского 30"
     LOCATION_EXAM = "Циолковского 30"
-    PRICE_TRAINING = 10000
-    PRICE_TRAINING_NEW = 10000
+    PRICE_TRAINING = 7000
+    PRICE_TRAINING_NEW = 7000
     PRICE_EXAM = 3500
     MAX_CARS_EXAM_LOCATION = 6
+
+    # Бренд
+    BRAND_NAME = "GREENTIME"
+    BRAND_TAGLINE = "Решил - действуй"
+    BRAND_SUBTITLE = "Школа практического вождения"
 
 
 settings = Settings()

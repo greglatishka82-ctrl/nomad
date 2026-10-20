@@ -6,7 +6,7 @@ import '../auth/auth_session.dart';
 import '../../shared/models/models.dart';
 
 // Основной site-backend на нашем VPS.
-const String kBaseUrl = 'https://nomad.57-129-153-111.sslip.io';
+const String kBaseUrl = 'https://greentime.57-129-153-111.sslip.io';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(

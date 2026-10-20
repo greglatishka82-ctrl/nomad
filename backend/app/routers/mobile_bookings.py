@@ -361,6 +361,12 @@ async def create_booking(
     user: Client = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if not settings.MOBILE_BOOKING_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="Запись через мобильное приложение временно приостановлена.",
+        )
+
     user = (await db.execute(
         select(Client).where(Client.id == user.id).with_for_update()
     )).scalar_one()

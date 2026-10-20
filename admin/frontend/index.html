@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOMAD — Панель Управления Автошколой</title>
+  <title>GREENTIME — Панель Управления Школой</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,10 +23,10 @@
   <div id="login-screen" class="screen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg, #f8fafc 0%, #edf2f7 50%, #e2e8f0 100%);z-index:9999;align-items:center;justify-content:center;padding:20px;">
     <div class="card" style="width:420px;max-width:100%;padding:40px;box-shadow:var(--shadow-xl);border-radius:var(--radius-xl);">
       <div style="display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:14px;">
-        Центр практики вождения
+        Школа практического вождения
       </div>
       <div style="font-size:26px;font-weight:800;color:var(--text-main);display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <span style="color:var(--primary)">◆</span> NOMAD
+        <span style="color:var(--primary)">◆</span> GREENTIME
       </div>
       <p style="color:var(--text-muted);font-size:13.5px;margin-bottom:24px;">Панель управления и администрирования</p>
       <form id="login-form">
@@ -53,7 +53,7 @@
       <div class="sidebar-header">
         <div class="brand-logo">◆</div>
         <div class="brand-title">
-          <span class="brand-name">NOMAD</span>
+          <span class="brand-name">GREENTIME</span>
           <span class="brand-sub">Админка</span>
         </div>
       </div>
@@ -160,7 +160,7 @@
       <div class="sidebar-footer">
         <div class="system-status" style="margin-bottom:10px;">
           <div class="status-dot"></div>
-          <div class="status-text">Бэкенд NOMAD Live</div>
+          <div class="status-text">Бэкенд GREENTIME Live</div>
         </div>
         <button class="nav-item nav-logout" id="logout-btn" style="color:var(--danger);">
           <span class="nav-icon" style="font-size:16px;">🚪</span>
@@ -376,7 +376,7 @@
                   <div class="form-group flex-1">
                     <label>Площадка</label>
                     <select id="mb-location" onchange="loadSlots()">
-                      <option value="Циолковского 30">Циолковского 30 (10 000 ₸)</option>
+                      <option value="Циолковского 30">Циолковского 30 (7 000 ₸)</option>
                     </select>
                   </div>
                   <div class="form-group flex-1">
@@ -724,7 +724,7 @@
         <!-- 5. CLIENTS PAGE -->
         <div id="page-clients" class="page">
           <div class="filter-bar">
-            <h2>Клиенты АвтоПрактик</h2>
+            <h2>Клиенты GREENTIME</h2>
             <button class="btn btn-primary" onclick="showClientForm()">➕ Добавить клиента</button>
           </div>
 
@@ -959,7 +959,7 @@
               <div style="display:flex;align-items:center;justify-content:space-around;height:180px;">
                 <div style="text-align:center;">
                   <h2 style="color:var(--primary);font-size:2.2rem" id="analytics-training-pct">—</h2>
-                  <span style="color:var(--text-muted);font-weight:600;">Обучение вождению (10 000 ₸)</span>
+                  <span style="color:var(--text-muted);font-weight:600;">Обучение вождению (7 000 ₸)</span>
                 </div>
                 <div style="text-align:center;">
                   <h2 style="color:var(--secondary);font-size:2.2rem" id="analytics-exam-pct">—</h2>
@@ -1035,11 +1035,12 @@
               </div>
               <div class="form-group">
                 <label>Номинал сертификата (₸)</label>
-                <input type="number" id="cert-nominal" class="form-control" placeholder="10000" value="10000">
+                <input type="number" id="cert-nominal" class="form-control" placeholder="7000" value="7000">
               </div>
               <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=3500">3 500 ₸</button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=5000">5 000 ₸</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=7000">7 000 ₸</button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=10000">10 000 ₸</button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=20000">20 000 ₸</button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cert-nominal').value=50000">50 000 ₸</button>
@@ -1049,9 +1050,9 @@
             </div>
 
             <div class="cert-preview-card">
-              <div style="font-weight:800;letter-spacing:0.1em;color:rgba(255,255,255,0.7);font-size:0.8rem;">NOMAD GIFT CERTIFICATE</div>
+              <div style="font-weight:800;letter-spacing:0.1em;color:rgba(255,255,255,0.7);font-size:0.8rem;">GREENTIME GIFT CERTIFICATE</div>
               <h2 style="margin:12px 0;font-size:1.8rem;color:#fff;">ПОДАРОЧНЫЙ СЕРТИФИКАТ</h2>
-              <p style="color:rgba(255,255,255,0.8);font-size:0.85rem;">На обучение вождению или пробный экзамен</p>
+              <p style="color:rgba(255,255,255,0.8);font-size:0.85rem;">На практические занятия вождением</p>
               <div style="margin-top:16px;font-family:monospace;font-size:1.2rem;letter-spacing:0.15em;background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:6px;width:fit-content;">NMD-XXXXXX</div>
             </div>
           </div>

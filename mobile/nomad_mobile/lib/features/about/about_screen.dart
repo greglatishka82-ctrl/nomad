@@ -18,7 +18,7 @@ class AboutScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('О NOMAD'),
+        title: const Text('О GREENTIME'),
       ),
       body: configAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -39,7 +39,7 @@ class AboutScreen extends ConsumerWidget {
                     ),
                     child: const Center(
                       child: Text(
-                        'N',
+                        'G',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 36,
@@ -50,7 +50,7 @@ class AboutScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'NOMAD Driving Academy',
+                    'GREENTIME',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
@@ -59,10 +59,19 @@ class AboutScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'АвтоПрактик №1',
+                    'Школа практического вождения',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Решил - действуй',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentDark,
                     ),
                   ),
                 ],
@@ -124,7 +133,7 @@ class AboutScreen extends ConsumerWidget {
                 _ActionRow(
                   icon: Icons.language,
                   text: 'Официальный сайт',
-                  onTap: () => _launchURL('https://nomad.57-129-153-111.sslip.io/'),
+                  onTap: () => _launchURL('https://greentime.57-129-153-111.sslip.io/'),
                 ),
                 const Divider(height: 1),
                 _ActionRow(
@@ -261,7 +270,7 @@ class _RatingDialogState extends State<_RatingDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Насколько вам нравится NOMAD?',
+            'Насколько вам нравится GREENTIME?',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),

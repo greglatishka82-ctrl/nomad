@@ -79,7 +79,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ИИ-помощник NOMAD'),
+        title: const Text('ИИ-помощник GREENTIME'),
         actions: [
           if (_messages.isNotEmpty)
             IconButton(
@@ -191,7 +191,7 @@ class _AiChatBottomSheetState extends ConsumerState<AiChatBottomSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text('ИИ-помощник NOMAD',
+            const Text('ИИ-помощник GREENTIME',
                 style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,

@@ -841,7 +841,7 @@ async function offlineBookingList(path) {
             instructor_name: instructor?.name || 'Назначается', service_type: body.service_type,
             transmission: body.transmission, location: body.location || 'Циолковского 30', date: body.booking_date,
             start_time: body.start_time, end_time: formatMinutes(clampEndMinutes(minutesFromTime(body.start_time), body.service_type === 'exam' ? 20 : 60)),
-            status: 'confirmed', price: body.service_type === 'exam' ? 3500 : 10000,
+            status: 'confirmed', price: body.service_type === 'exam' ? 3500 : 7000,
         };
         if (!existing) items.push(item);
         if (operation.sync_error) {
@@ -2406,7 +2406,7 @@ async function downloadCompletedDailyReport() {
     const url = URL.createObjectURL(await response.blob());
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'nomad-completed-report.html';
+    link.download = 'greentime-completed-report.html';
     document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
@@ -3498,14 +3498,14 @@ async function loadCertificateRequests(container) {
 async function createPackage(sessionsCount = 6) {
     const offers = {
         6: {
-            name: 'Пакет 6 занятий', sessions_count: 6, price: 55000,
-            validity_days: 30, bonus_exam: true,
-            description: '6 занятий на площадке, пробный экзамен в подарок.'
+            name: 'Пакет 6 занятий', sessions_count: 6, price: 40000,
+            validity_days: 30, bonus_exam: false,
+            description: '6 занятий по 1 часу на площадке, цена часа ниже разовой.'
         },
         10: {
-            name: 'Пакет 10 занятий', sessions_count: 10, price: 90000,
-            validity_days: 30, bonus_exam: true,
-            description: '10 занятий на площадке, пробный экзамен в подарок.'
+            name: 'Пакет 10 занятий', sessions_count: 10, price: 65000,
+            validity_days: 30, bonus_exam: false,
+            description: '10 занятий по 1 часу на площадке, самая выгодная цена часа.'
         }
     };
     const offer = offers[sessionsCount];
@@ -3555,7 +3555,7 @@ async function loadCertificates() {
 
 async function createCertificate() {
     const nominal = parseInt(document.getElementById('cert-nominal').value);
-    if (![3500, 5000, 10000].includes(nominal)) { showToast('Сертификат может быть на 3500, 5000 или 10000 ₸', 'error'); return; }
+    if (![3500, 5000, 7000, 10000].includes(nominal)) { showToast('Сертификат может быть на 3500, 5000, 7000 или 10000 ₸', 'error'); return; }
     try {
         const data = await apiPost('/certificates', {nominal});
         document.getElementById('cert-result').innerHTML = `<div class="alert alert-success">Код: <strong>${escapeHtml(data.code)}</strong> · Номинал: ${data.nominal} ₸</div>`;
@@ -5134,7 +5134,7 @@ function handleServiceChange() {
         transmissionSelect.value = 'automatic';
         transmissionSelect.disabled = true;
     } else {
-        locationSelect.innerHTML = '<option value="Циолковского 30">Циолковского 30 (10000₸)</option>';
+        locationSelect.innerHTML = '<option value="Циолковского 30">Циолковского 30 (7000₸)</option>';
         locationSelect.disabled = true;
         transmissionSelect.disabled = false;
     }
@@ -5252,7 +5252,7 @@ async function addQueuedBookingToSnapshot(booking, operationId, localClientId) {
                 ? (snapshot.slot_rules?.exam_duration_minutes || 20)
                 : (snapshot.slot_rules?.training_duration_minutes || 60)
         ))),
-        status: 'confirmed', price: booking.service_type === 'exam' ? 3500 : 10000,
+        status: 'confirmed', price: booking.service_type === 'exam' ? 3500 : 7000,
     };
     snapshot.bookings.push(localBooking);
     await offlineStore('api-cache', 'offline-snapshot', snapshot);

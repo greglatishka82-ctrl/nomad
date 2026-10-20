@@ -4,6 +4,8 @@ class AppConfig {
   final int priceTraining;
   final int priceTrainingNew;
   final int priceExam;
+  /// Пробный экзамен временно не продаётся — блоки скрываем по флагу с сервера.
+  final bool examEnabled;
   final int trainingDurationMinutes;
   final int examDurationMinutes;
   final String locationMain;
@@ -21,6 +23,7 @@ class AppConfig {
     required this.priceTraining,
     required this.priceTrainingNew,
     required this.priceExam,
+    required this.examEnabled,
     required this.trainingDurationMinutes,
     required this.examDurationMinutes,
     required this.locationMain,
@@ -35,9 +38,10 @@ class AppConfig {
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> j) => AppConfig(
-        priceTraining: j['price_training'] as int? ?? 10000,
-        priceTrainingNew: j['price_training_new'] as int? ?? 10000,
+        priceTraining: j['price_training'] as int? ?? 7000,
+        priceTrainingNew: j['price_training_new'] as int? ?? 7000,
         priceExam: j['price_exam'] as int? ?? 3500,
+        examEnabled: j['exam_enabled'] as bool? ?? false,
         trainingDurationMinutes: j['training_duration_minutes'] as int? ?? 60,
         examDurationMinutes: j['exam_duration_minutes'] as int? ?? 20,
         locationMain: j['location_main'] as String? ?? '',
