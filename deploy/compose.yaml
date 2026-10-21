@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment: {START_BOTS: "true"}
-    command: ["python", "bot_worker.py", "--disable-client-bot"]
+    command: ["python", "bot_worker.py"]
     depends_on: {db: {condition: service_healthy}}
     volumes: [site_static:/app/app/static]
   admin-api:

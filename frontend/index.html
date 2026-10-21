@@ -2,414 +2,331 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <script>document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GREENTIME — школа практического вождения в Павлодаре</title>
-    <meta name="description" content="GREENTIME — школа практического вождения в Павлодаре. Индивидуальные занятия с инструктором на механике и автомате. 7 000 ₸ за час. Решил - действуй.">
-    <meta name="theme-color" content="#06131F">
+    <meta name="description" content="GREENTIME — школа практического вождения в Павлодаре. Индивидуальные занятия с инструктором, механика и автомат. 7 000 ₸ за час, ежедневно с 8:00 до 22:00.">
+    <meta name="theme-color" content="#ffffff">
     <meta property="og:title" content="GREENTIME — школа практического вождения">
-    <meta property="og:description" content="Практика вождения в Павлодаре: механика и автомат, гибкое расписание, 7 000 ₸ за час. Решил - действуй.">
-    <meta property="og:image" content="brand/greentime-logo.png">
+    <meta property="og:description" content="Практика вождения в Павлодаре: 7 000 ₸ за час, механика и автомат, ежедневно с 8:00 до 22:00. Решил - действуй.">
+    <meta property="og:image" content="brand/greentime-logo.png?v=3">
     <meta property="og:type" content="website">
-    <link rel="icon" type="image/png" href="brand/favicon-64.png">
-    <link rel="apple-touch-icon" href="brand/favicon-180.png">
+    <link rel="icon" type="image/png" href="brand/favicon-64.png?v=2">
+    <link rel="apple-touch-icon" href="brand/favicon-180.png?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/landing.css">
+    <link rel="stylesheet" href="css/landing.css?v=8">
 </head>
 <body>
 
-    <!-- Progress Bar -->
-    <div class="scroll-progress" id="scroll-progress"></div>
+<div class="progress" id="progress"></div>
 
-    <!-- Header -->
-    <header class="header" id="header">
-        <div class="container header-inner">
-            <a href="/" class="logo" aria-label="GREENTIME — на главную">
-                <img src="brand/greentime-logo.png" alt="Логотип GREENTIME" class="logo-mark">
-                <span class="logo-wordmark">GREEN<span class="logo-wordmark-accent">TIME</span></span>
-            </a>
-            <nav class="nav" id="nav">
-                <a href="#services" class="nav-link">Услуги</a>
-                <a href="#how" class="nav-link">Как проходит</a>
-                <a href="#instructors" class="nav-link">Инструкторы</a>
-                <a href="#faq" class="nav-link">FAQ</a>
-                <a href="#app" class="nav-link">Приложение</a>
-                <a href="#contacts" class="nav-link">Контакты</a>
-            </nav>
-            <div class="header-actions">
-                <a href="tel:+77027182233" class="header-phone">
-                    <span class="phone-pulse"></span>
-                    +7 702 718 22 33
-                </a>
-                <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-sm" target="_blank" rel="noopener">Записаться</a>
-            </div>
-            <button class="mobile-toggle" id="mobile-toggle" aria-label="Меню">
-                <span></span><span></span><span></span>
-            </button>
+<header class="site-header" id="site-header">
+    <div class="wrap site-header__inner">
+        <a class="brand" href="/" aria-label="GREENTIME — на главную">
+            <img class="brand__mark" src="brand/greentime-logo.png?v=3" width="52" height="52" alt="">
+            <span class="brand__name">GREEN<span class="brand__name-accent">TIME</span></span>
+        </a>
+
+        <nav class="nav" id="nav" aria-label="Основное меню">
+            <a class="nav__link" href="#services">Услуги</a>
+            <a class="nav__link" href="#process">Как проходит</a>
+            <a class="nav__link" href="#calc">Стоимость</a>
+            <a class="nav__link" href="#instructors">Инструкторы</a>
+            <a class="nav__link" href="#faq">Вопросы</a>
+            <a class="nav__link" href="#contacts">Контакты</a>
+        </nav>
+
+        <div class="site-header__actions">
+            <a class="site-header__phone" href="tel:+77078810848">+7 707 881 08 48</a>
+            <a class="btn btn--primary btn--sm" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener">Записаться</a>
         </div>
-    </header>
 
-    <!-- Hero -->
-    <section class="hero">
-        <div class="hero-glow hero-glow-1"></div>
-        <div class="hero-glow hero-glow-2"></div>
-        <div class="hero-grid"></div>
-
-        <div class="container hero-content">
-            <div class="hero-badge reveal-up">
-                <span class="badge-dot"></span>
-                Решил&nbsp;-&nbsp;действуй
-            </div>
-            <h1 class="reveal-up" data-delay="100">
-                Научим водить<br>
-                <span class="hero-accent">
-                    <span class="typewriter" id="typewriter">уверенно</span><span class="typewriter-cursor">|</span>
-                </span>
-            </h1>
-            <p class="hero-sub reveal-up" data-delay="200">
-                GREENTIME — школа практического вождения в Павлодаре.
-                Индивидуальные занятия с инструктором на механике и автомате.
-            </p>
-            <div class="hero-price reveal-up" data-delay="250">
-                <span class="hero-price-amount">7 000 ₸</span>
-                <span class="hero-price-per">/ час практики</span>
-            </div>
-            <div class="hero-actions reveal-up" data-delay="300">
-                <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-lg magnetic" target="_blank" rel="noopener">
-                    <span class="btn-icon">🚀</span>
-                    Записаться на занятие
-                </a>
-                <a href="#services" class="btn btn-glass btn-lg magnetic">
-                    Услуги и цены
-                </a>
-            </div>
-            <div class="hero-stats reveal-up" data-delay="400">
-                <div class="hero-stat">
-                    <strong class="counter" data-target="3">3</strong>
-                    <span id="instructors-label">инструктора</span>
-                </div>
-                <div class="hero-stat-divider"></div>
-                <div class="hero-stat">
-                    <strong>МКПП / АКПП</strong>
-                    <span>на выбор</span>
-                </div>
-                <div class="hero-stat-divider"></div>
-                <div class="hero-stat">
-                    <strong>8:00 – 23:00</strong>
-                    <span>без выходных</span>
-                </div>
-            </div>
-            <div class="hero-scroll-indicator">
-                <div class="scroll-mouse">
-                    <div class="scroll-wheel"></div>
-                </div>
-                <span>Листай вниз</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- How it works -->
-    <section id="how" class="section section-dark">
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">Как проходит</span>
-                <h2 class="section-title">3 простых шага</h2>
-                <p class="section-sub">От заявки до первого уверенного круга по городу</p>
-            </div>
-            <div class="steps-grid">
-                <div class="step-card reveal-up" data-delay="0">
-                    <div class="step-number">01</div>
-                    <div class="step-content">
-                        <h3>Выберите время</h3>
-                        <p>Через Telegram-бот или мобильное приложение. Подберём инструктора под вашу коробку передач.</p>
-                    </div>
-                </div>
-                <div class="step-card reveal-up" data-delay="150">
-                    <div class="step-number">02</div>
-                    <div class="step-content">
-                        <h3>Приезжайте на площадку</h3>
-                        <p>Циолковского 30. Современные учебные автомобили, механика и автомат на выбор.</p>
-                    </div>
-                </div>
-                <div class="step-card reveal-up" data-delay="300">
-                    <div class="step-number">03</div>
-                    <div class="step-content">
-                        <h3>Отработайте навык</h3>
-                        <p>Площадка, город, парковка и разбор ошибок. За одно занятие — максимум практики.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Services -->
-    <section id="services" class="section">
-        <div class="section-bg-glow"></div>
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">Наши услуги</span>
-                <h2 class="section-title">Услуги и цены</h2>
-                <p class="section-sub">Прозрачная цена без скрытых платежей</p>
-            </div>
-            <div class="services-grid">
-                <div class="service-card featured tilt-card reveal-up" data-delay="0">
-                    <div class="card-shine"></div>
-                    <div class="service-badge">
-                        <span class="badge-glow"></span>
-                        Практика вождения
-                    </div>
-                    <div class="service-icon-wrap featured">
-                        <div class="service-icon">🚗</div>
-                    </div>
-                    <h3>Практическое вождение</h3>
-                    <div class="service-price featured">
-                        <span class="price-amount">7 000</span>
-                        <span class="price-currency">₸</span>
-                        <span class="price-per">/ час</span>
-                    </div>
-                    <ul class="service-features">
-                        <li><span class="feat-icon">📍</span> Циолковского 30</li>
-                        <li><span class="feat-icon">⚙️</span> Механика или автомат</li>
-                        <li><span class="feat-icon">👨‍🏫</span> Индивидуально с инструктором</li>
-                        <li><span class="feat-icon">📅</span> Гибкое расписание, 8:00–23:00</li>
-                    </ul>
-                    <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-full magnetic" target="_blank" rel="noopener">Записаться</a>
-                </div>
-                <div class="service-card tilt-card reveal-up" data-delay="150">
-                    <div class="card-shine"></div>
-                    <div class="service-icon-wrap">
-                        <div class="service-icon">✅</div>
-                    </div>
-                    <h3>Что входит в занятие</h3>
-                    <div class="service-price">
-                        <span class="price-amount price-amount-sm">1&nbsp;час</span>
-                        <span class="price-per">за рулём</span>
-                    </div>
-                    <ul class="service-features">
-                        <li><span class="feat-icon">🚙</span> Учебный автомобиль и топливо</li>
-                        <li><span class="feat-icon">🧭</span> Площадка и городской маршрут</li>
-                        <li><span class="feat-icon">🅿️</span> Парковка и развороты</li>
-                        <li><span class="feat-icon">💬</span> Разбор ошибок после занятия</li>
-                    </ul>
-                    <a href="tel:+77027182233" class="btn btn-outline btn-full magnetic">
-                        <span class="btn-icon">📞</span>
-                        Позвонить
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA / Записаться -->
-    <section id="buy" class="section cta-section">
-        <div class="cta-bg"></div>
-        <div class="container">
-            <div class="cta-content reveal-up">
-                <span class="section-tag">Решил - действуй</span>
-                <h2>Готовы сесть за руль?</h2>
-                <p>Запишитесь на первое занятие — выберите удобный день и инструктора</p>
-                <div class="cta-actions">
-                    <a href="https://t.me/nomadrive_bot" class="btn btn-glow btn-lg magnetic" target="_blank" rel="noopener">
-                        <span class="btn-icon">📩</span>
-                        Записаться в Telegram
-                    </a>
-                    <a href="tel:+77027182233" class="btn btn-glass btn-lg magnetic">
-                        <span class="btn-icon">📞</span>
-                        +7 702 718 22 33
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="section section-dark">
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">FAQ</span>
-                <h2 class="section-title">Частые вопросы</h2>
-            </div>
-            <div id="faq-list" class="faq-container">
-                <p class="faq-loading">Загрузка...</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Instructors -->
-    <section id="instructors" class="section section-dark">
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">Наша команда</span>
-                <h2 class="section-title">Наши инструкторы</h2>
-                <p class="section-sub">Инструктор назначается автоматически по специализации и расписанию</p>
-            </div>
-            <div class="instructors-grid" id="instructors-cards">
-                <div class="instructor-placeholder">
-                    <div class="loader-dots"><span></span><span></span><span></span></div>
-                </div>
-            </div>
-            <div class="features-row reveal-up">
-                <div class="feature-item">
-                    <span class="feature-icon">⚙️</span>
-                    <span>Механика и автомат</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📅</span>
-                    <span>Без выходных, 8:00–23:00</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">👨‍🏫</span>
-                    <span>Опытные инструкторы</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- App Download -->
-    <section id="app" class="section section-dark app-section">
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">Мобильное приложение</span>
-                <h2 class="section-title">Скачайте приложение GREENTIME</h2>
-                <p class="section-sub">Записывайтесь на занятия, отслеживайте расписание и общайтесь с поддержкой прямо с телефона</p>
-            </div>
-            <div class="app-blocks reveal-up">
-                <div class="app-block tilt-card">
-                    <div class="card-shine"></div>
-                    <div class="app-block-icon">📱</div>
-                    <h3>Запись на занятия</h3>
-                    <p>Выберите дату, время и инструктора в пару кликов</p>
-                </div>
-                <div class="app-block tilt-card" data-delay="100">
-                    <div class="card-shine"></div>
-                    <div class="app-block-icon">📅</div>
-                    <h3>Ваше расписание</h3>
-                    <p>Все занятия в одном месте — история и предстоящие уроки</p>
-                </div>
-                <div class="app-block tilt-card" data-delay="200">
-                    <div class="card-shine"></div>
-                    <div class="app-block-icon">💬</div>
-                    <h3>Чат с поддержкой</h3>
-                    <p>Задайте вопрос и получите ответ от команды GREENTIME</p>
-                </div>
-            </div>
-            <div class="app-download reveal-up">
-                <div class="app-phone-mockup">
-                    <img src="img/app-screen.png" alt="Приложение GREENTIME"
-                         style="width:100%;height:100%;object-fit:cover;border-radius:34px;display:block;">
-                </div>
-                <div class="app-download-info">
-                    <div class="app-badges">
-                        <div class="app-badge-item">
-                            <span class="badge-icon">✅</span>
-                            <span>Бесплатно</span>
-                        </div>
-                        <div class="app-badge-item">
-                            <span class="badge-icon">✅</span>
-                            <span>Android 5.0+</span>
-                        </div>
-                        <div class="app-badge-item">
-                            <span class="badge-icon">✅</span>
-                            <span>Без регистрации в Play Store</span>
-                        </div>
-                    </div>
-                    <a href="/greentime.apk" class="btn btn-glow btn-lg magnetic app-download-btn" download>
-                        <span class="btn-icon">⬇️</span>
-                        Скачать APK для Android
-                    </a>
-                    <p class="app-install-hint">
-                        После скачивания разрешите установку из неизвестных источников в настройках телефона
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contacts -->
-    <section id="contacts" class="section">
-        <div class="container">
-            <div class="section-header reveal-up">
-                <span class="section-tag">Контакты</span>
-                <h2 class="section-title">Свяжитесь с нами</h2>
-            </div>
-            <div class="contacts-grid">
-                <div class="contact-card tilt-card reveal-up" data-delay="0">
-                    <div class="card-shine"></div>
-                    <div class="contact-icon-wrap"><span class="contact-icon">📞</span></div>
-                    <h3>Телефон</h3>
-                    <a href="tel:+77027182233" class="contact-link">+7 702 718 22 33</a>
-                </div>
-                <div class="contact-card tilt-card reveal-up" data-delay="100">
-                    <div class="card-shine"></div>
-                    <div class="contact-icon-wrap"><span class="contact-icon">✈️</span></div>
-                    <h3>Telegram-бот</h3>
-                    <a href="https://t.me/nomadrive_bot" class="contact-link" target="_blank" rel="noopener">Записаться в боте</a>
-                </div>
-                <div class="contact-card tilt-card reveal-up" data-delay="150">
-                    <div class="card-shine"></div>
-                    <div class="contact-icon-wrap"><span class="contact-icon">📍</span></div>
-                    <h3>Площадка</h3>
-                    <span class="contact-link contact-link-static">Циолковского 30</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container footer-inner">
-            <div class="footer-top">
-                <div class="footer-brand">
-                    <img src="brand/greentime-logo.png" alt="" class="footer-logo">
-                    <span class="footer-brand-text">GREEN<span class="logo-wordmark-accent">TIME</span></span>
-                </div>
-                <nav class="footer-nav">
-                    <a href="#services">Услуги</a>
-                    <a href="#how">Как проходит</a>
-                    <a href="#instructors">Инструкторы</a>
-                    <a href="#faq">FAQ</a>
-                    <a href="#contacts">Контакты</a>
-                </nav>
-                <div class="footer-social">
-                    <a href="https://t.me/nomadrive_bot" target="_blank" rel="noopener noreferrer" class="social-link" title="Telegram">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.53.36-.99.54-1.4.52-.46-.02-1.35-.26-2.01-.47-.81-.26-1.46-.4-1.41-.85.03-.23.42-.47 1.17-.73 4.59-2 7.66-3.32 9.21-3.95 4.39-1.82 5.3-1.97 5.89-1.98.13 0 .42.03.61.18.16.13.2.31.22.45.01.1.03.32.01.5z"/>
-                        </svg>
-                    </a>
-                    <a href="tel:+77027182233" class="social-link" title="Позвонить">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p class="footer-slogan">Решил - действуй</p>
-                <p>&copy; 2026 GREENTIME. Школа практического вождения. Все права защищены.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Chat Widget -->
-    <div id="chat-widget">
-        <button id="chat-toggle" class="chat-toggle-btn" onclick="toggleChat()" aria-label="Открыть чат">
-            <span class="chat-pulse"></span>
-            <span class="chat-label">💬 Задать вопрос</span>
+        <button class="burger" id="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="nav">
+            <span></span><span></span><span></span>
         </button>
-        <div id="chat-window" class="chat-window hidden">
-            <div class="chat-header">
-                <span>🤖 Помощник GREENTIME</span>
-                <button onclick="toggleChat()" class="chat-close" aria-label="Закрыть">✕</button>
+    </div>
+</header>
+
+<main>
+
+    <!-- ─── Первый экран ─────────────────────────────────────────────────── -->
+    <section class="hero">
+        <div class="hero__bg" aria-hidden="true">
+            <span class="blob blob--green"></span>
+            <span class="blob blob--cyan"></span>
+            <span class="blob blob--mint"></span>
+            <svg class="hero__road" viewBox="0 0 1200 600" fill="none" preserveAspectRatio="none">
+                <path class="road road--1" d="M-50 470 C 250 470, 320 300, 620 300 S 980 130, 1260 130" />
+                <path class="road road--2" d="M-50 540 C 260 540, 340 380, 640 380 S 1000 210, 1280 210" />
+            </svg>
+        </div>
+
+        <div class="wrap hero__inner">
+            <div class="hero__text">
+                <p class="eyebrow reveal">Решил - действуй</p>
+                <h1 class="hero__title reveal" data-delay="60">Практика вождения<br><span class="grad">в Павлодаре</span></h1>
+                <p class="hero__lead reveal" data-delay="120">
+                    GREENTIME — школа практического вождения. Индивидуальные занятия
+                    с инструктором на механике и автомате, площадка по адресу Лесная 5.
+                </p>
+                <div class="hero__actions reveal" data-delay="180">
+                    <a class="btn btn--primary btn--lg magnetic" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener">Записаться на занятие</a>
+                    <a class="btn btn--ghost btn--lg" href="tel:+77078810848">Позвонить</a>
+                </div>
+                <dl class="hero__facts reveal" data-delay="240">
+                    <div class="fact">
+                        <dt>Стоимость</dt>
+                        <dd>7 000 ₸ / час</dd>
+                    </div>
+                    <div class="fact">
+                        <dt>Работаем</dt>
+                        <dd>8:00 – 22:00</dd>
+                    </div>
+                    <div class="fact">
+                        <dt>Коробка передач</dt>
+                        <dd>МКПП / АКПП</dd>
+                    </div>
+                </dl>
             </div>
-            <div id="chat-messages" class="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Введите вопрос..." onkeydown="if(event.key==='Enter')sendMessage()">
-                <button onclick="sendMessage()" class="chat-send" aria-label="Отправить">→</button>
-            </div>
+
+            <aside class="price-card reveal" data-delay="120" aria-label="Стоимость занятия">
+                <span class="price-card__shine" aria-hidden="true"></span>
+                <p class="price-card__label">Практическое вождение</p>
+                <p class="price-card__value">7 000 <span>₸</span></p>
+                <p class="price-card__note">за один час за рулём</p>
+                <ul class="price-card__list">
+                    <li>60 минут практики с инструктором</li>
+                    <li>Учебный автомобиль и топливо</li>
+                    <li>Площадка и городской маршрут</li>
+                    <li>Разбор ошибок после занятия</li>
+                </ul>
+                <a class="btn btn--primary btn--full" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener">Выбрать время</a>
+                <p class="price-card__hint">Запись через Telegram, WhatsApp или по телефону</p>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ─── Бегущая строка ───────────────────────────────────────────────── -->
+    <div class="ticker" aria-hidden="true">
+        <div class="ticker__track">
+            <span class="ticker__item">МКПП</span><span class="ticker__dot"></span>
+            <span class="ticker__item">АКПП</span><span class="ticker__dot"></span>
+            <span class="ticker__item">Лесная 5</span><span class="ticker__dot"></span>
+            <span class="ticker__item">7 000 ₸ за час</span><span class="ticker__dot"></span>
+            <span class="ticker__item">8:00 – 22:00</span><span class="ticker__dot"></span>
+            <span class="ticker__item">Решил - действуй</span><span class="ticker__dot"></span>
+            <span class="ticker__item">МКПП</span><span class="ticker__dot"></span>
+            <span class="ticker__item">АКПП</span><span class="ticker__dot"></span>
+            <span class="ticker__item">Лесная 5</span><span class="ticker__dot"></span>
+            <span class="ticker__item">7 000 ₸ за час</span><span class="ticker__dot"></span>
+            <span class="ticker__item">8:00 – 22:00</span><span class="ticker__dot"></span>
+            <span class="ticker__item">Решил - действуй</span><span class="ticker__dot"></span>
         </div>
     </div>
 
-    <script src="js/landing.js"></script>
+    <!-- ─── Преимущества ─────────────────────────────────────────────────── -->
+    <section class="section" id="services">
+        <div class="wrap">
+            <header class="section__head reveal">
+                <p class="eyebrow">Почему GREENTIME</p>
+                <h2 class="section__title">Занятие целиком за вами</h2>
+                <p class="section__lead">Никаких групп и очередей: один ученик, один инструктор, один автомобиль.</p>
+            </header>
+
+            <div class="features">
+                <article class="feature reveal tilt" data-delay="0">
+                    <span class="feature__icon" aria-hidden="true">🚗</span>
+                    <h3 class="feature__title">Индивидуально</h3>
+                    <p class="feature__text">Всё время занятия вы за рулём. Инструктор рядом и работает только с вами.</p>
+                </article>
+                <article class="feature reveal tilt" data-delay="80">
+                    <span class="feature__icon" aria-hidden="true">🛣️</span>
+                    <h3 class="feature__title">Живая практика</h3>
+                    <p class="feature__text">Площадка, городской маршрут, парковка и развороты — то, что нужно каждый день.</p>
+                </article>
+                <article class="feature reveal tilt" data-delay="160">
+                    <span class="feature__icon" aria-hidden="true">🕗</span>
+                    <h3 class="feature__title">Удобный график</h3>
+                    <p class="feature__text">Ежедневно с 8:00 до 22:00. Выбирайте время под работу и учёбу.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Как проходит ─────────────────────────────────────────────────── -->
+    <section class="section section--soft" id="process">
+        <div class="wrap">
+            <header class="section__head reveal">
+                <p class="eyebrow">Как проходит</p>
+                <h2 class="section__title">Три шага до первого круга</h2>
+            </header>
+
+            <ol class="steps">
+                <li class="step reveal" data-delay="0">
+                    <span class="step__num">01</span>
+                    <h3 class="step__title">Запишитесь</h3>
+                    <p class="step__text">В Telegram-боте или по телефону. Скажите удобный день и коробку передач.</p>
+                </li>
+                <li class="step reveal" data-delay="100">
+                    <span class="step__num">02</span>
+                    <h3 class="step__title">Приезжайте на площадку</h3>
+                    <p class="step__text">Лесная 5. Инструктор встретит вас у учебного автомобиля.</p>
+                </li>
+                <li class="step reveal" data-delay="200">
+                    <span class="step__num">03</span>
+                    <h3 class="step__title">Садитесь за руль</h3>
+                    <p class="step__text">Час практики: упражнения, город, разбор ошибок и план на следующее занятие.</p>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- ─── Калькулятор ──────────────────────────────────────────────────── -->
+    <section class="section" id="calc">
+        <div class="wrap">
+            <div class="calc reveal">
+                <div class="calc__text">
+                    <p class="eyebrow">Стоимость</p>
+                    <h2 class="section__title">Посчитайте своё обучение</h2>
+                    <p class="section__lead">Один час — 7 000 ₸. Двигайте ползунок и смотрите итог.</p>
+                    <p class="calc__note">Оплата наличными или через Kaspi QR. Скрытых платежей нет.</p>
+                </div>
+
+                <div class="calc__panel">
+                    <div class="calc__row">
+                        <label class="calc__label" for="hours">Количество часов</label>
+                        <output class="calc__hours" id="hours-out">1 час</output>
+                    </div>
+                    <input class="calc__range" id="hours" type="range" min="1" max="10" value="1" step="1" aria-describedby="calc-sum">
+                    <div class="calc__scale" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
+                    <p class="calc__hint">Каждое дополнительное занятие — на 500 ₸ дешевле</p>
+                    <div class="calc__total">
+                        <div class="calc__total-text">
+                            <span class="calc__total-label">Итого</span>
+                            <span class="calc__save" id="calc-save" hidden></span>
+                        </div>
+                        <span class="calc__sum" id="calc-sum">7 000 ₸</span>
+                    </div>
+                    <a class="btn btn--primary btn--full" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener">Записаться на занятие</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Инструкторы ──────────────────────────────────────────────────── -->
+    <section class="section section--soft" id="instructors">
+        <div class="wrap">
+            <header class="section__head reveal">
+                <p class="eyebrow">Команда</p>
+                <h2 class="section__title">Наши инструкторы</h2>
+                <p class="section__lead">Инструктор подбирается по коробке передач и свободному времени.</p>
+            </header>
+
+            <div class="team" id="team">
+                <p class="team__loading">Загрузка…</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── FAQ ──────────────────────────────────────────────────────────── -->
+    <section class="section" id="faq">
+        <div class="wrap">
+            <header class="section__head reveal">
+                <p class="eyebrow">Вопросы</p>
+                <h2 class="section__title">Частые вопросы</h2>
+            </header>
+
+            <div class="faq" id="faq-list">
+                <p class="faq__loading">Загрузка…</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Контакты ─────────────────────────────────────────────────────── -->
+    <section class="section section--soft" id="contacts">
+        <div class="wrap">
+            <header class="section__head reveal">
+                <p class="eyebrow">Контакты</p>
+                <h2 class="section__title">Запишитесь на занятие</h2>
+                <p class="section__lead">Ответим в течение дня и подберём удобное время.</p>
+            </header>
+
+            <div class="contacts">
+                <a class="contact reveal" href="tel:+77078810848" data-delay="0">
+                    <span class="contact__icon" aria-hidden="true">📞</span>
+                    <span class="contact__label">Телефон</span>
+                    <span class="contact__value">+7 707 881 08 48</span>
+                </a>
+                <a class="contact reveal" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener" data-delay="60">
+                    <span class="contact__icon" aria-hidden="true">✈️</span>
+                    <span class="contact__label">Telegram-бот</span>
+                    <span class="contact__value">@green_time_drive_bot</span>
+                </a>
+                <a class="contact reveal" href="https://t.me/greentime_pvl" target="_blank" rel="noopener" data-delay="120">
+                    <span class="contact__icon" aria-hidden="true">💬</span>
+                    <span class="contact__label">Telegram-группа</span>
+                    <span class="contact__value">@greentime_pvl</span>
+                </a>
+                <a class="contact reveal" href="https://wa.me/77078810848" target="_blank" rel="noopener" data-delay="180">
+                    <span class="contact__icon" aria-hidden="true">💚</span>
+                    <span class="contact__label">WhatsApp</span>
+                    <span class="contact__value">+7 707 881 08 48</span>
+                </a>
+                <div class="contact contact--static reveal" data-delay="240">
+                    <span class="contact__icon" aria-hidden="true">📍</span>
+                    <span class="contact__label">Площадка</span>
+                    <span class="contact__value">Лесная 5</span>
+                </div>
+                <div class="contact contact--static reveal" data-delay="300">
+                    <span class="contact__icon" aria-hidden="true">🕗</span>
+                    <span class="contact__label">Часы работы</span>
+                    <span class="contact__value">Ежедневно 8:00 – 22:00</span>
+                </div>
+            </div>
+
+            <div class="contacts__cta reveal">
+                <a class="btn btn--primary btn--lg magnetic" href="https://t.me/green_time_drive_bot" target="_blank" rel="noopener">Записаться в Telegram</a>
+                <a class="btn btn--ghost btn--lg" href="tel:+77078810848">Позвонить</a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="footer">
+    <div class="wrap footer__inner">
+        <a class="brand brand--footer" href="/">
+            <img class="brand__mark" src="brand/greentime-logo.png?v=3" width="34" height="34" alt="">
+            <span class="brand__name">GREEN<span class="brand__name-accent">TIME</span></span>
+        </a>
+        <p class="footer__text">Школа практического вождения · Павлодар, Лесная 5</p>
+        <p class="footer__copy">© 2026 GREENTIME</p>
+    </div>
+</footer>
+
+<!-- Чат-помощник -->
+<div class="chat" id="chat">
+    <button class="chat__toggle" id="chat-toggle" type="button" aria-expanded="false" aria-controls="chat-window">
+        <span class="chat__dot" aria-hidden="true"></span>
+        Задать вопрос
+    </button>
+    <div class="chat__backdrop" id="chat-backdrop" hidden></div>
+    <div class="chat__window" id="chat-window" role="dialog" aria-modal="true" aria-label="Помощник GREENTIME" hidden>
+        <div class="chat__grabber" aria-hidden="true"></div>
+        <div class="chat__head">
+            <span>Помощник GREENTIME</span>
+            <button class="chat__close" id="chat-close" type="button" aria-label="Закрыть чат">✕</button>
+        </div>
+        <div class="chat__messages" id="chat-messages" aria-live="polite"></div>
+        <form class="chat__form" id="chat-form">
+            <input class="chat__input" id="chat-input" type="text" placeholder="Ваш вопрос" autocomplete="off">
+            <button class="chat__send" type="submit" aria-label="Отправить">→</button>
+        </form>
+    </div>
+</div>
+
+<script src="js/landing.js?v=7"></script>
 </body>
 </html>

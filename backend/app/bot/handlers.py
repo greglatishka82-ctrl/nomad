@@ -288,7 +288,22 @@ async def _get_client_by_telegram(telegram_id: str) -> Optional[Client]:
         return result.scalar_one_or_none()
 
 
+async def _show_transmission_keyboard(target, client_name: str):
+    """Первый шаг записи: сразу коробка передач.
+
+    Услуга одна — практическое вождение, поэтому выбор «вождение / пробный
+    экзамен» убран из шагов записи.
+    """
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚙️ Механика", callback_data="trans:manual")],
+        [InlineKeyboardButton(text="🔄 Автомат", callback_data="trans:automatic")],
+    ])
+    text = f"{client_name}, выберите коробку передач:" if client_name else "Выберите коробку передач:"
+    await target.answer(text, reply_markup=kb)
+
+
 async def _show_service_keyboard(target, client_name: str):
+    """Оставлено для старых сообщений с кнопками выбора услуги."""
     kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
     text = f"{client_name}, выберите услугу:" if client_name else "Выберите услугу:"
     await target.answer(text, reply_markup=kb)
@@ -311,27 +326,21 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
         await state.set_state(BookingStates.choosing_service)
 
     elif current == BookingStates.choosing_transmission.state:
-        # Возврат к выбору услуги
-        data = await state.get_data()
-        kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
-        await callback.message.edit_text(f"{data.get('client_name', '')}, выберите услугу:", reply_markup=kb)
-        await state.set_state(BookingStates.choosing_service)
+        # Перед выбором КПП шагов больше нет — выходим из записи
+        await callback.message.edit_text(
+            "Запись отменена. Нажмите «Записаться», чтобы начать заново.",
+            reply_markup=None,
+        )
+        await state.clear()
 
     elif current == BookingStates.choosing_instructor_gender.state:
-        data = await state.get_data()
-        service = data.get("service_type", "training")
-        if service == "exam":
-            # Для экзамена КПП не выбирается — возвращаемся к выбору услуги
-            kb = InlineKeyboardMarkup(inline_keyboard=_service_buttons())
-            await callback.message.edit_text(f"{data.get('client_name', '')}, выберите услугу:", reply_markup=kb)
-            await state.set_state(BookingStates.choosing_service)
-        else:
-            kb = _kb_with_back([
-                [InlineKeyboardButton(text="⚙️ Механика", callback_data="trans:manual")],
-                [InlineKeyboardButton(text="🔄 Автомат", callback_data="trans:automatic")],
-            ])
-            await callback.message.edit_text("Выберите коробку передач:", reply_markup=kb)
-            await state.set_state(BookingStates.choosing_transmission)
+        # Возврат к выбору коробки передач
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚙️ Механика", callback_data="trans:manual")],
+            [InlineKeyboardButton(text="🔄 Автомат", callback_data="trans:automatic")],
+        ])
+        await callback.message.edit_text("Выберите коробку передач:", reply_markup=kb)
+        await state.set_state(BookingStates.choosing_transmission)
 
     elif current == BookingStates.choosing_instructor.state:
         kb = _kb_with_back([
@@ -427,46 +436,47 @@ async def cmd_start(message: Message, state: FSMContext):
     if referral_code:
         await state.update_data(referral_code=referral_code)
 
-    client = await _get_client_by_telegram(str(message.from_user.id))
-    if client:
-        # Существующий клиент — сразу показываем меню
-        await message.answer(
-            "С возвращением! 👋",
-            reply_markup=MAIN_KEYBOARD,
+    # Telegram не сообщает боту, что клиент удалил чат или заблокировал его,
+    # поэтому одно приветствие показываем всем: и новым, и вернувшимся.
+    welcome_text = (
+        "Добро пожаловать! 👋\n\n"
+        "Секрет успеха - правильное обучение.\n\n"
+        "Вот что мы предлагаем:\n\n"
+        f"🚗 Вождение — {_money(settings.PRICE_TRAINING_NEW)} ₸/час\n"
+        f"Занятие с инструктором на площадке {settings.LOCATION_MAIN}.\n"
+        "В стоимость входит - наш автомобиль, топливо, площадка, сервис\n"
+        "Выберите желаемый вид КПП, инструктора, удобные день и время"
+    )
+    if settings.EXAM_ENABLED:
+        welcome_text += (
+            "\n\n"
+            f"📋 Пробный экзамен — {_money(settings.PRICE_EXAM)} ₸\n"
+            "1 круг / 20 минут — проверить себя перед настоящим экзаменом."
         )
-    else:
-        # Новый пользователь — показываем приветственный текст
-        welcome_text = (
-            "Добро пожаловать в <b>GREENTIME</b>! 👋\n"
-            "<i>Решил - действуй</i>\n\n"
-            "Школа практического вождения в Павлодаре.\n\n"
-            "Вот что мы предлагаем:\n\n"
-            f"🚗 <b>Вождение — {_money(settings.PRICE_TRAINING_NEW)} ₸/час</b>\n"
-            "Занятие с инструктором на площадке Циолковского 30.\n\n"
-            "Механика и автомат на выбор, запись на удобное время."
-        )
-        if settings.EXAM_ENABLED:
-            welcome_text += (
-                "\n\n"
-                f"📋 <b>Пробный экзамен — {_money(settings.PRICE_EXAM)} ₸</b>\n"
-                "1 круг / 20 минут — проверить себя перед настоящим экзаменом."
-            )
-        await message.answer(welcome_text, reply_markup=MAIN_KEYBOARD, parse_mode="HTML")
+    await message.answer(welcome_text, reply_markup=MAIN_KEYBOARD, parse_mode="HTML")
 
 
 @router.message(F.text == "📝 Записаться")
 async def btn_book(message: Message, state: FSMContext):
     await state.clear()
 
+    # Услуга одна — практическое вождение, поэтому запись начинается сразу
+    # с выбора коробки передач.
+    await state.update_data(
+        service_type="training",
+        location=settings.LOCATION_MAIN,
+        price=settings.PRICE_TRAINING_NEW,
+    )
+
     client = await _get_client_by_telegram(str(message.from_user.id))
     if client:
         await state.update_data(client_name=client.name, client_id=client.id)
-        await _show_service_keyboard(message, client.name)
-        await state.set_state(BookingStates.choosing_service)
+        await _show_transmission_keyboard(message, client.name)
     else:
-        # Новый пользователь — сразу начинаем запись, имя спросим в конце
-        await _show_service_keyboard(message, "")
-        await state.set_state(BookingStates.choosing_service)
+        # Новый пользователь — имя спросим в конце записи
+        await _show_transmission_keyboard(message, "")
+
+    await state.set_state(BookingStates.choosing_transmission)
 
 
 @router.message(BookingStates.waiting_name)
@@ -503,7 +513,7 @@ async def process_service(callback: CallbackQuery, state: FSMContext):
     if service == "exam":
         await state.update_data(
             transmission="automatic",
-            location="Циолковского 30",
+            location="Лесная 5",
             price=settings.PRICE_EXAM
         )
         kb = _kb_with_back([
@@ -1107,7 +1117,6 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
     pending_msg = (
         f"⏳ <b>Ваша заявка находится в обработке. Ожидайте подтверждения.</b>\n\n"
         f"Если подтверждение не пришло в течение 15 минут, свяжитесь с администратором школы GREENTIME.\n\n"
-        f"📞 +7 702 718 22 33\n"
         f"📞 +7 707 881 08 48\n\n"
         f"⏰ Заявки подтверждаются в рабочее время с 08:00 до 19:00.\n"
         f"Заявки, созданные после рабочего времени, рассматриваются и подтверждаются на следующий день."
@@ -1710,7 +1719,7 @@ async def how_to_book(message: Message):
         "4. Выберите дату и свободное время.\n"
         "5. Подтвердите запись.\n\n"
         "Инструктор назначается автоматически из свободных и подходящих по КПП. "
-        "Занятия и пробный экзамен проходят на Циолковского 30.",
+        "Занятия проходят по адресу Лесная 5.",
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -1718,9 +1727,9 @@ async def how_to_book(message: Message):
 @router.message(F.text == "📞 Контакты")
 async def contacts(message: Message):
     await message.answer(
-        "📞 Телефон: +77027182233\n"
-        "📍 Занятия и пробный экзамен: Циолковского 30\n"
-        "🤖 Бот: https://t.me/nomadrive_bot",
+        "📞 Телефон: +77078810848\n"
+        "📍 Занятия: Лесная 5\n"
+        "🤖 Бот: https://t.me/green_time_drive_bot",
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -2365,7 +2374,7 @@ async def referral_command(message: Message):
             select(func.count()).select_from(ReferralRecord).where(ReferralRecord.referrer_client_id == client.id)
         )
         ref_count = ref_count_result.scalar() or 0
-    link = f"https://t.me/nomadrive_bot?start={client.referral_code}"
+    link = f"https://t.me/green_time_drive_bot?start={client.referral_code}"
     await message.answer(
         f"🎁 <b>Реферальная программа</b>\n\n"
         f"Пригласите друга — и он получит скидку 1000 ₸ на первое занятие,\n"
@@ -2412,7 +2421,7 @@ async def packages_command(message: Message):
     for p in packages:
         per_session = p.price // p.sessions_count if p.sessions_count else 0
         text += f"• <b>{p.name}</b>: {p.sessions_count} занятий за {p.price} ₸ ({per_session} ₸/занятие)\n"
-    text += "\nДля покупки пакета свяжитесь с нами: +77027182233"
+    text += "\nДля покупки пакета свяжитесь с нами: +77078810848"
     text += my_packages_text
     await message.answer(text, parse_mode="HTML", reply_markup=MAIN_KEYBOARD)
 

@@ -34,8 +34,8 @@ class Settings:
     MIN_RATING = 1.0
     TRAINING_DURATION_MINUTES = 60
     EXAM_DURATION_MINUTES = 20
-    LOCATION_MAIN = "Циолковского 30"
-    LOCATION_EXAM = "Циолковского 30"
+    LOCATION_MAIN = "Лесная 5"
+    LOCATION_EXAM = "Лесная 5"
     PRICE_TRAINING = 7000
     PRICE_TRAINING_NEW = 7000
     PRICE_EXAM = 3500

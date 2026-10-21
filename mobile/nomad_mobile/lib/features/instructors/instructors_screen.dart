@@ -301,7 +301,7 @@ class _ContactsTab extends ConsumerWidget {
           const _ContactLink(
             icon: Icons.telegram,
             title: 'Телеграм',
-            url: 'https://t.me/nomadrive_bot',
+            url: 'https://t.me/green_time_drive_bot',
           ),
         ],
       ),

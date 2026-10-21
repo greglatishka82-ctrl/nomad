@@ -37,12 +37,19 @@ async def _seed_admin():
 async def _scheduler_loop(bot, client_bot_polling_enabled: bool = True):
     while True:
         try:
+            # Статусы занятий и возвраты в пакеты — внутренняя логика БД,
+            # сообщений клиентам не отправляет.
             await run_automatic_lesson_transitions()
-            await send_lesson_reminders(bot)
-            if client_bot_polling_enabled:
-                await send_confirmation_reminders(bot)
-                await send_rating_requests(bot)
-                await check_unconfirmed_bookings(bot)
+
+            # Любые рассылки клиентам включаются только флагом
+            # BOT_NOTIFICATIONS_ENABLED. Пока он выключен, новый бот не пишет
+            # никому: ни напоминания, ни подтверждения, ни оценки.
+            if settings.BOT_NOTIFICATIONS_ENABLED:
+                await send_lesson_reminders(bot)
+                if client_bot_polling_enabled:
+                    await send_confirmation_reminders(bot)
+                    await send_rating_requests(bot)
+                    await check_unconfirmed_bookings(bot)
         except Exception as e:
             logger.error(f"Scheduler error: {e}")
         await asyncio.sleep(60)

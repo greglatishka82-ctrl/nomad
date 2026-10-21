@@ -49,7 +49,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       setState(() => _messages.add(const _ChatMessage(
           role: 'assistant',
           text:
-              'Не удалось получить ответ. Попробуйте позже или позвоните: +7 702 718 22 33')));
+              'Не удалось получить ответ. Попробуйте позже или позвоните: +7 707 881 08 48')));
     } finally {
       if (mounted) setState(() => _loading = false);
       _scrollToBottom();
@@ -154,7 +154,7 @@ class _AiChatBottomSheetState extends ConsumerState<AiChatBottomSheet> {
     } catch (_) {
       setState(() => _messages.add(const _ChatMessage(
           role: 'assistant',
-          text: 'Ошибка. Позвоните: +7 702 718 22 33')));
+          text: 'Ошибка. Позвоните: +7 707 881 08 48')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

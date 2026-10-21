@@ -33,6 +33,9 @@ class Settings:
     # Пробный экзамен временно не продаём: услуга скрыта на сайте, в боте и
     # приложении. Старые записи с типом EXAM продолжают читаться.
     EXAM_ENABLED: bool = _env_bool("EXAM_ENABLED", False)
+    # Рассылки клиентам из бота (напоминания, подтверждения, оценки).
+    # По умолчанию выключены: новый бот не должен писать по старым записям.
+    BOT_NOTIFICATIONS_ENABLED: bool = _env_bool("BOT_NOTIFICATIONS_ENABLED", False)
     ADMIN_USERNAME: str = _env("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD: str = _env("ADMIN_PASSWORD", "admin123")
     DATABASE_URL: str = _env("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'nomad.db'}")
@@ -46,27 +49,27 @@ class Settings:
     BRAND_NAME = "GREENTIME"
     BRAND_TAGLINE = "Решил - действуй"
     BRAND_SUBTITLE = "Школа практического вождения"
-    PHONE = "+7 702 718 22 33"
-    PHONE_RAW = "+77027182233"
-    TELEGRAM_BOT_URL = "https://t.me/nomadrive_bot"
+    PHONE = "+7 707 881 08 48"
+    PHONE_RAW = "+77078810848"
+    TELEGRAM_BOT_URL = "https://t.me/green_time_drive_bot"
     PUBLIC_SITE_URL: str = _env(
         "PUBLIC_SITE_URL", "https://greentime.57-129-153-111.sslip.io"
     )
 
-    LOCATION_MAIN = "Циолковского 30"
-    LOCATION_EXAM = "Циолковского 30"
+    LOCATION_MAIN = "Лесная 5"
+    LOCATION_EXAM = "Лесная 5"
     PRICE_TRAINING = 7000
     PRICE_TRAINING_NEW = 7000
     PRICE_EXAM = 3500
     TRAINING_DURATION_MINUTES = 60
     EXAM_DURATION_MINUTES = 20
-    MAX_CARS_EXAM_LOCATION = 6    # максимум машин на Циолковского 30
+    MAX_CARS_EXAM_LOCATION = 6    # максимум машин на Лесной 5
     MAX_CARS_MAIN_LOCATION = 6    # оставлено для совместимости; площадка одна
     MAX_INSTRUCTORS_PER_LOCATION = 3
     # Рабочие часы школы — только для показа клиенту (лендинг, приложение, бот).
     # На выбор слотов они НЕ влияют: границу задаёт график инструктора.
     WORKING_HOURS_START = 8
-    WORKING_HOURS_END = 23
+    WORKING_HOURS_END = 22
     # Последний час старта пробного экзамена. Это единственное ограничение
     # для клиента, заданное бизнес-правилом; 0 или None — без ограничения,
     # тогда экзамен идёт по графику инструктора, как и вождение.

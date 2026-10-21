@@ -12,6 +12,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 from sqlalchemy import and_, select, func
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.database import async_session
 from app.models.models import (
     AuditLog, Booking, BookingStatus, Client, Instructor, ServiceType,
@@ -63,26 +64,20 @@ async def _log_instructor_action(instructor: Instructor, action: str, details: s
 
 
 async def _get_instructor(message) -> Optional[Instructor]:
+    """Инструктор, уже подтвердивший вход в этом боте.
+
+    Ищем только по telegram_id: подтвердить номер можно единственным способом —
+    кнопкой «Поделиться номером» в handle_contact. Привязка по username
+    отключена, иначе вход проходил бы без проверки телефона.
+    """
+    if not message.from_user or not message.from_user.id:
+        return None
+
     async with async_session() as db:
-        if message.from_user.id:
-            result = await db.execute(
-                select(Instructor).where(Instructor.telegram_id == str(message.from_user.id))
-            )
-            instructor = result.scalar_one_or_none()
-            if instructor:
-                return instructor
-
-        if message.from_user.username:
-            result = await db.execute(
-                select(Instructor).where(Instructor.telegram_username == message.from_user.username)
-            )
-            instructor = result.scalar_one_or_none()
-            if instructor:
-                instructor.telegram_id = str(message.from_user.id)
-                await db.commit()
-                return instructor
-
-    return None
+        result = await db.execute(
+            select(Instructor).where(Instructor.telegram_id == str(message.from_user.id))
+        )
+        return result.scalar_one_or_none()
 
 
 async def _get_instructor_by_phone(phone: str) -> Optional[Instructor]:
@@ -247,6 +242,8 @@ async def run_automatic_lesson_transitions() -> None:
                 and booking.status in ("planned", "confirmed")
                 and instructor_bot
                 and booking.instructor_id
+                # Вопрос инструктору — тоже рассылка, поэтому под тем же флагом.
+                and settings.BOT_NOTIFICATIONS_ENABLED
             ):
                 instructor = await db.get(Instructor, booking.instructor_id)
                 prompt_sent = (await db.execute(
@@ -442,7 +439,10 @@ async def start(message: types.Message):
     instructor = await _get_instructor(message)
     if not instructor:
         await message.answer(
-            "Для доступа к боту инструктора поделитесь своим номером телефона:",
+            "🔐 Бот инструктора GREENTIME.\n\n"
+            "Чтобы получить доступ, подтвердите свой номер телефона — "
+            "нажмите кнопку ниже. Номер должен совпадать с тем, что указан "
+            "у вас в системе школы.",
             reply_markup=SHARE_PHONE_KEYBOARD,
         )
         return
@@ -481,7 +481,7 @@ async def handle_contact(message: types.Message):
             await db.commit()
 
     await message.answer(
-        f"✅ Добро пожаловать, {instructor.name}!\nВыберите период:",
+        f"✅ Номер подтверждён. Добро пожаловать, {instructor.name}!\nВыберите период:",
         reply_markup=INSTRUCTOR_KEYBOARD,
     )
     today = now_kz().date()

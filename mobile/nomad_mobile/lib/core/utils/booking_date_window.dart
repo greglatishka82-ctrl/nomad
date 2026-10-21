@@ -1,4 +1,4 @@
-const String kFixedBookingLocation = 'Циолковского 30';
+const String kFixedBookingLocation = 'Лесная 5';
 const Duration _pavlodarUtcOffset = Duration(hours: 5);
 
 /// Час, с которого школа ещё принимает запись сегодня.

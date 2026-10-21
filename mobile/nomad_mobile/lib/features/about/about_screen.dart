@@ -145,7 +145,7 @@ class AboutScreen extends ConsumerWidget {
                 _ActionRow(
                   icon: Icons.telegram,
                   text: 'Телеграм',
-                  onTap: () => _launchURL('https://t.me/nomadrive_bot'),
+                  onTap: () => _launchURL('https://t.me/green_time_drive_bot'),
                 ),
               ],
             ),

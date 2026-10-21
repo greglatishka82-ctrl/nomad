@@ -2,17 +2,14 @@
     email admin@greentime.57-129-153-111.sslip.io
 }
 
-# Основной адрес GREENTIME. Старый nomad.* оставлен вторым адресом того же
-# сайта, чтобы уже установленные приложения и прежние ссылки продолжали
-# открываться без ошибок.
-greentime.57-129-153-111.sslip.io, nomad.57-129-153-111.sslip.io {
+greentime.57-129-153-111.sslip.io {
     encode zstd gzip
     reverse_proxy /api/* site-api:8000
     reverse_proxy /static/* site-api:8000
     reverse_proxy site-frontend:80
 }
 
-admin.greentime.57-129-153-111.sslip.io, admin.nomad.57-129-153-111.sslip.io {
+admin.greentime.57-129-153-111.sslip.io {
     encode zstd gzip
     reverse_proxy /api/admin/* admin-api:8001
     reverse_proxy admin-frontend:80

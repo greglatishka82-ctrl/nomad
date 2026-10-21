@@ -226,7 +226,6 @@ class _DetailBody extends StatelessWidget {
                         TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   SizedBox(height: 4),
-                  Text('📞 +7 702 718 22 33', style: TextStyle(fontSize: 12)),
                   Text('📞 +7 707 881 08 48', style: TextStyle(fontSize: 12)),
                   SizedBox(height: 4),
                   Text(
