@@ -1,0 +1,44 @@
+name: kranoff
+
+services:
+  app:
+    build: .
+    container_name: kranoff-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /data
+      TZ: Asia/Almaty
+      HOST: 0.0.0.0
+      PORT: 3000
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8787:3000"
+    networks:
+      - kranoff
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: kranoff-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:3000
+    depends_on:
+      - app
+    networks:
+      - kranoff
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  kranoff:
+    name: kranoff_net
