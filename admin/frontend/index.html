@@ -1182,9 +1182,9 @@
         <div id="page-archive" class="page">
           <div class="card">
             <div class="card-header"><div class="card-title">🗃️ Архив</div></div>
-            <p style="color:var(--text-secondary);margin:0 0 16px;">Завершённые записи переходят сюда через 7 дней, а «Аудит» и «События» — один раз в сутки в 00:00. Все разделы загружаются из серверного архива.</p>
+            <p style="color:var(--text-secondary);margin:0 0 16px;">Архив хранит все записи, убранные из раздела «Записи», — ничего не удаляется. «Аудит» и «События» выгружаются из серверного архива.</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="btn btn-primary" id="archive-completed-btn" onclick="loadArchive()">Выгрузить завершённые</button>
+              <button class="btn btn-primary" id="archive-completed-btn" onclick="loadArchive()">Выгрузить записи</button>
               <button class="btn btn-secondary" id="archive-audit-btn" onclick="loadArchivedAudit()">Выгрузить Аудит</button>
               <button class="btn btn-success" id="archive-events-btn" onclick="loadArchivedEvents()">Выгрузить События</button>
             </div>

@@ -3655,14 +3655,14 @@ async function loadArchive() {
         const bookings = await apiGet('/bookings/archive');
         if (!Array.isArray(bookings)) throw new Error('Сервер вернул некорректные данные архива');
         if (!bookings.length) {
-            container.innerHTML = '<p style="color:var(--text-secondary);padding:16px 0;">В архиве пока нет завершённых записей.</p>';
+            container.innerHTML = '<p style="color:var(--text-secondary);padding:16px 0;">В архиве пока нет записей.</p>';
             return;
         }
         container.innerHTML = `
             <p style="color:var(--text-secondary);margin:0 0 12px;">Загружено записей: ${bookings.length}</p>
             <div class="table-container table-wrapper">
               <table class="data-table">
-                <thead><tr><th>Дата</th><th>Время</th><th>Клиент</th><th>Инструктор</th><th>Услуга</th><th>КПП</th><th>Площадка</th><th>Оплата</th></tr></thead>
+                <thead><tr><th>Дата</th><th>Время</th><th>Клиент</th><th>Инструктор</th><th>Услуга</th><th>КПП</th><th>Площадка</th><th>Статус</th><th>Оплата</th></tr></thead>
                 <tbody>${bookings.map(booking => `<tr>
                     <td>${escapeHtml(booking.date || '—')}</td>
                     <td>${escapeHtml(String(booking.start_time || '—').slice(0, 5))}</td>
@@ -3671,6 +3671,7 @@ async function loadArchive() {
                     <td>${booking.service_type === 'training' ? 'Обучение' : booking.service_type === 'exam' ? 'Экзамен' : escapeHtml(booking.service_type || '—')}</td>
                     <td>${booking.transmission === 'manual' ? 'МКПП' : booking.transmission === 'automatic' ? 'АКПП' : escapeHtml(booking.transmission || '—')}</td>
                     <td>${escapeHtml(booking.location || '—')}</td>
+                    <td>${statusBadge(booking.status)}</td>
                     <td>${paymentSummary(booking)}</td>
                 </tr>`).join('')}</tbody>
               </table>

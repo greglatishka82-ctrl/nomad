@@ -1427,7 +1427,9 @@ async def archive_due_completed_bookings(db: AsyncSession) -> int:
 
 
 def _booking_filter(model, date_from, date_to, instructor_id, status, location):
-    conditions = []
+    # Архивные записи в обычных списках не показываем: они живут только
+    # во вкладке «Архив», но из базы никуда не исчезают.
+    conditions = [model.archived_at.is_(None)]
     if date_from:
         conditions.append(model.booking_date >= date.fromisoformat(date_from))
     if date_to:
@@ -1440,13 +1442,6 @@ def _booking_filter(model, date_from, date_to, instructor_id, status, location):
             conditions.append(model.status == statuses[0])
         elif len(statuses) > 1:
             conditions.append(model.status.in_(statuses))
-        # The archive marker is the durable source of truth. A row disappears
-        # from "Завершённые" only after archive_due_completed_bookings commits.
-        if set(statuses).intersection(ARCHIVABLE_BOOKING_STATUSES):
-            conditions.append(or_(
-                model.status.notin_(ARCHIVABLE_BOOKING_STATUSES),
-                model.archived_at.is_(None),
-            ))
         if "cancelled" in statuses:
             conditions.append(or_(
                 model.status != "cancelled",
@@ -1593,16 +1588,17 @@ async def list_bookings(
 
 @router.get("/bookings/archive")
 async def list_archived_bookings(request: Request, db: AsyncSession = Depends(get_db)):
-    """Return the persistent archive, including rows moved before this request."""
+    """Return the persistent archive, including rows moved before this request.
+
+    В архив попадают любые записи, а не только завершённые: отменённые и
+    подтверждённые тоже должны оставаться доступными в «Архиве».
+    """
     _get_admin_username(request)
     await archive_due_completed_bookings(db)
     result = await db.execute(
         select(Booking)
         .options(selectinload(Booking.client), selectinload(Booking.instructor))
-        .where(and_(
-            Booking.status.in_(ARCHIVABLE_BOOKING_STATUSES),
-            Booking.archived_at.isnot(None),
-        ))
+        .where(Booking.archived_at.isnot(None))
         .order_by(Booking.booking_date.desc(), Booking.start_time.desc(), Booking.id.desc())
     )
     return [_serialize_booking(booking) for booking in result.scalars().all()]
