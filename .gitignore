@@ -39,13 +39,8 @@ admin/frontend/.vite/
 # ─── Данные сервиса автопостинга ───
 autopost/data/
 
-# ─── Мобильное приложение: бинарники и сборка ───
-*.apk
-*.aab
-mobile/nomad_mobile/build/
-mobile/nomad_mobile/.dart_tool/
-mobile/nomad_mobile/.flutter-plugins*
-mobile/nomad_mobile/android/.gradle/
+# ─── Мобильное приложение: только локально, в git не попадает ───
+mobile/
 
 # ─── Артефакты сервера ───
 deploy/downloads/
