@@ -1448,7 +1448,12 @@ def _booking_filter(model, date_from, date_to, instructor_id, status, location):
                 model.admin_confirmed.isnot(False),
             ))
     if location:
-        conditions.append(model.location == location)
+        # В админке площадка называется коротко, в базе — полным адресом.
+        # Фильтр должен находить записи в обоих вариантах.
+        location_variants = {location}
+        if location.strip().lower() == "лесная 5":
+            location_variants.add("Братьев Дюсембиновых 5")
+        conditions.append(model.location.in_(location_variants))
     return conditions
 
 

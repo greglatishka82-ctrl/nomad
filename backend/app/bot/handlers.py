@@ -38,6 +38,17 @@ router = Router()
 
 BOOKING_WINDOW_DAYS = 5
 
+PLACE_SHORT = "Лесная 5"
+
+
+def place_label(value) -> str:
+    """Клиенту всегда показываем полный адрес, даже для старых записей."""
+    raw = str(value or "").strip()
+    if not raw or raw == PLACE_SHORT:
+        return settings.LOCATION_MAIN
+    return raw
+
+
 
 async def _log_event(db: AsyncSession, event_type: str, message: str, client_id: int = None, instructor_id: int = None, booking_id: int = None, source: str = "telegram"):
     """Записывает событие клиента/инструктора в таблицу events"""
@@ -443,7 +454,7 @@ async def cmd_start(message: Message, state: FSMContext):
         "Секрет успеха - правильное обучение.\n\n"
         "Вот что мы предлагаем:\n\n"
         f"🚗 Вождение — {_money(settings.PRICE_TRAINING_NEW)} ₸/час\n"
-        f"Занятие с инструктором на площадке {settings.LOCATION_MAIN}.\n"
+        f"Занятие с инструктором на площадке Братьев Дюсембиновых 5.\n"
         "В стоимость входит - наш автомобиль, топливо, площадка, сервис\n"
         "Выберите желаемый вид КПП, инструктора, удобные день и время"
     )
@@ -513,7 +524,7 @@ async def process_service(callback: CallbackQuery, state: FSMContext):
     if service == "exam":
         await state.update_data(
             transmission="automatic",
-            location="Лесная 5",
+            location="Братьев Дюсембиновых 5",
             price=settings.PRICE_EXAM
         )
         kb = _kb_with_back([
@@ -1379,7 +1390,7 @@ async def my_bookings(message: Message):
         text = (
             f"{status_labels.get(b.status, b.status)}\n\n"
             f"{number_line}"
-            f"📍 {b.location}\n"
+            f"📍 {place_label(b.location)}\n"
             f"📅 {b.booking_date} 🕐 {b.start_time.strftime('%H:%M')}\n"
             f"🚗 {service_label} ({trans_label})\n"
             f"💰 {b.price} ₸{cash_note}"
@@ -1454,7 +1465,7 @@ async def cancel_booking(callback: CallbackQuery):
                         f"⏳ Клиент запросил отмену записи.\n\n"
                         f"{instructor.name}, ожидается подтверждение администратора.\n\n"
                         f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
-                        f"📍 {booking.location}\n"
+                        f"📍 {place_label(booking.location)}\n"
                         f"Коробка: {'Механика' if booking.transmission == 'manual' else 'Автомат'}",
                     )
                 except Exception as e:
@@ -1681,7 +1692,7 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
         f"⏳ Заявка на перенос отправлена администратору.\n\n"
         f"После подтверждения мы сообщим о новой дате и времени.\n"
         f"Запрошено: 📅 {new_date.strftime('%d.%m.%Y')} в {chosen_time}\n"
-        f"📍 {booking.location}\n"
+        f"📍 {place_label(booking.location)}\n"
         f"🚗 {service_label} ({trans_label})",
         reply_markup=None,
     )
@@ -1719,7 +1730,7 @@ async def how_to_book(message: Message):
         "4. Выберите дату и свободное время.\n"
         "5. Подтвердите запись.\n\n"
         "Инструктор назначается автоматически из свободных и подходящих по КПП. "
-        "Занятия проходят по адресу Лесная 5.",
+        "Занятия проходят по адресу Братьев Дюсембиновых 5.",
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -1728,7 +1739,7 @@ async def how_to_book(message: Message):
 async def contacts(message: Message):
     await message.answer(
         "📞 Телефон: +77078810848\n"
-        "📍 Занятия: Лесная 5\n"
+        "📍 Занятия: Братьев Дюсембиновых 5\n"
         "🤖 Бот: https://t.me/green_time_drive_bot",
         reply_markup=MAIN_KEYBOARD,
     )
@@ -1913,7 +1924,7 @@ def _learning_history_text(booking: Booking) -> str:
         status_labels.get(booking.status, booking.status), "",
         f"📅 {booking.booking_date.strftime('%d.%m.%Y')}",
         f"🕐 {booking.start_time.strftime('%H:%M')} - {booking.end_time.strftime('%H:%M')}",
-        f"📍 {booking.location}", f"{service_label} ({trans_label})",
+        f"📍 {place_label(booking.location)}", f"{service_label} ({trans_label})",
     ]
     if booking.instructor:
         lines.append(f"👨‍🏫 Инструктор: {booking.instructor.name}")
@@ -2008,7 +2019,7 @@ async def send_lesson_reminders(bot: Bot):
                     f"Завтра у вас {service_label}:\n"
                     f"📅 {booking.booking_date.strftime('%d.%m.%Y')}\n"
                     f"🕐 {booking.start_time.strftime('%H:%M')}\n"
-                    f"📍 {booking.location}\n\n"
+                    f"📍 {place_label(booking.location)}\n\n"
                     "💵 Оплатить занятие можно наличными или через Kaspi QR.\n\n"
                     f"Ждём вас! 🚗",
                 )
@@ -2049,7 +2060,7 @@ async def send_lesson_reminders(bot: Bot):
                     int(client.telegram_id),
                     f"⏰ {client.name}, через час ваше {service_label}!\n\n"
                     f"🕐 {booking.start_time.strftime('%H:%M')}\n"
-                    f"📍 {booking.location}\n\n"
+                    f"📍 {place_label(booking.location)}\n\n"
                     "💵 Оплатить занятие можно наличными или через Kaspi QR.\n\n"
                     f"Пора собираться! 🚗",
                 )
@@ -2098,7 +2109,7 @@ async def send_lesson_reminders(bot: Bot):
                     f"⏰ Через 10 минут занятие!\n\n"
                     f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
                     f"👤 {client_name}{client_phone}\n"
-                    f"📍 {booking.location}\n"
+                    f"📍 {place_label(booking.location)}\n"
                     f"Коробка: {trans_label}\n"
                     f"💰 К оплате: {booking.price} ₸",
                 )
@@ -2211,7 +2222,7 @@ async def confirm_no(callback: CallbackQuery):
                         f"⏳ Клиент запросил отмену записи.\n\n"
                         f"{instructor.name}, ожидается подтверждение администратора.\n\n"
                         f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
-                        f"📍 {booking.location}\n"
+                        f"📍 {place_label(booking.location)}\n"
                         f"Коробка: {'Механика' if booking.transmission == 'manual' else 'Автомат'}",
                     )
                 except Exception as e:
@@ -2599,7 +2610,7 @@ async def notify_instructor(bot: Bot, booking: Booking, instructor: Instructor):
             int(instructor.telegram_id),
             f"📌 Напоминание: у вас урок {booking.booking_date} в {booking.start_time}.\n"
             f"Клиент: {booking.client.name if booking.client else '—'}\n"
-            f"Площадка: {booking.location}\n"
+            f"Площадка: {place_label(booking.location)}\n"
             f"Коробка: {booking.transmission}",
         )
     except Exception as e:

@@ -56,8 +56,8 @@ class Settings:
         "PUBLIC_SITE_URL", "https://greentime.57-129-153-111.sslip.io"
     )
 
-    LOCATION_MAIN = "Лесная 5"
-    LOCATION_EXAM = "Лесная 5"
+    LOCATION_MAIN = "Братьев Дюсембиновых 5"
+    LOCATION_EXAM = "Братьев Дюсембиновых 5"
     PRICE_TRAINING = 7000
     PRICE_TRAINING_NEW = 7000
     PRICE_EXAM = 3500

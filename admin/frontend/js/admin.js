@@ -1,5 +1,20 @@
 // Админ-панель обращается к своему домену: /api/admin проксирует nginx на admin-api.
 const API = '/api/admin';
+
+// Адрес в базе хранится целиком, в админке показываем короткую подпись,
+// чтобы длинное название не ломало таблицы.
+const LOCATION_FULL = 'Братьев Дюсембиновых 5';
+const LOCATION_SHORT = 'Лесная 5';
+function locationShort(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return LOCATION_SHORT;
+    return raw === LOCATION_FULL ? LOCATION_SHORT : raw;
+}
+function locationFull(value) {
+    const raw = String(value || '').trim();
+    if (!raw || raw === LOCATION_SHORT) return LOCATION_FULL;
+    return raw;
+}
 const INITIAL_SESSION_TIMEOUT_MS = 8000;
 
 async function fetchWithTimeout(input, init = {}, timeoutMs = INITIAL_SESSION_TIMEOUT_MS) {
@@ -691,7 +706,7 @@ async function buildOfflineSlots(bookingDate, serviceType, transmission, selecte
     const vehicleCapacity = hasFleetCapacityData
         ? Number(vehicleCapacities[transmission] || 0)
         : capacity;
-    const location = rules.location || 'Лесная 5';
+    const location = locationFull(rules.location);
     const mobileBookings = snapshot.data?.['/offline-mobile-bookings'] || [];
     const allBookings = [...snapshot.bookings, ...mobileBookings];
     const activeBookings = allBookings.filter(booking => {
@@ -839,7 +854,7 @@ async function offlineBookingList(path) {
             id: `offline-${operation.id}`, source: 'offline', client_name: body.client_name || body.client_phone || 'Клиент',
             client_phone: body.client_phone || '', instructor_id: body.instructor_id,
             instructor_name: instructor?.name || 'Назначается', service_type: body.service_type,
-            transmission: body.transmission, location: body.location || 'Лесная 5', date: body.booking_date,
+            transmission: body.transmission, location: locationFull(body.location), date: body.booking_date,
             start_time: body.start_time, end_time: formatMinutes(clampEndMinutes(minutesFromTime(body.start_time), body.service_type === 'exam' ? 20 : 60)),
             status: 'confirmed', price: body.service_type === 'exam' ? 3500 : 7000,
         };
@@ -1747,7 +1762,7 @@ async function loadDashboard() {
                             <div style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(b.client_phone || '')}</div>
                         </td>
                         <td>${escapeHtml(b.instructor_name || b.instructor || '—')}</td>
-                        <td>${escapeHtml(b.location || 'Лесная 5')}</td>
+                        <td>${escapeHtml(locationShort(b.location))}</td>
                         <td><span class="badge badge-primary">${serviceLabel} · ${transLabel}</span></td>
                         <td>${statusBadge(b.status)}</td>
                     </tr>
@@ -1769,7 +1784,7 @@ async function loadDashboard() {
                             <div style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(b.client_phone || '')}</div>
                         </td>
                         <td>${escapeHtml(b.instructor_name || b.instructor || '—')}</td>
-                        <td>${escapeHtml(b.location || 'Лесная 5')}</td>
+                        <td>${escapeHtml(locationShort(b.location))}</td>
                         <td><span class="badge badge-primary">${serviceLabel} · ${transLabel}</span></td>
                         <td>${statusBadge(b.status)}</td>
                     </tr>
@@ -1958,7 +1973,7 @@ async function loadBookings() {
         <td>${b.instructor_name}</td>
         <td>${b.transmission === 'manual' ? 'МКПП' : b.transmission === 'automatic' ? 'АКПП' : escapeHtml(b.transmission || '—')}</td>
         <td>${b.service_type==='training'?'\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435':'\u042d\u043a\u0437\u0430\u043c\u0435\u043d'}</td>
-        <td><small>${b.location}</small></td>
+        <td><small>${escapeHtml(locationShort(b.location))}</small></td>
         <td>${statusBadge(b.status)}</td>
         <td>${paymentSummary(b)}</td>
         <td>${actions}</td>
@@ -2041,7 +2056,7 @@ async function loadBookings() {
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">\u041f\u043b\u043e\u0449\u0430\u0434\u043a\u0430:</span>
-                        <span class="mobile-card-value">${b.location}</span>
+                        <span class="mobile-card-value">${escapeHtml(locationShort(b.location))}</span>
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">\u0426\u0435\u043d\u0430:</span>
@@ -2163,7 +2178,7 @@ async function editBooking(bookingId) {
             <div class="form-group">
                 <label>Площадка</label>
                 <select id="edit-booking-location">
-                    <option value="Лесная 5" ${booking.location === 'Лесная 5' ? 'selected' : ''}>Лесная 5</option>
+                    <option value="${LOCATION_FULL}" ${locationFull(booking.location) === LOCATION_FULL ? 'selected' : ''}>${LOCATION_SHORT}</option>
                 </select>
             </div>
             ${booking.certificate_id ? `
@@ -2581,7 +2596,7 @@ async function buildOfflineInstructorWeek(instructorId) {
         days.get(booking.date).push({
             id: booking.id, source,
             client_name: booking.client_name || '—', client_phone: booking.client_phone || '',
-            service_type: booking.service_type, transmission: booking.transmission, location: booking.location,
+            service_type: booking.service_type, transmission: booking.transmission, location: locationFull(booking.location),
             start_time: String(booking.start_time || '').slice(0, 5),
             end_time: String(booking.end_time || '').slice(0, 5),
             status: booking.status, price: booking.price,
@@ -3670,7 +3685,7 @@ async function loadArchive() {
                     <td>${escapeHtml(booking.instructor_name || '—')}</td>
                     <td>${booking.service_type === 'training' ? 'Обучение' : booking.service_type === 'exam' ? 'Экзамен' : escapeHtml(booking.service_type || '—')}</td>
                     <td>${booking.transmission === 'manual' ? 'МКПП' : booking.transmission === 'automatic' ? 'АКПП' : escapeHtml(booking.transmission || '—')}</td>
-                    <td>${escapeHtml(booking.location || '—')}</td>
+                    <td>${escapeHtml(locationShort(booking.location))}</td>
                     <td>${statusBadge(booking.status)}</td>
                     <td>${paymentSummary(booking)}</td>
                 </tr>`).join('')}</tbody>
@@ -5130,12 +5145,12 @@ function handleServiceChange() {
     const transmissionSelect = document.getElementById('mb-transmission');
     
     if (service === 'exam') {
-        locationSelect.innerHTML = '<option value="Лесная 5">Лесная 5 (3500₸)</option>';
+        locationSelect.innerHTML = `<option value="${LOCATION_FULL}">${LOCATION_SHORT} (3500₸)</option>`;
         locationSelect.disabled = true;
         transmissionSelect.value = 'automatic';
         transmissionSelect.disabled = true;
     } else {
-        locationSelect.innerHTML = '<option value="Лесная 5">Лесная 5 (7000₸)</option>';
+        locationSelect.innerHTML = `<option value="${LOCATION_FULL}">${LOCATION_SHORT} (7000₸)</option>`;
         locationSelect.disabled = true;
         transmissionSelect.disabled = false;
     }
@@ -5227,7 +5242,7 @@ async function saveManualBooking() {
             hideManualClientSuggestions();
             document.getElementById('mb-date').value = '';
             document.getElementById('mb-time').value = '09:00';
-            document.getElementById('mb-location').value = 'Лесная 5';
+            document.getElementById('mb-location').value = LOCATION_FULL;
             document.getElementById('slots-panel').innerHTML = '<div class="slots-list"><p style="color:var(--text-secondary);text-align:center;padding:24px 0;font-size:13px">Выберите дату</p></div>';
             // Перезагружаем список записей
             loadBookings();
@@ -5247,7 +5262,7 @@ async function addQueuedBookingToSnapshot(booking, operationId, localClientId) {
         id: `offline-${operationId}`, source: 'offline', client_name: booking.client_name,
         client_phone: booking.client_phone, instructor_name: booking.instructor_name || instructor?.name || 'Назначается',
         client_id: localClientId, instructor_id: booking.instructor_id, service_type: booking.service_type,
-        transmission: booking.transmission, location: 'Лесная 5', date: booking.booking_date,
+        transmission: booking.transmission, location: locationFull(booking.location), date: booking.booking_date,
         start_time: booking.start_time, end_time: formatMinutes(clampEndMinutes(minutesFromTime(booking.start_time), (
             booking.service_type === 'exam'
                 ? (snapshot.slot_rules?.exam_duration_minutes || 20)
@@ -5808,7 +5823,7 @@ async function loadConflicts() {
             html += `<div class="conflict-booking unselected" id="conflict-booking-${b.id}" data-id="${b.id}">`;
             html += `<div class="conflict-booking-info">`;
             html += `<div class="conflict-booking-client">${escapeHtml(b.client_name)}${isManual ? '<span class="conflict-booking-manual">РУЧНАЯ</span>' : ''}</div>`;
-            html += `<div class="conflict-booking-details">📞 ${escapeHtml(b.client_phone)} | 🚗 ${serviceLabel} (${transLabel}) | 📍 ${escapeHtml(b.location)}</div>`;
+            html += `<div class="conflict-booking-details">📞 ${escapeHtml(b.client_phone)} | 🚗 ${serviceLabel} (${transLabel}) | 📍 ${escapeHtml(locationShort(b.location))}</div>`;
             html += `<div class="conflict-booking-details">🕐 ${b.start_time}—${b.end_time} | Источник: ${b.source || '—'}</div>`;
             if (b.conflict_reason) {
                 html += `<div class="conflict-booking-reason">💬 ${b.conflict_reason}</div>`;
