@@ -1,0 +1,20 @@
+name: greentime-autopost
+
+services:
+  autopost:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+      - site_static:/public
+
+networks:
+  default:
+    name: greentime_default
+    external: true
+
+volumes:
+  site_static:
+    name: nomad_site_static
+    external: true
