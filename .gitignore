@@ -1,0 +1,52 @@
+# ─── Секреты: в git не попадают никогда ───
+**/.env
+**/.env.*
+!**/.env.example
+deploy/.env*
+deploy/ADMIN_CREDENTIALS.txt
+
+# ─── Личные файлы, ТЗ и заметки ───
+# В корне репозитория остаются только README.md и .gitignore
+/*.txt
+/*.md
+/*.pdf
+/*.html
+!/README.md
+/TZ_*.md
+/CLAUDE.md
+/AGENTS.md
+/CHANGES_SUMMARY.md
+/SLOTS_LOGIC.md
+/*.tgz
+/*.zip
+/=*
+/.vscode/
+
+# ─── Мусор сборки и кеши ───
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.pytest_cache/
+node_modules/
+admin/frontend/dist/
+admin/frontend/.vite/
+
+# ─── Данные сервиса автопостинга ───
+autopost/data/
+
+# ─── Мобильное приложение: бинарники и сборка ───
+*.apk
+*.aab
+mobile/nomad_mobile/build/
+mobile/nomad_mobile/.dart_tool/
+mobile/nomad_mobile/.flutter-plugins*
+mobile/nomad_mobile/android/.gradle/
+
+# ─── Артефакты сервера ───
+deploy/downloads/
+*.tmp
