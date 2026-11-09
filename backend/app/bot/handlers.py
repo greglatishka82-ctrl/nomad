@@ -1,11 +1,12 @@
 import logging
 from typing import Optional
+from pathlib import Path
 from datetime import datetime, date, time, timedelta
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton,
-    ReplyKeyboardMarkup, KeyboardButton, InputMediaDocument
+    ReplyKeyboardMarkup, KeyboardButton, InputMediaDocument, FSInputFile
 )
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -198,8 +199,7 @@ class SupportStates(StatesGroup):
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📝 Записаться"), KeyboardButton(text="📋 Мои записи")],
-        [KeyboardButton(text="ℹ️ Как записаться"), KeyboardButton(text="❓ FAQ")],
-        [KeyboardButton(text="📚 История обучения"), KeyboardButton(text="📞 Контакты")],
+        [KeyboardButton(text="ℹ️ Как записаться"), KeyboardButton(text="📚 История обучения")],
         [KeyboardButton(text="🎁 Пригласи друга"), KeyboardButton(text="💬 Поддержка")],
         [KeyboardButton(text="🎟️ Сертификат")],
     ],
@@ -439,8 +439,18 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
-    await state.clear()
     args = message.text.split() if message.text else []
+    if len(args) > 1 and args[1] == "route":
+        try:
+            await message.answer_video(
+                FSInputFile(Path(__file__).with_name("route-video.mp4")),
+                width=480, height=854, supports_streaming=True,
+            )
+        except Exception:
+            logger.exception("Failed to send directions video")
+            await message.answer("Не удалось открыть видео. Адрес площадки: Братьев Дюсембиновых 5.")
+        return
+    await state.clear()
     referral_code = None
     if len(args) > 1:
         referral_code = args[1]
@@ -1725,10 +1735,9 @@ async def how_to_book(message: Message):
     await message.answer(
         "Как записаться:\n\n"
         "1. Нажмите «Записаться».\n"
-        "2. Выберите услугу: вождение или пробный экзамен.\n"
-        "3. Для вождения выберите КПП: механика или автомат.\n"
-        "4. Выберите дату и свободное время.\n"
-        "5. Подтвердите запись.\n\n"
+        "2. Выберите КПП: механика или автомат.\n"
+        "3. Выберите дату и свободное время.\n"
+        "4. Подтвердите запись.\n\n"
         "Инструктор назначается автоматически из свободных и подходящих по КПП. "
         "Занятия проходят по адресу Братьев Дюсембиновых 5.",
         reply_markup=MAIN_KEYBOARD,

@@ -166,7 +166,7 @@ async def _send_confirmed_booking_messages(tg_client, chat_id: str, confirmation
     """Send the confirmation and its cash-payment notice as two ordered messages."""
     await tg_client.post(
         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": confirmation_message, "parse_mode": "HTML"},
+        json={"chat_id": chat_id, "text": confirmation_message + '\n\n📍 <a href="https://t.me/green_time_drive_bot?start=route">Как добраться</a>', "parse_mode": "HTML"},
     )
     await tg_client.post(
         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",

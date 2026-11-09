@@ -14,3 +14,5 @@ admin.greentime.57-129-153-111.sslip.io {
     reverse_proxy /api/admin/* admin-api:8001
     reverse_proxy admin-frontend:80
 }
+
+
