@@ -3,16 +3,68 @@
 }
 
 greentime.57-129-153-111.sslip.io {
+    redir https://greentime.luxe{uri} 308
+}
+
+admin.greentime.57-129-153-111.sslip.io {
+    redir https://admin.greentime.luxe{uri} 308
+}
+
+
+
+
+greentime.luxe {
     encode zstd gzip
-    reverse_proxy /api/* site-api:8000
+    @disabled_mobile path /api/mobile /api/mobile/* /greentime.apk /nomad.apk
+    respond @disabled_mobile "Not found" 404
+    @closed_ratings path /ocenki-2GkwM53fpdnon5fj-WkvfrQTkii7f-bnek4apcMHdwc /ocenki-2GkwM53fpdnon5fj-WkvfrQTkii7f-bnek4apcMHdwc/*
+    header @closed_ratings X-Robots-Tag "noindex, nofollow, noarchive"
+    respond @closed_ratings "Gone" 410
+    reverse_proxy /api/wishes greentime-wishes:8000 {
+        header_up X-Greentime-Client-IP {remote_host}
+    }
+    reverse_proxy /api/* site-api:8000 {
+        header_up X-Greentime-Client-IP {remote_host}
+    }
     reverse_proxy /static/* site-api:8000
     reverse_proxy site-frontend:80
 }
 
-admin.greentime.57-129-153-111.sslip.io {
+www.greentime.luxe {
+    redir https://greentime.luxe{uri} 308
+}
+
+admin.greentime.luxe {
     encode zstd gzip
-    reverse_proxy /api/admin/* admin-api:8001
+    reverse_proxy /api/admin/wishes* greentime-wishes:8000
+    reverse_proxy /api/admin/* admin-api:8001 {
+        header_up X-Greentime-Client-IP {remote_host}
+    }
     reverse_proxy admin-frontend:80
 }
 
 
+
+
+
+povod.57-129-153-111.sslip.io {
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "SAMEORIGIN"
+    }
+    encode zstd gzip
+    reverse_proxy povod-web:8000
+}
+
+
+
+
+test.greentime.luxe {
+    encode zstd gzip
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    reverse_proxy greentime-needs-test:8000 {
+        header_up X-Greentime-Test-IP {remote_host}
+    }
+}

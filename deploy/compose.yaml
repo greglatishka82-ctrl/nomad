@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 20
   site-api:
-    build: {context: .., dockerfile: deploy/backend.Dockerfile}
+    image: gt-security-site:20261120-v2
     restart: unless-stopped
     env_file: .env
     environment: {PORT: 8000, START_BOTS: "false", MOBILE_BOOKING_ENABLED: "false"}
@@ -27,7 +27,7 @@ services:
       timeout: 5s
       retries: 10
   bot-worker:
-    build: {context: .., dockerfile: deploy/backend.Dockerfile}
+    image: gt-events-bot:20261120
     restart: unless-stopped
     env_file: .env
     environment: {START_BOTS: "true"}
@@ -35,7 +35,7 @@ services:
     depends_on: {db: {condition: service_healthy}}
     volumes: [site_static:/app/app/static]
   admin-api:
-    build: {context: .., dockerfile: deploy/admin-backend.Dockerfile}
+    image: gt-security-admin:20261120-v2
     restart: unless-stopped
     env_file: .env
     environment: {PORT: 8001}
@@ -46,15 +46,21 @@ services:
       timeout: 5s
       retries: 10
   site-frontend:
-    build: {context: .., dockerfile: deploy/site-frontend.Dockerfile}
+    image: gt-wishes-site:20261121-404-v3
     restart: unless-stopped
     # APK раздаётся с диска сервера: файл не попадает в git (*.apk в .gitignore)
     # и не пересобирается вместе с образом.
     volumes:
       - ./downloads:/usr/share/nginx/html/downloads:ro
   admin-frontend:
-    build: {context: .., dockerfile: deploy/admin-frontend.Dockerfile}
+    image: gt-wishes-admin:20261120
     restart: unless-stopped
+  security-notifier:
+    image: gt-security-security-bot:20261120-v2
+    restart: unless-stopped
+    env_file:
+      - .env
+      - security-bot.env
   gateway:
     image: caddy:2.8-alpine
     restart: unless-stopped
