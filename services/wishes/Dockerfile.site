@@ -1,0 +1,4 @@
+FROM gt-security-web:20261120
+COPY site-index.html /usr/share/nginx/html/index.html
+COPY needs.css /usr/share/nginx/html/needs.css
+COPY needs.js /usr/share/nginx/html/needs.js

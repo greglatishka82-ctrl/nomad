@@ -135,7 +135,8 @@
 
         <div class="nav-section-title">Система</div>
 
-        <button class="nav-item" data-page="notifications">
+        <button class="nav-item" data-page="wishes"><span class="nav-icon" aria-hidden="true">💬</span><span class="nav-label">Пожелания</span></button>
+<button class="nav-item" data-page="notifications">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </span>
@@ -1197,7 +1198,8 @@
         </div>
 
         <!-- 10. NOTIFICATIONS PAGE -->
-        <div id="page-notifications" class="page">
+        <div id="page-wishes" class="page"><div class="card"><div class="card-header"><div class="card-title">Пожелания посетителей</div></div><div class="card-body" id="wishes-list">Загрузка…</div></div></div>
+<div id="page-notifications" class="page">
           <div class="card">
             <div class="card-header"><div class="card-title">🔔 События клиентов, инструкторов и системы</div></div>
             <div id="notifications-list">
@@ -1272,5 +1274,5 @@
     </div>
   </div>
 
-  <!-- Script File --><script src="/js/cabinet-clicks.js"></script></body>
+  <!-- Script File --><script src="/js/cabinet-clicks.js"></script><script src="/js/wishes-admin.js?v=1" defer></script></body>
 </html>

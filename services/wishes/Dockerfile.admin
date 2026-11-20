@@ -1,0 +1,3 @@
+FROM gt-events-web:20261120
+COPY admin-index.html /usr/share/nginx/html/index.html
+COPY wishes-admin.js /usr/share/nginx/html/js/wishes-admin.js
