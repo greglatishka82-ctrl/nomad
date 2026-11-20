@@ -183,6 +183,7 @@ async def _run_explicit_migrations():
         # Instructor migrations
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS gender VARCHAR(50) NOT NULL DEFAULT 'any';",
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS is_lead BOOLEAN NOT NULL DEFAULT FALSE;",
+        "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS accepts_new_bookings BOOLEAN NOT NULL DEFAULT TRUE;",
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS lesson_type VARCHAR(50) NOT NULL DEFAULT 'both';",
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS offline_operation_id VARCHAR(128);",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_instructors_offline_operation_id ON instructors (offline_operation_id) WHERE offline_operation_id IS NOT NULL;",

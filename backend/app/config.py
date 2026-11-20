@@ -53,7 +53,7 @@ class Settings:
     PHONE_RAW = "+77078810848"
     TELEGRAM_BOT_URL = "https://t.me/green_time_drive_bot"
     PUBLIC_SITE_URL: str = _env(
-        "PUBLIC_SITE_URL", "https://greentime.57-129-153-111.sslip.io"
+        "PUBLIC_SITE_URL", "https://greentime.luxe"
     )
 
     LOCATION_MAIN = "Братьев Дюсембиновых 5"
@@ -65,7 +65,6 @@ class Settings:
     EXAM_DURATION_MINUTES = 20
     MAX_CARS_EXAM_LOCATION = 6    # максимум машин на Лесной 5
     MAX_CARS_MAIN_LOCATION = 6    # оставлено для совместимости; площадка одна
-    MAX_INSTRUCTORS_PER_LOCATION = 3
     # Рабочие часы школы — только для показа клиенту (лендинг, приложение, бот).
     # На выбор слотов они НЕ влияют: границу задаёт график инструктора.
     WORKING_HOURS_START = 8

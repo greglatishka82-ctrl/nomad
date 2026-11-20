@@ -1,7 +1,7 @@
 from datetime import date, time, timedelta, datetime
 from typing import List, Optional
 
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings, TIMEZONE
@@ -108,6 +108,8 @@ def is_client_slot_start_allowed(
     local_now = now or datetime.now(TIMEZONE)
     if local_now.tzinfo:
         local_now = local_now.astimezone(TIMEZONE)
+    if booking_date < local_now.date():
+        return False
     start_minutes = time_to_minutes(start_time)
     if start_minutes > client_last_start_minutes(service_type):
         return False
@@ -298,9 +300,12 @@ async def _is_instructor_available(
     on_site_instructor_ids: Optional[set[int]] = None,
     location: Optional[str] = None,
 ) -> bool:
-    if not instructor.is_active or (
-        instructor.is_duty and not allow_duty and not preserve_existing_assignment
-    ):
+    if not instructor.is_active:
+        return False
+    local_today = (reference_now or datetime.now(TIMEZONE)).astimezone(TIMEZONE).date()
+    if not instructor.accepts_new_bookings and instructor.booking_unavailable_date == local_today and booking_date == local_today:
+        return False
+    if instructor.is_duty and not allow_duty and not preserve_existing_assignment:
         return False
     if busy_ids is not None and instructor.id in busy_ids:
         return False
@@ -390,6 +395,17 @@ async def _peak_booking_usage(
         intervals.extend((await db.execute(
             select(model.start_time, model.end_time).where(*conditions)
         )).all())
+    hold_sql = """SELECT start_time, end_time FROM telegram_slot_holds
+        WHERE booking_date = :date AND start_time < :end AND end_time > :start
+          AND expires_at > clock_timestamp()
+          AND (CAST(:transmission AS text) IS NULL OR transmission = :transmission)
+          AND (CAST(:location AS text) IS NULL OR location = :location)
+          AND (CAST(:service AS text) IS NULL OR service_type = :service)"""
+    intervals.extend((await db.execute(text(hold_sql), {
+        "date": booking_date, "start": start_time, "end": end_time,
+        "transmission": getattr(transmission, "value", transmission),
+        "location": location, "service": getattr(service_type, "value", service_type),
+    })).all())
     return _peak_occupancy(intervals, start_time, end_time)
 
 
@@ -582,6 +598,11 @@ async def _count_available_instructors(
         )
     )
     busy_ids.update(row[0] for row in mobile_busy_result.all())
+    busy_ids.update(row[0] for row in (await db.execute(text("""
+        SELECT instructor_id FROM telegram_slot_holds
+        WHERE booking_date=:date AND start_time < :end AND end_time > :start
+          AND expires_at > clock_timestamp()
+    """), {"date":booking_date,"start":start_time,"end":end_time})).all())
 
     suitable = []
     for inst in instructors:
@@ -740,6 +761,8 @@ async def get_available_slots_for_instructor(
     instructor = result.scalar_one_or_none()
     if not instructor or not instructor.is_active:
         return []
+    if not instructor.accepts_new_bookings and instructor.booking_unavailable_date == now.date() and is_today:
+        return []
     if not preserve_existing_assignment and not _teaches_service(instructor, service_type):
         return []
 
@@ -791,6 +814,12 @@ async def get_available_slots_for_instructor(
     )
     for row in busy_mobile.all():
         busy_intervals.append(row)
+
+    busy_intervals.extend((await db.execute(text("""
+        SELECT start_time,end_time FROM telegram_slot_holds
+        WHERE instructor_id=:instructor AND booking_date=:date
+          AND expires_at > clock_timestamp()
+    """), {"instructor":instructor_id,"date":booking_date})).all())
 
     slots = []
     if is_today:
@@ -859,6 +888,7 @@ async def find_best_instructor(
     service_type: Optional[ServiceType] = None,
     *,
     reference_now: Optional[datetime] = None,
+    update_rotation: bool = True,
 ) -> Optional[Instructor]:
     from app.models.models import InstructorRotation
 
@@ -891,6 +921,11 @@ async def find_best_instructor(
         )
     )
     busy_ids.update(row[0] for row in mobile_busy_result.all())
+    busy_ids.update(row[0] for row in (await db.execute(text("""
+        SELECT instructor_id FROM telegram_slot_holds
+        WHERE booking_date=:date AND start_time < :end AND end_time > :start
+          AND expires_at > clock_timestamp()
+    """), {"date":booking_date,"start":start_time,"end":end_time})).all())
 
     suitable = []
     for inst in all_instructors:
@@ -945,6 +980,9 @@ async def find_best_instructor(
     ))
 
     chosen = prioritized[0]
+
+    if not update_rotation:
+        return chosen
 
     if chosen.id in rotations:
         rot = rotations[chosen.id]

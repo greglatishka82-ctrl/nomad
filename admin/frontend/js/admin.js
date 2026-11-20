@@ -34,6 +34,9 @@ let _badgeViewVersion = 0;
 let _notificationCountsInitialized = false;
 let _notificationPollSequence = 0;
 let _applicationAlertPlayback = null;
+let _applicationAlertBlocked = false;
+let _applicationAlertQueue = 0;
+let _applicationEventSource = null;
 let _applicationAlertPlaybackId = 0;
 const APPLICATION_SOUND_STORAGE_KEY = 'nomad-admin-application-sound-enabled';
 let applicationSoundEnabled = (() => {
@@ -326,6 +329,7 @@ async function applyQueuedMutationToSnapshot(method, path, body, localId = null)
     if (match) {
       const booking = snapshot.bookings?.find(item => String(item.id) === match[1]);
       if (!booking) return;
+      const previousStatus = booking.status;
       if (method === 'DELETE') booking.status = 'cancelled';
       if (match[2] === 'status' && body?.status) booking.status = body.status;
       if (match[2] === 'confirm' && body?.action) {
@@ -347,6 +351,12 @@ async function applyQueuedMutationToSnapshot(method, path, body, localId = null)
             booking.instructor_id = body.new_instructor_id;
             booking.instructor_name = snapshot.instructors?.find(i => String(i.id) === String(body.new_instructor_id))?.name || booking.instructor_name;
         }
+      }
+      if (booking.client_id != null && booking.service_type === 'training'
+          && ((previousStatus === 'completed') !== (booking.status === 'completed'))) {
+          snapshot.bookings.forEach(item => {
+              if (String(item.client_id) === String(booking.client_id)) item.completed_visits = null;
+          });
       }
       await offlineStore('api-cache', 'offline-snapshot', snapshot);
       await offlineStore('api-cache', '/bookings', snapshot.bookings);
@@ -1049,6 +1059,15 @@ function escapeHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g, '&#39;');
 }
 
+// Completed driving lessons only. A missing value is unknown, not zero.
+function visitCountBadge(value) {
+    const known = Number.isInteger(value) && value >= 0;
+    const label = known
+        ? `Завершённых занятий по вождению: ${value}${isAdminOffline ? ' (на момент синхронизации)' : ''}`
+        : 'Количество посещений недоступно';
+    return `<span class="visit-count" title="${label}" aria-label="${label}">${known ? value : '—'} <span aria-hidden="true">пос.</span></span>`;
+}
+
 // --- Notification Badge ---
 function updateNavBadge(page, count) {
     const btn = document.querySelector(`.nav-item[data-page="${page}"]`);
@@ -1083,6 +1102,7 @@ function waitForApplicationAlertEnd() {
 
 function stopApplicationAlert() {
     _applicationAlertPlaybackId += 1;
+    _applicationAlertQueue = 0;
     applicationAlertAudio.pause();
     applicationAlertAudio.currentTime = 0;
     _applicationAlertPlayback = null;
@@ -1091,50 +1111,102 @@ function stopApplicationAlert() {
 function updateApplicationSoundToggle() {
     const button = document.getElementById('application-sound-toggle');
     if (!button) return;
-    button.textContent = applicationSoundEnabled ? '🔊' : '🔇';
+    button.textContent = !applicationSoundEnabled ? '🔇' : (_applicationAlertBlocked ? '🔈!' : '🔊');
     button.setAttribute('aria-pressed', String(applicationSoundEnabled));
     button.setAttribute('aria-label', applicationSoundEnabled ? 'Выключить звук новых заявок' : 'Включить звук новых заявок');
     button.title = applicationSoundEnabled ? 'Звук новых заявок включён. Нажмите, чтобы выключить.' : 'Звук новых заявок выключен. Нажмите, чтобы включить.';
+    if (_applicationAlertBlocked && applicationSoundEnabled) {
+        button.title = 'Браузер заблокировал звук. Нажмите, чтобы включить и услышать сигнал.';
+        button.setAttribute('aria-label', button.title);
+    }
 }
 
 function toggleApplicationSound() {
+    if (applicationSoundEnabled && _applicationAlertBlocked) {
+        _applicationAlertBlocked = false;
+        updateApplicationSoundToggle();
+        void drainApplicationAlerts();
+        return;
+    }
     applicationSoundEnabled = !applicationSoundEnabled;
     try {
         localStorage.setItem(APPLICATION_SOUND_STORAGE_KEY, applicationSoundEnabled ? 'on' : 'off');
     } catch {
         // Если хранилище браузера недоступно, переключатель работает до обновления страницы.
     }
-    if (!applicationSoundEnabled) stopApplicationAlert();
+    if (!applicationSoundEnabled) { _applicationAlertBlocked = false; stopApplicationAlert(); }
     updateApplicationSoundToggle();
 }
 
-async function playNewApplicationAlert() {
+function playNewApplicationAlert() {
     if (!applicationSoundEnabled) return;
-    if (_applicationAlertPlayback) return _applicationAlertPlayback;
+    // Each new application gets three consecutive sound plays.
+    _applicationAlertQueue += 3;
+    void drainApplicationAlerts();
+}
 
+async function drainApplicationAlerts() {
+    if (!applicationSoundEnabled || _applicationAlertPlayback || !_applicationAlertQueue) return;
     const playbackId = ++_applicationAlertPlaybackId;
     const playback = (async () => {
-        for (let attempt = 0; attempt < 3 && playbackId === _applicationAlertPlaybackId && applicationSoundEnabled; attempt += 1) {
+        while (_applicationAlertQueue > 0 && playbackId === _applicationAlertPlaybackId && applicationSoundEnabled) {
             try {
                 applicationAlertAudio.currentTime = 0;
                 await applicationAlertAudio.play();
-            } catch {
-                // Браузер может блокировать звук до первого действия администратора.
+                _applicationAlertQueue -= 1;
+                _applicationAlertBlocked = false;
+                updateApplicationSoundToggle();
+                await waitForApplicationAlertEnd();
+            } catch (error) {
+                if (error.name === 'NotAllowedError') {
+                    _applicationAlertBlocked = true;
+                    updateApplicationSoundToggle();
+                    showToast('Браузер заблокировал звук заявки. Нажмите на значок звука, чтобы включить сигнал.', 'error');
+                } else {
+                    showToast('Не удалось воспроизвести звук заявки. Проверьте звук на устройстве.', 'error');
+                }
                 break;
             }
-            await waitForApplicationAlertEnd();
         }
     })();
-
     _applicationAlertPlayback = playback;
-    try {
-        await playback;
-    } finally {
+    try { await playback; }
+    finally {
         if (playbackId === _applicationAlertPlaybackId) _applicationAlertPlayback = null;
     }
 }
 
+function startApplicationEvents() {
+    if (_applicationEventSource) _applicationEventSource.close();
+    const source = new EventSource('/api/admin/booking-events');
+    _applicationEventSource = source;
+    source.addEventListener('application', () => {
+        playNewApplicationAlert();
+        updateApplicationsAttention(true);
+        pollNotificationCounts();
+        if (document.getElementById('page-bookings')?.classList.contains('active')
+            && currentBookingTab === 'applications') loadBookings();
+    });
+}
+function stopApplicationEvents() {
+    if (_applicationEventSource) _applicationEventSource.close();
+    _applicationEventSource = null;
+}
+
+// Retry a blocked alert after the next user gesture.
+function retryBlockedApplicationAlert(event) {
+    if (!_applicationAlertBlocked || !applicationSoundEnabled) return;
+    if (event.target?.closest?.('#application-sound-toggle')) return;
+    _applicationAlertBlocked = false;
+    updateApplicationSoundToggle();
+    void drainApplicationAlerts();
+}
+document.addEventListener('pointerdown', retryBlockedApplicationAlert);
+document.addEventListener('keydown', retryBlockedApplicationAlert);
+
 function resetApplicationAlertState() {
+    _applicationAlertBlocked = false;
+    updateApplicationSoundToggle();
     _notificationCountsInitialized = false;
     _notificationPollSequence += 1;
     stopApplicationAlert();
@@ -1192,7 +1264,7 @@ async function pollNotificationCounts() {
             const hasUnread = Object.values(counts).some(Number);
             headerDot.classList.toggle('hidden', !hasUnread);
         }
-        if (hasNewApplication) void playNewApplicationAlert();
+        if (hasNewApplication && (!_applicationEventSource || _applicationEventSource.readyState !== EventSource.OPEN)) void playNewApplicationAlert();
         refreshWaitingAttention().catch(() => {});
         refreshConflictsAttention().catch(() => {});
     } catch(e) { /* silent */ }
@@ -1297,6 +1369,7 @@ function showDashboard() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('dashboard-screen').classList.add('active');
     updateApplicationSoundToggle();
+    startApplicationEvents();
     startBadgePolling();
     startSessionPolling();
     startOfflineMonitoring();
@@ -1305,6 +1378,7 @@ function showDashboard() {
 
 function showLogin(message = '') {
     hideInitialLoading();
+    stopApplicationEvents();
     resetApplicationAlertState();
     if (_badgePollInterval) clearInterval(_badgePollInterval);
     if (_sessionPollInterval) clearInterval(_sessionPollInterval);
@@ -1676,7 +1750,7 @@ async function loadDashboard() {
     loadDashboardFinance();
     const [data, bookings] = await Promise.all([
         apiGet('/dashboard'),
-        apiGet('/bookings').catch(() => [])
+        apiGet('/bookings').catch(() => null)
     ]);
     if (!data) return;
 
@@ -1746,11 +1820,25 @@ async function loadDashboard() {
     const tbody = document.getElementById('dashboard-today-tbody');
     if (tbody) {
         const todayStr = new Date().toISOString().split('T')[0];
-        const todayBookings = Array.isArray(bookings) 
+        const todayBookings = Array.isArray(bookings)
             ? bookings.filter(b => b.booking_date === todayStr || b.date === todayStr)
             : [];
-            
-        if (todayBookings.length > 0) {
+        const count = document.getElementById('dashboard-today-count');
+        if (count) {
+            if (!Array.isArray(bookings)) {
+                count.textContent = 'Не удалось загрузить количество';
+            } else if (todayBookings.length) {
+                count.textContent = 'Сегодня: ' + todayBookings.length;
+            } else if (bookings.length) {
+                count.textContent = 'Сегодня: 0 · Другие даты: ' + Math.min(bookings.length, 5);
+            } else {
+                count.textContent = 'Сегодня: 0';
+            }
+        }
+
+        if (!Array.isArray(bookings)) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Не удалось загрузить расписание</td></tr>`;
+        } else if (todayBookings.length > 0) {
             tbody.innerHTML = todayBookings.map(b => {
                 const serviceLabel = b.service_type === 'exam' ? 'Экзамен' : 'Обучение';
                 const transLabel = b.transmission === 'automatic' ? 'АКПП' : 'МКПП';
@@ -1758,7 +1846,7 @@ async function loadDashboard() {
                     <tr>
                         <td><strong style="color:var(--primary);">${escapeHtml(b.start_time || b.time || '—')}</strong></td>
                         <td>
-                            <div style="font-weight:600;color:var(--text-main);">${escapeHtml(b.client_name || b.client || '—')}</div>
+                            <div style="font-weight:600;color:var(--text-main);">${escapeHtml(b.client_name || b.client || '—')}${visitCountBadge(b.completed_visits)}</div>
                             <div style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(b.client_phone || '')}</div>
                         </td>
                         <td>${escapeHtml(b.instructor_name || b.instructor || '—')}</td>
@@ -1780,7 +1868,7 @@ async function loadDashboard() {
                             <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(b.booking_date || b.date || '')}</div>
                         </td>
                         <td>
-                            <div style="font-weight:600;color:var(--text-main);">${escapeHtml(b.client_name || b.client || '—')}</div>
+                            <div style="font-weight:600;color:var(--text-main);">${escapeHtml(b.client_name || b.client || '—')}${visitCountBadge(b.completed_visits)}</div>
                             <div style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(b.client_phone || '')}</div>
                         </td>
                         <td>${escapeHtml(b.instructor_name || b.instructor || '—')}</td>
@@ -1969,7 +2057,7 @@ async function loadBookings() {
         return `<tr class="${isPending} booking-reminder-row" data-booking-start="${b.date}T${b.start_time.slice(0,5)}:00" ${rowStyle}>
         <td>${b.date}${numberLine}</td>
         <td class="booking-time-cell"><strong>${b.start_time.slice(0,5)}</strong><small class="booking-countdown" style="color:var(--text-secondary)"></small></td>
-        <td><strong>${escapeHtml(b.client_name)}</strong>${sourceBadge}<br><small style="color:var(--text-secondary)">${escapeHtml(b.client_phone||'')}</small></td>
+        <td><strong>${escapeHtml(b.client_name)}</strong>${visitCountBadge(b.completed_visits)}${sourceBadge}<br><small style="color:var(--text-secondary)">${escapeHtml(b.client_phone||'')}</small></td>
         <td>${b.instructor_name}</td>
         <td>${b.transmission === 'manual' ? 'МКПП' : b.transmission === 'automatic' ? 'АКПП' : escapeHtml(b.transmission || '—')}</td>
         <td>${b.service_type==='training'?'\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435':'\u042d\u043a\u0437\u0430\u043c\u0435\u043d'}</td>
@@ -2029,7 +2117,7 @@ async function loadBookings() {
                 <div class="mobile-card ${isPending}" ${cardStyle}>
                     <div class="mobile-card-header">
                         <div>
-                            <div class="mobile-card-title">${sourceBadge}${escapeHtml(b.client_name)}${numberLine}</div>
+                            <div class="mobile-card-title">${sourceBadge}${escapeHtml(b.client_name)}${visitCountBadge(b.completed_visits)}${numberLine}</div>
                             <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${b.client_phone || ''}</div>
                         </div>
                         ${statusBadge(b.status)}
@@ -4616,7 +4704,7 @@ function _renderClientsList(data) {
                 <div class="client-list-name">${escapeHtml(c.name)}</div>
                 <div class="client-list-phone">${escapeHtml(c.phone || '—')}</div>
             </div>
-            ${c.bookings_count > 0 ? `<span class="client-list-bookings">${c.bookings_count}</span>` : ''}
+            ${visitCountBadge(c.completed_visits)}
         </div>
     `).join('');
 }
@@ -4646,7 +4734,7 @@ async function selectClient(clientId) {
         <div class="client-mini-header">
             <div class="client-mini-avatar">${escapeHtml(client.name.charAt(0).toUpperCase())}</div>
             <div>
-                <h3>${escapeHtml(client.name)}</h3>
+                <h3>${escapeHtml(client.name)}${visitCountBadge(client.completed_visits)}</h3>
                 <p style="color:var(--text-secondary);font-size:13px;margin:0">${escapeHtml(client.phone || '—')}</p>
             </div>
         </div>
@@ -5047,7 +5135,7 @@ function searchManualClients(source) {
         }
         box.innerHTML = manualClientSuggestions.map(c => `
             <button type="button" class="client-suggestion-item" onclick="selectManualClient(${c.id})">
-                <strong>${escapeHtml(c.name)}</strong>
+                <strong>${escapeHtml(c.name)}${visitCountBadge(c.completed_visits)}</strong>
                 <span>${escapeHtml(c.phone || 'телефон не указан')} · записей: ${c.bookings_count}</span>
             </button>
         `).join('');
@@ -5657,7 +5745,7 @@ async function loadWaitingList() {
         <div id="waiting-entry-${e.id}" class="mobile-card waiting-entry ${matchingIds.has(e.id) ? 'waiting-entry-match' : ''}" style="margin-bottom:8px;${matchedStyle}" onclick="toggleWaitingEntry(${e.id}, event)">
             <div class="mobile-card-header waiting-entry-summary">
                 <div>
-                    <div class="mobile-card-title">${statusIcon}${escapeHtml(e.name)}</div>
+                    <div class="mobile-card-title">${statusIcon}${escapeHtml(e.name)}${e.client_id ? visitCountBadge(e.completed_visits) : ''}</div>
                     <div style="font-size:12px;color:var(--text-secondary)">${e.phone || '—'} · ${dateStr} · ${timeStr} · ${transStr}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">${sourceBadge}<span class="badge badge-${e.status === 'waiting' ? 'primary' : 'secondary'}">${e.status === 'waiting' ? 'Ожидает' : e.status === 'not_answered' ? 'Не ответил' : e.status === 'refused' ? 'Отказался' : e.status}</span><span class="waiting-entry-arrow">${isOpen ? '⌃' : '⌄'}</span></div>
@@ -5822,7 +5910,7 @@ async function loadConflicts() {
             const transLabel = b.transmission === 'manual' ? 'Механика' : 'Автомат';
             html += `<div class="conflict-booking unselected" id="conflict-booking-${b.id}" data-id="${b.id}">`;
             html += `<div class="conflict-booking-info">`;
-            html += `<div class="conflict-booking-client">${escapeHtml(b.client_name)}${isManual ? '<span class="conflict-booking-manual">РУЧНАЯ</span>' : ''}</div>`;
+            html += `<div class="conflict-booking-client">${escapeHtml(b.client_name)}${visitCountBadge(b.completed_visits)}${isManual ? '<span class="conflict-booking-manual">РУЧНАЯ</span>' : ''}</div>`;
             html += `<div class="conflict-booking-details">📞 ${escapeHtml(b.client_phone)} | 🚗 ${serviceLabel} (${transLabel}) | 📍 ${escapeHtml(locationShort(b.location))}</div>`;
             html += `<div class="conflict-booking-details">🕐 ${b.start_time}—${b.end_time} | Источник: ${b.source || '—'}</div>`;
             if (b.conflict_reason) {

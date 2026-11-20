@@ -1,4 +1,6 @@
 import csv
+import asyncio
+import asyncpg
 import io
 import re
 import secrets
@@ -594,12 +596,18 @@ class ExamSensorCapacityRequest(BaseModel):
     capacity: int
 
 
+from app.security_guard import client_ip, lock_attempt, failed, succeeded
+
 @router.post("/login")
 async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    ip = client_ip(request)
+    attempt = await lock_attempt(db, 'admin', ip)
     result = await db.execute(select(Admin).where(Admin.username == body.username))
     admin = result.scalar_one_or_none()
     if not admin or not verify_password(body.password, admin.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        count = await failed(db, 'admin', ip, attempt)
+        raise HTTPException(status_code=401, detail=f"Неверный логин или пароль. Осталось попыток: {3-count}.")
+    await succeeded(db, 'admin', ip)
     request.session["admin_username"] = admin.username
     request.session["password_changed_at"] = admin.password_changed_at.isoformat() if admin.password_changed_at else None
     await _audit(db, admin.username, "login", "Администратор вошёл в систему.")
@@ -765,6 +773,7 @@ async def list_instructors(request: Request, db: AsyncSession = Depends(get_db))
             "gender": i.gender,
             "experience_years": i.experience_years or 0, "rating": i.rating if i.rating is not None else 5.0,
             "is_active": i.is_active is not False,
+            "accepts_new_bookings": i.accepts_new_bookings is not False,
             "working_hours_start": str(i.working_hours_start),
             "working_hours_end": str(i.working_hours_end),
             "lunch_start": str(i.lunch_start) if i.lunch_start else None,
@@ -1457,12 +1466,30 @@ def _booking_filter(model, date_from, date_to, instructor_id, status, location):
     return conditions
 
 
-def _serialize_booking(booking: Booking) -> dict:
+async def _completed_training_counts(db: AsyncSession, client_ids) -> dict[int, int]:
+    """Count completed driving lessons, including archived bookings."""
+    ids = {client_id for client_id in client_ids if client_id is not None}
+    if not ids:
+        return {}
+    rows = await db.execute(
+        select(Booking.client_id, func.count())
+        .where(
+            Booking.client_id.in_(ids),
+            Booking.status == "completed",
+            Booking.service_type == "training",
+        )
+        .group_by(Booking.client_id)
+    )
+    return dict(rows.all())
+
+
+def _serialize_booking(booking: Booking, completed_visits: Optional[int] = None) -> dict:
     """Keep every booking list on the same response format."""
     completion_at = booking.completed_at or booking.paid_at or booking.created_at
     return {
         "id": booking.id,
         "client_id": booking.client_id,
+        "completed_visits": completed_visits,
         "instructor_id": booking.instructor_id,
         "client_telegram_id": booking.client.telegram_id if booking.client else None,
         "source": booking.source or "telegram",
@@ -1584,8 +1611,10 @@ async def list_bookings(
             "total_pages": total_pages,
         }
     tg_result = await db.execute(tg_query)
-    for b in tg_result.scalars().all():
-        items.append(_serialize_booking(b))
+    bookings = tg_result.scalars().all()
+    visit_counts = await _completed_training_counts(db, (booking.client_id for booking in bookings))
+    for booking in bookings:
+        items.append(_serialize_booking(booking, visit_counts.get(booking.client_id, 0)))
 
     items.sort(key=lambda x: (x["date"], x["start_time"], x["id"]), reverse=newest_first)
     return {"items": items, "pagination": pagination} if pagination else items
@@ -1606,10 +1635,13 @@ async def list_archived_bookings(request: Request, db: AsyncSession = Depends(ge
         .where(Booking.archived_at.isnot(None))
         .order_by(Booking.booking_date.desc(), Booking.start_time.desc(), Booking.id.desc())
     )
-    return [_serialize_booking(booking) for booking in result.scalars().all()]
+    bookings = result.scalars().all()
+    visit_counts = await _completed_training_counts(db, (booking.client_id for booking in bookings))
+    return [_serialize_booking(booking, visit_counts.get(booking.client_id, 0)) for booking in bookings]
 
 
 class ManualBookingCreate(BaseModel):
+    own_client: bool = False
     client_name: Optional[str] = None
     client_phone: Optional[str] = None
     # A concrete ID is an explicit caller choice.  Gender is only a
@@ -2178,6 +2210,8 @@ async def create_manual_booking(
             (ClientPackage.expires_at.is_(None)) | (ClientPackage.expires_at >= now_kz()),
         ).order_by(ClientPackage.expires_at).with_for_update()
     )).scalars().first()
+    if body.own_client:
+        package_purchase = None
     package_bonus_exam_used = False
     if package_purchase:
         if service == ServiceType.TRAINING:
@@ -2198,9 +2232,9 @@ async def create_manual_booking(
         f" — {package_progress[0]}/{package_progress[1]} занятий"
         if package_progress else ""
     )
-    final_price = 0 if package_paid else price
+    final_price = 0 if (package_paid or body.own_client) else price
     referral_discount_amount = 0
-    if not package_paid and client.referral_discount_available:
+    if not package_paid and not body.own_client and client.referral_discount_available:
         existing_referral_booking = (await db.execute(
             select(func.count()).select_from(Booking).where(
                 Booking.client_id == client.id,
@@ -2234,10 +2268,10 @@ async def create_manual_booking(
         price=final_price,
         base_price=price,
         referral_discount_amount=referral_discount_amount,
-        payment_status="paid" if package_paid else "unpaid",
+        payment_status="paid" if (package_paid or body.own_client) else "unpaid",
         paid_amount=price if package_paid else 0,
         paid_at=now_kz() if package_paid else None,
-        source="manual",
+        source="own_client" if body.own_client else "manual",
         # Admin-selected name is immediately a conscious choice.  Gender and
         # no-preference are still system assignment and remain ``auto``.
         instructor_selection_mode="admin_manual" if body.instructor_id else "auto",
@@ -2306,7 +2340,7 @@ async def create_manual_booking(
             f"Клиент: {body.client_name}\n"
             f"Площадка: {location}\n"
             f"Коробка: {trans_label}\n"
-            + ("📦 ОПЛАЧЕНО ПАКЕТОМ — деньги НЕ брать!" if package_paid
+            + ("✅ ОПЛАЧЕНО — деньги НЕ брать!" if body.own_client else "📦 ОПЛАЧЕНО ПАКЕТОМ — деньги НЕ брать!" if package_paid
                else (f"🎁 Скидка по реферальному коду: {referral_discount_amount} ₸\n💰 К оплате: {final_price} ₸"
                      if referral_discount_amount else f"💰 К оплате: {final_price} ₸"))
         )
@@ -2336,7 +2370,10 @@ async def create_manual_booking(
         except Exception as e:
             _logger.error(f"[notify manual package] Telegram error: {e}")
 
-    return {"ok": True, "booking_id": booking.id, "client_id": client.id}
+    from app.progress_common import ensure_code, SITE
+    access = await ensure_code(db, client.id)
+    await db.commit()
+    return {"ok": True, "booking_id": booking.id, "client_id": client.id, "profile_code": access.code, "profile_site": SITE + "/"}
 
 
 async def _purge_bookings(db: AsyncSession, bookings: list[Booking]) -> int:
@@ -2389,13 +2426,19 @@ async def update_booking_status(
     request: Request, booking_id: int, body: UpdateBookingStatus, db: AsyncSession = Depends(get_db)
 ):
     username = _get_admin_username(request)
-    result = await db.execute(select(Booking).where(Booking.id == booking_id))
+    auto_action = username == "Автоматическое подтверждение"
+    result = await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())
     booking = result.scalar_one_or_none()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     valid_statuses = ['planned', 'confirmed', 'completed', 'cancelled', 'no_show', 'cancellation_pending', 'reschedule_pending']
     if body.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    if (booking.status == "cancellation_pending" and body.status == "cancelled" and
+        (booking.cancellation_previous_status not in ("pending", "planned", "confirmed")
+         or booking.completed_at is not None
+         or datetime.combine(booking.booking_date, booking.start_time) <= now_kz())):
+        raise HTTPException(status_code=409, detail="Занятие уже началось или завершено. Отклоните заявку на отмену.")
     # A client cancellation is reversible until the admin makes the final
     # decision.  The normal status endpoint is the single confirmation point.
     is_client_cancellation_confirmation = (
@@ -2436,7 +2479,7 @@ async def update_booking_status(
         if is_client_cancellation_confirmation and client is not None:
             await _add_support_notice(
                 db, client.id,
-                "Ваша заявка на отмену подтверждена администратором. Запись отменена.",
+                ("Ваша заявка на отмену подтверждена. Запись отменена." if auto_action else "Ваша заявка на отмену подтверждена администратором. Запись отменена."),
             )
             _, cancellation_warning = await _apply_cancellation_limit(db, client)
             if cancellation_warning:
@@ -2454,7 +2497,7 @@ async def update_booking_status(
                 trans_label = "Механика" if booking.transmission == "manual" else "Автомат"
                 instr_text = (
                     f"❌ Запись отменена!\n\n"
-                    f"{instructor.name}, запись #{booking_id} отменена администратором.\n\n"
+                    f"{instructor.name}, запись #{booking_id} отменена.\n\n"
                     f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
                     f"👤 Клиент: {client_name}\n"
                     f"📍 {booking.location}\n"
@@ -2478,12 +2521,12 @@ async def update_booking_status(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": "❌ Ваша отмена записи подтверждена администратором."},
+                        json={"chat_id": client.telegram_id.strip(), "text": ("❌ Ваша отмена записи подтверждена." if auto_action else "❌ Ваша отмена записи подтверждена администратором.")},
                     )
             except Exception:
                 pass
         if client:
-            await send_push_to_user(client.id, "Запись отменена", "Ваша отмена записи подтверждена администратором.",
+            await send_push_to_user(client.id, "Запись отменена", ("Ваша отмена записи подтверждена." if auto_action else "Ваша отмена записи подтверждена администратором."),
                                     {"type": "booking_cancelled", "booking_id": booking.id})
 
         if cancellation_warning:
@@ -2665,9 +2708,10 @@ async def resolve_reschedule_request(
 ):
     """Подтверждает или отклоняет заявку клиента на перенос, не меняя запись заранее."""
     username = _get_admin_username(request)
+    auto_action = username == "Автоматическое подтверждение"
     booking = (await db.execute(
         select(Booking).options(selectinload(Booking.client), selectinload(Booking.instructor))
-        .where(Booking.id == booking_id)
+        .where(Booking.id == booking_id).with_for_update()
     )).scalar_one_or_none()
     if not booking or booking.status != "reschedule_pending":
         raise HTTPException(status_code=404, detail="Заявка на перенос не найдена")
@@ -2699,11 +2743,17 @@ async def resolve_reschedule_request(
                                     {"type": "booking_reschedule_rejected", "booking_id": booking.id})
         return {"ok": True}
 
+    if (booking.reschedule_previous_status not in ("planned", "confirmed")
+        or booking.completed_at is not None
+        or datetime.combine(booking.booking_date, booking.start_time) <= now_kz()):
+        raise HTTPException(status_code=409, detail="Занятие уже началось или завершено. Отклоните заявку на перенос.")
     new_date = booking.requested_reschedule_date
     new_start = booking.requested_reschedule_start_time
     new_end = booking.requested_reschedule_end_time
     if not new_date or not new_start or not new_end:
         raise HTTPException(status_code=400, detail="В заявке не указано новое время")
+    if datetime.combine(new_date, new_start) <= now_kz():
+        raise HTTPException(status_code=409, detail="Запрошенное время уже прошло. Отклоните заявку и выберите новое время.")
     instructor = booking.instructor or await db.get(Instructor, booking.instructor_id)
     if not instructor or not await is_instructor_available(
         db, instructor, new_date, new_start, new_end, booking.transmission,
@@ -2749,6 +2799,11 @@ async def resolve_reschedule_request(
         )
         raise HTTPException(status_code=409, detail=detail)
 
+    if (booking.completed_at is not None
+        or booking.reschedule_previous_status not in ("planned", "confirmed")
+        or datetime.combine(booking.booking_date, booking.start_time) <= now_kz()
+        or datetime.combine(new_date, new_start) <= now_kz()):
+        raise HTTPException(status_code=409, detail="Занятие началось или запрошенное время прошло. Отклоните заявку.")
     old_date, old_start, old_instructor = booking.booking_date, booking.start_time, instructor
     booking.booking_date = new_date
     booking.start_time = new_start
@@ -2765,7 +2820,11 @@ async def resolve_reschedule_request(
     booking.reminder_10min_sent = False
     booking.reminder_1h_sent = False
     booking.reminder_24h_sent = False
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Это время уже занято. Попросите клиента выбрать другой слот.")
     await _audit(
         db, username, "booking_rescheduled",
         f"Запись #{booking_id} перенесена с {old_date} {old_start} на {new_date} {new_start}",
@@ -2773,7 +2832,7 @@ async def resolve_reschedule_request(
     db.add(Event(
         event_type="booking_rescheduled", source="admin", client_id=client.id if client else None,
         instructor_id=booking.instructor_id, booking_id=booking.id,
-        message=f"Администратор подтвердил перенос записи на {new_date.strftime('%d.%m.%Y')} {new_start.strftime('%H:%M')}",
+        message=f"Перенос записи подтверждён на {new_date.strftime('%d.%m.%Y')} {new_start.strftime('%H:%M')}",
     ))
     await db.commit()
 
@@ -2801,7 +2860,7 @@ async def resolve_reschedule_request(
     if old_instructor.telegram_id and settings.INSTRUCTOR_BOT_TOKEN:
         try:
             instructor_message = (
-                "🔄 Администратор подтвердил перенос записи.\n\n"
+                ("🔄 Перенос записи подтверждён.\n\n" if auto_action else "🔄 Администратор подтвердил перенос записи.\n\n") +
                 f"Клиент: {client.name if client else '—'}\n"
                 f"Было: {old_date.strftime('%d.%m.%Y')} в {old_start.strftime('%H:%M')}\n"
                 f"Стало: {new_date.strftime('%d.%m.%Y')} в {new_start.strftime('%H:%M')}\n"
@@ -2845,7 +2904,8 @@ async def confirm_booking(
     request: Request, booking_id: int, body: ConfirmBookingRequest, db: AsyncSession = Depends(get_db)
 ):
     username = _get_admin_username(request)
-    result = await db.execute(select(Booking).options(selectinload(Booking.client), selectinload(Booking.instructor)).where(Booking.id == booking_id))
+    auto_action = username == "Автоматическое подтверждение"
+    result = await db.execute(select(Booking).options(selectinload(Booking.client), selectinload(Booking.instructor)).where(Booking.id == booking_id).with_for_update())
     booking = result.scalar_one_or_none()
     if not booking:
         raise HTTPException(status_code=404, detail="Запись не найдена")
@@ -2897,7 +2957,7 @@ async def confirm_booking(
             source="admin",
             client_id=client.id if client else None,
             booking_id=booking.id,
-            message=f"Запись #{booking.booking_number} подтверждена администратором",
+            message=(f"Запись #{booking.booking_number} подтверждена автоматически" if auto_action else f"Запись #{booking.booking_number} подтверждена администратором"),
         ))
         await db.commit()
         
@@ -3626,6 +3686,48 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "clients_count": clients_count.scalar(),
         "instructors_count": instructors_count.scalar(),
     }
+
+
+@router.get("/booking-events")
+async def booking_events(request: Request):
+    """Stream committed new Telegram applications to an authenticated admin."""
+    from app.database import async_session
+    async with async_session() as db:
+        await check_session(request, Response(), db)
+    dsn = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+    try:
+        connection = await asyncpg.connect(dsn, timeout=5)
+        queue = asyncio.Queue()
+        def receive(_connection, _pid, _channel, payload):
+            queue.put_nowait(payload)
+        await connection.add_listener("greentime_new_application", receive)
+        connection.add_termination_listener(lambda _conn: queue.put_nowait(None))
+    except Exception:
+        if "connection" in locals():
+            await connection.close()
+        raise HTTPException(status_code=503, detail="Events temporarily unavailable")
+
+    async def events():
+        try:
+            deadline = asyncio.get_running_loop().time() + 300
+            yield ": connected\n\n"
+            while True:
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=15)
+                    if item is None:
+                        break
+                    if item.isdigit():
+                        yield f"event: application\ndata: {item}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+                if asyncio.get_running_loop().time() >= deadline or await request.is_disconnected():
+                    break
+        finally:
+            await connection.close()
+    return StreamingResponse(events(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
+    })
 
 
 @router.get("/notification-counts")
@@ -6742,6 +6844,8 @@ async def list_clients(request: Request, db: AsyncSession = Depends(get_db)):
         .group_by(Booking.client_id)
     )).all())
 
+    completed_visit_counts = await _completed_training_counts(db, client_ids)
+
     certificates_by_client: dict[int, list[Certificate]] = {}
     for certificate in (await db.execute(
         select(Certificate)
@@ -6773,6 +6877,7 @@ async def list_clients(request: Request, db: AsyncSession = Depends(get_db)):
             "referral_discount_available": c.referral_discount_available,
             "avatar_url": c.avatar_url,
             "bookings_count": bookings_counts.get(c.id, 0),
+            "completed_visits": completed_visit_counts.get(c.id, 0),
             "certificates": [
                 {"id": cert.id, "code": cert.code, "nominal": cert.nominal, "remaining": cert.remaining, "is_used": cert.is_used}
                 for cert in certs
@@ -6840,6 +6945,7 @@ async def search_clients(
             .limit(8)
         )
         clients = result.scalars().all()
+    completed_visit_counts = await _completed_training_counts(db, (client.id for client in clients))
     output = []
     for client in clients:
         bookings_count_result = await db.execute(
@@ -6850,6 +6956,7 @@ async def search_clients(
             "name": client.name,
             "phone": client.phone,
             "bookings_count": bookings_count_result.scalar() or 0,
+            "completed_visits": completed_visit_counts.get(client.id, 0),
         })
     return output
 
@@ -7196,30 +7303,25 @@ async def activate_certificate_for_client(
 
 @router.get("/notifications")
 async def get_notifications(request: Request, db: AsyncSession = Depends(get_db)):
-    """Вкладка «События»: успешные действия клиентов в Telegram и приложении."""
+    """Полная лента событий клиентов, инструкторов и системы."""
     _get_admin_username(request)
     await archive_previous_day_logs(db)
-
-    # Системные напоминания и действия инструкторов могут храниться в той же
-    # таблице для совместимости, но в этот журнал попадают только события,
-    # привязанные к клиенту и созданные клиентскими каналами.
-    events_result = await db.execute(
-        select(Event).where(
-            Event.client_id.isnot(None),
-            Event.source.in_(("telegram", "mobile")),
-        ).order_by(Event.created_at.desc())
-    )
-    return [
-        {
-            "type": event.event_type,
-            "message": event.message,
-            "source": event.source,
-            "client_id": event.client_id,
-            "booking_id": event.booking_id,
-            "created_at": str(event.created_at),
-        }
-        for event in events_result.scalars().all()
-    ]
+    events = (await db.execute(select(Event).order_by(Event.created_at.desc(), Event.id.desc()))).scalars().all()
+    # Действия инструкторов и фоновых задач раньше записывались в AuditLog.
+    # Показываем их здесь, сохраняя исходную историю и исключая действия админов.
+    staff = list((await db.execute(select(Admin.username))).scalars().all())
+    operational = (await db.execute(select(AuditLog).where(
+        or_(AuditLog.admin_username.is_(None), AuditLog.admin_username.notin_(staff))
+    ).order_by(AuditLog.created_at.desc(), AuditLog.id.desc()))).scalars().all()
+    result = [{"type": e.event_type, "message": e.message, "source": e.source,
+               "client_id": e.client_id, "booking_id": e.booking_id,
+               "created_at": str(e.created_at)} for e in events]
+    for item in operational:
+        result.append({"type": item.action, "message": item.details or item.action,
+                       "source": "instructor" if item.admin_username.startswith("Инструктор:") else "system",
+                       "client_id": None, "booking_id": None, "created_at": str(item.created_at)})
+    result.sort(key=lambda row: row["created_at"], reverse=True)
+    return result
 
 
 # ==================== ЛИСТ ОЖИДАНИЯ ====================
@@ -7309,6 +7411,7 @@ async def get_waiting_list(request: Request, db: AsyncSession = Depends(get_db))
         entry.id: any(_waiting_entry_matches_booking(entry, booking) for booking in cancelled_bookings)
         for entry in actionable_entries
     }
+    visit_counts = await _completed_training_counts(db, (client.id for client in client_by_phone.values()))
     items = []
     for e in entries:
         linked_client = client_by_phone.get(normalize_phone(e.phone)) if e.phone else None
@@ -7317,6 +7420,7 @@ async def get_waiting_list(request: Request, db: AsyncSession = Depends(get_db))
             "name": e.name,
             "phone": e.phone,
             "client_id": linked_client.id if linked_client else None,
+            "completed_visits": visit_counts.get(linked_client.id, 0) if linked_client else None,
             "client_source": (
                 "telegram" if linked_client and linked_client.telegram_id
                 else linked_client.latest_booking_source if linked_client else None
@@ -8292,6 +8396,7 @@ async def get_conflict_groups(request: Request, db: AsyncSession = Depends(get_d
         return (b.instructor_id, b.booking_date.isoformat(), b.start_time.strftime("%H:%M"))
 
     bookings_sorted = sorted(bookings, key=slot_key)
+    visit_counts = await _completed_training_counts(db, (booking.client_id for booking in bookings))
     groups = []
     for key, group_iter in groupby(bookings_sorted, key=slot_key):
         items = list(group_iter)
@@ -8303,6 +8408,8 @@ async def get_conflict_groups(request: Request, db: AsyncSession = Depends(get_d
                 "id": b.id,
                 "client_name": b.client.name if b.client else "—",
                 "client_phone": b.client.phone if b.client else "—",
+                "client_id": b.client_id,
+                "completed_visits": visit_counts.get(b.client_id, 0),
                 "instructor_name": b.instructor.name if b.instructor else "—",
                 "instructor_id": b.instructor_id,
                 "booking_date": b.booking_date.isoformat(),

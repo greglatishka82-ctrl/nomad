@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from typing import Optional
 from pathlib import Path
 from datetime import datetime, date, time, timedelta
@@ -14,7 +15,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 # Инструкторский бот — заполняется из main.py при старте
 instructor_bot: Optional[Bot] = None
-from sqlalchemy import select, and_, or_, func, update
+from sqlalchemy import select, and_, or_, func, update, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ from app.models.models import (
     Client, Booking, BookingStatus, ServiceType, TransmissionType,
     Instructor, RatingRecord, RatingVote, ReferralRecord, FAQItem,
     NotificationSent, Certificate, AuditLog, InstructorGender, MobileBooking, ClientPackage, Package,
-    SupportMessage, Event
+    SupportMessage, Event, Vehicle
 )
 from app.services.booking_service import get_available_slots, get_available_slots_for_instructor, find_best_instructor, find_best_instructor_with_location, has_available_instructors, reserve_vehicle_capacity, add_minutes, is_client_slot_start_allowed
 from app.services.client_lifecycle import (
@@ -38,6 +39,31 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 BOOKING_WINDOW_DAYS = 5
+
+
+def _client_booking_can_change(booking) -> bool:
+    """A client can only change an unstarted, unfinished confirmed booking."""
+    return (
+        booking.status in ("planned", "confirmed")
+        and booking.completed_at is None
+        and datetime.combine(booking.booking_date, booking.start_time)
+            > datetime.now(TIMEZONE).replace(tzinfo=None)
+    )
+
+
+def _client_booking_can_cancel(booking) -> bool:
+    return (
+        booking.status in ("pending", "planned", "confirmed")
+        and booking.completed_at is None
+        and datetime.combine(booking.booking_date, booking.start_time)
+            > datetime.now(TIMEZONE).replace(tzinfo=None)
+    )
+
+
+def _client_date_is_current(booking_date: date) -> bool:
+    today = datetime.now(TIMEZONE).date()
+    return today <= booking_date < today + timedelta(days=BOOKING_WINDOW_DAYS)
+
 
 PLACE_SHORT = "Лесная 5"
 
@@ -437,6 +463,108 @@ async def go_back(callback: CallbackQuery, state: FSMContext):
         await state.clear()
 
 
+async def _release_slot_hold(telegram_id, hold_id=None):
+    async with async_session() as db:
+        if hold_id is None:
+            await db.execute(text("DELETE FROM telegram_slot_holds WHERE telegram_id=:owner"), {"owner": str(telegram_id)})
+        else:
+            await db.execute(text("DELETE FROM telegram_slot_holds WHERE telegram_id=:owner AND id=:id"),
+                             {"owner": str(telegram_id), "id": hold_id})
+        await db.commit()
+
+
+async def _slot_hold_is_active(telegram_id, state):
+    data = await state.get_data()
+    async with async_session() as db:
+        active = (await db.execute(text("""
+            SELECT id FROM telegram_slot_holds
+            WHERE id=:id AND telegram_id=:owner AND expires_at > clock_timestamp()
+        """), {"id": data.get("hold_id", -1), "owner": str(telegram_id)})).scalar_one_or_none()
+    return bool(active)
+
+
+async def expire_slot_holds_loop(bot, dispatcher):
+    """Release expired holds and notify even after the bot restarts."""
+    while True:
+        try:
+            async with async_session() as db:
+                expired = (await db.execute(text("""
+                    DELETE FROM telegram_slot_holds WHERE expires_at <= clock_timestamp()
+                    RETURNING id, telegram_id
+                """))).all()
+                await db.commit()
+            for row in expired:
+                try:
+                    user_id = int(row.telegram_id)
+                    ctx = dispatcher.fsm.get_context(bot=bot, chat_id=user_id, user_id=user_id)
+                    data = await ctx.get_data()
+                    if data and data.get("hold_id") != row.id:
+                        continue
+                    if data:
+                        await ctx.clear()
+                    await bot.send_message(
+                        user_id,
+                        "Время бронирования истекло, и выбранный слот снова доступен другим клиентам. "
+                        "Пожалуйста, начните запись заново и выберите удобное время.",
+                        reply_markup=MAIN_KEYBOARD,
+                    )
+                except Exception:
+                    logger.exception("Could not notify a client about expired slot hold")
+        except Exception:
+            logger.exception("Could not process expired slot holds")
+        await asyncio.sleep(10)
+
+
+async def _slot_hold_expired(message, state):
+    await state.clear()
+    await message.answer(
+        "Время бронирования истекло, и выбранный слот снова доступен другим клиентам. "
+        "Пожалуйста, начните запись заново и выберите удобное время.",
+        reply_markup=MAIN_KEYBOARD,
+    )
+
+
+async def _acquire_slot_hold(state, telegram_id, time_str):
+    data = await state.get_data()
+    booking_date = date.fromisoformat(data["booking_date"])
+    start = time.fromisoformat(time_str)
+    service = ServiceType.TRAINING if data["service_type"] == "training" else ServiceType.EXAM
+    transmission = data["transmission"]
+    location = settings.LOCATION_EXAM
+    duration = settings.TRAINING_DURATION_MINUTES if service == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
+    end = add_minutes(start, duration)
+    if not _client_date_is_current(booking_date) or not is_client_slot_start_allowed(booking_date, start, service):
+        return None
+    async with async_session() as db:
+        await db.execute(select(Vehicle.id).order_by(Vehicle.id).with_for_update())
+        await db.execute(text("DELETE FROM telegram_slot_holds WHERE telegram_id=:owner"),
+                         {"owner": str(telegram_id)})
+        selected = data.get("selected_instructor_id")
+        gender = data.get("instructor_gender", "any")
+        if selected:
+            slots = await get_available_slots_for_instructor(db, booking_date, service, transmission, location, selected)
+            instructor = await db.get(Instructor, selected) if start in slots else None
+        else:
+            slots = await get_available_slots(db, booking_date, service, transmission, location, gender)
+            instructor = await find_best_instructor(db, booking_date, start, end, transmission,
+                         location, gender, service, update_rotation=False) if start in slots else None
+        if not instructor or not await reserve_vehicle_capacity(db, booking_date, start, end, transmission, service):
+            await db.commit()
+            return None
+        hold_id = (await db.execute(text("""
+            INSERT INTO telegram_slot_holds
+                (telegram_id, instructor_id, booking_date, start_time, end_time,
+                 transmission, service_type, location, expires_at)
+            VALUES (:owner,:instructor,:day,:start,:end,:transmission,:service,:location,
+                    clock_timestamp() + interval '20 minutes')
+            RETURNING id
+        """), {"owner":str(telegram_id), "instructor":instructor.id, "day":booking_date,
+               "start":start, "end":end, "transmission":transmission,
+               "service":getattr(service, "value", service), "location":location})).scalar_one()
+        await db.commit()
+        return hold_id
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     args = message.text.split() if message.text else []
@@ -450,6 +578,7 @@ async def cmd_start(message: Message, state: FSMContext):
             logger.exception("Failed to send directions video")
             await message.answer("Не удалось открыть видео. Адрес площадки: Братьев Дюсембиновых 5.")
         return
+    await _release_slot_hold(message.from_user.id)
     await state.clear()
     referral_code = None
     if len(args) > 1:
@@ -479,6 +608,7 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @router.message(F.text == "📝 Записаться")
 async def btn_book(message: Message, state: FSMContext):
+    await _release_slot_hold(message.from_user.id)
     await state.clear()
 
     # Услуга одна — практическое вождение, поэтому запись начинается сразу
@@ -500,15 +630,26 @@ async def btn_book(message: Message, state: FSMContext):
     await state.set_state(BookingStates.choosing_transmission)
 
 
+@router.message(BookingStates.waiting_name, F.text == "❌ Отменить запись")
+@router.message(BookingStates.entering_phone, F.text == "❌ Отменить запись")
+async def cancel_new_booking(message: Message, state: FSMContext):
+    await _release_slot_hold(message.from_user.id)
+    await state.clear()
+    await message.answer("Запись отменена. Выбранное время снова доступно другим клиентам.", reply_markup=MAIN_KEYBOARD)
+
+
 @router.message(BookingStates.waiting_name)
 async def process_name(message: Message, state: FSMContext):
-    name = message.text.strip()
+    if not await _slot_hold_is_active(message.from_user.id, state):
+        await _slot_hold_expired(message, state)
+        return
+    name = (message.text or "").strip()
     if len(name) < 2:
         await message.answer("Пожалуйста, введите ваше имя:")
         return
     await state.update_data(client_name=name)
     phone_kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📱 Отправить номер", request_contact=True)]],
+        keyboard=[[KeyboardButton(text="📱 Отправить номер", request_contact=True)], [KeyboardButton(text="❌ Отменить запись")]],
         resize_keyboard=True, one_time_keyboard=True,
     )
     await message.answer(
@@ -759,7 +900,15 @@ async def process_date(message: Message, state: FSMContext):
 async def process_time(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     time_str = callback.data.split(":", 1)[1]
-    await state.update_data(start_time=time_str)
+    hold_id = await _acquire_slot_hold(state, callback.from_user.id, time_str)
+    if not hold_id:
+        await callback.message.edit_text(
+            "К сожалению, это время только что занял другой клиент. "
+            "Пожалуйста, начните запись заново и выберите другое свободное время."
+        )
+        await state.clear()
+        return
+    await state.update_data(start_time=time_str, hold_id=hold_id)
 
     client = await _get_client_by_telegram(str(callback.from_user.id))
     if client and client.phone:
@@ -769,28 +918,52 @@ async def process_time(callback: CallbackQuery, state: FSMContext):
     elif client and not client.phone:
         # Клиент есть но без телефона — спрашиваем только телефон
         phone_kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="📱 Отправить номер", request_contact=True)]],
+            keyboard=[[KeyboardButton(text="📱 Отправить номер", request_contact=True)], [KeyboardButton(text="❌ Отменить запись")]],
             resize_keyboard=True, one_time_keyboard=True,
         )
         await callback.message.edit_text(f"Выбрано время: {time_str}")
         await callback.message.answer(
-            "Введите ваш номер телефона или отправьте его кнопкой ниже:",
+            "Введите номер телефона или отправьте его кнопкой ниже:",
             reply_markup=phone_kb,
         )
         await state.set_state(BookingStates.entering_phone)
     else:
         # Новый пользователь — сначала спрашиваем имя
         await callback.message.edit_text(f"Выбрано время: {time_str}")
-        await callback.message.answer("Как вас зовут?", reply_markup=MAIN_KEYBOARD)
+        await callback.message.answer("Как вас зовут?", reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="❌ Отменить запись")]], resize_keyboard=True))
         await state.set_state(BookingStates.waiting_name)
 
 
 async def _finalize_booking(message: Message, state: FSMContext, telegram_id: str, client: Client = None):
+    hold_id = (await state.get_data()).get("hold_id")
+    try:
+        return await _finalize_booking_with_hold(message, state, telegram_id, client)
+    finally:
+        if hold_id is not None:
+            await _release_slot_hold(telegram_id, hold_id)
+
+
+async def _finalize_booking_with_hold(message: Message, state: FSMContext, telegram_id: str, client: Client = None):
     data = await state.get_data()
     booking_location = settings.LOCATION_EXAM  # будет переопределено внутри
     package_progress = None
 
     async with async_session() as db:
+        await db.execute(select(Vehicle.id).order_by(Vehicle.id).with_for_update())
+        hold = (await db.execute(text("""
+            SELECT id,instructor_id FROM telegram_slot_holds
+            WHERE id=:id AND telegram_id=:owner AND expires_at > clock_timestamp()
+              AND booking_date=:day AND start_time=:start
+            FOR UPDATE
+        """), {"id":data.get("hold_id",-1), "owner":str(telegram_id),
+               "day":date.fromisoformat(data["booking_date"]),
+               "start":time.fromisoformat(data["start_time"])})).first()
+        if not hold:
+            await db.rollback()
+            await _slot_hold_expired(message, state)
+            return
+        await db.execute(text("DELETE FROM telegram_slot_holds WHERE id=:id"), {"id":hold.id})
+        data["held_instructor_id"] = hold.instructor_id
         # Always load a fresh object in this session. The caller may have just
         # linked Telegram to an existing phone profile in another session.
         # That profile is authoritative and its administrator-entered name is
@@ -889,7 +1062,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         booking_date = date.fromisoformat(data["booking_date"])
         start_t = time.fromisoformat(data["start_time"])
         duration = settings.TRAINING_DURATION_MINUTES if service_type == ServiceType.TRAINING else settings.EXAM_DURATION_MINUTES
-        if not is_client_slot_start_allowed(booking_date, start_t, service_type):
+        if not _client_date_is_current(booking_date) or not is_client_slot_start_allowed(booking_date, start_t, service_type):
             await message.answer(
                 "Этот слот уже недоступен. Выберите другое свободное время через «Записаться».",
                 reply_markup=MAIN_KEYBOARD,
@@ -1008,7 +1181,7 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         gender_map = {"male": "male", "female": "female", "any": "any"}
         instructor_gender = gender_map.get(data.get("instructor_gender", "any"), "any")
 
-        selected_instructor_id = data.get("selected_instructor_id")
+        selected_instructor_id = data.get("held_instructor_id")
         if selected_instructor_id:
             instructor = await db.get(Instructor, selected_instructor_id)
             location_from_search = booking_location
@@ -1034,6 +1207,24 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
             )
             await state.clear()
             return
+
+        if data.get("instructor_selection_mode", "auto") == "auto":
+            from app.models.models import InstructorRotation
+            rotation = (await db.execute(
+                select(InstructorRotation).where(
+                    InstructorRotation.instructor_id == instructor.id
+                ).with_for_update()
+            )).scalar_one_or_none()
+            if rotation:
+                rotation.rotation_count += 1
+                rotation.last_booking_date = booking_date
+                rotation.last_booking_time = start_t
+                rotation.updated_at = datetime.utcnow()
+            else:
+                db.add(InstructorRotation(
+                    instructor_id=instructor.id, last_booking_date=booking_date,
+                    last_booking_time=start_t, rotation_count=1,
+                ))
 
         # Используем площадку из state (которую выбрал пользователь)
         # location_from_search это резервный вариант если что-то пошло не так
@@ -1083,6 +1274,13 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
             )
             await state.clear()
             return
+
+        if not _client_date_is_current(booking_date) or not is_client_slot_start_allowed(booking_date, start_t, service_type):
+            await db.rollback()
+            await message.answer("Это время уже недоступно. Начните запись заново.", reply_markup=MAIN_KEYBOARD)
+            await state.clear()
+            return
+
 
         booking = Booking(
             client_id=client.id,
@@ -1136,13 +1334,28 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
         if package_progress else ""
     )
     pending_msg = (
-        f"⏳ <b>Ваша заявка находится в обработке. Ожидайте подтверждения.</b>\n\n"
-        f"Если подтверждение не пришло в течение 15 минут, свяжитесь с администратором школы GREENTIME.\n\n"
-        f"📞 +7 707 881 08 48\n\n"
-        f"⏰ Заявки подтверждаются в рабочее время с 08:00 до 19:00.\n"
-        f"Заявки, созданные после рабочего времени, рассматриваются и подтверждаются на следующий день."
+        "⏳ <b>Ваша заявка находится в обработке. Ожидайте подтверждения.</b>\n\n"
+        "Как только запись будет подтверждена, мы пришлём вам сообщение."
     ) + package_note
     await message.answer(pending_msg, reply_markup=MAIN_KEYBOARD, parse_mode="HTML")
+
+    # Доступ отправляется отдельно: возможная ошибка выдачи кода не отменяет запись.
+    try:
+        from app.progress_common import ProfileAccess, ensure_code, SITE
+        async with async_session() as profile_db:
+            access = await profile_db.get(ProfileAccess, client.id)
+            if access is None:
+                access = await ensure_code(profile_db, client.id)
+                access.delivery_pending = True
+                await profile_db.commit()
+            profile_code = access.code if access.delivery_pending else None
+        if profile_code:
+            await message.answer(f"📈 Следите за своим прогрессом в личном кабинете GREENTIME.\n\nСайт: {SITE}/\nВаш код для входа: {profile_code}\n\nНа сайте нажмите «Личный кабинет» и введите код.")
+            async with async_session() as profile_db:
+                await profile_db.execute(update(ProfileAccess).where(ProfileAccess.client_id == client.id, ProfileAccess.code == profile_code).values(delivery_pending=False))
+                await profile_db.commit()
+    except Exception:
+        logger.exception("Could not deliver profile access after booking")
 
     # Данные для инструктора: сумма к оплате, скидка, сертификат
     # Определяем день: сегодня / завтра / день недели
@@ -1211,6 +1424,9 @@ async def _finalize_booking(message: Message, state: FSMContext, telegram_id: st
 
 @router.message(BookingStates.entering_phone)
 async def process_phone(message: Message, state: FSMContext):
+    if not await _slot_hold_is_active(message.from_user.id, state):
+        await _slot_hold_expired(message, state)
+        return
     if message.contact:
         phone = message.contact.phone_number
     else:
@@ -1242,6 +1458,11 @@ async def process_phone(message: Message, state: FSMContext):
                     phone=phone,
                     password_hash=None,
                 )
+
+            if was_deleted:
+                from app.progress_common import ensure_code
+                restored_access = await ensure_code(db, phone_owner.id)
+                restored_access.delivery_pending = True
 
             if phone_owner and (not client or phone_owner.id != client.id):
                 # The administrator may have created this client from a call.
@@ -1427,11 +1648,14 @@ async def my_bookings(message: Message):
 async def cancel_booking(callback: CallbackQuery):
     booking_id = int(callback.data.split(":")[1])
     async with async_session() as db:
-        result = await db.execute(select(Booking).where(Booking.id == booking_id))
+        result = await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())
         booking = result.scalar_one_or_none()
         if booking and str(callback.from_user.id) == (
             await db.execute(select(Client.telegram_id).where(Client.id == booking.client_id))
         ).scalar_one_or_none():
+            if not _client_booking_can_cancel(booking):
+                await callback.answer("Запись уже началась, завершена или недоступна для отмены. Обратитесь к администратору.", show_alert=True)
+                return
             try:
                 await _ensure_client_is_not_blocked(db, booking.client_id)
             except ValueError as error:
@@ -1447,10 +1671,12 @@ async def cancel_booking(callback: CallbackQuery):
                 )
                 return
             
+            if not _client_booking_can_cancel(booking):
+                await callback.answer("Занятие уже началось. Обратитесь к администратору.", show_alert=True)
+                return
             booking.cancellation_previous_status = booking.status
             booking.status = "cancellation_pending"
-            await db.commit()
-
+            # The request and its event commit together.
             client_result = await db.execute(select(Client).where(Client.id == booking.client_id))
             client = client_result.scalar_one_or_none()
             client_name = client.name if client else "Клиент"
@@ -1473,7 +1699,7 @@ async def cancel_booking(callback: CallbackQuery):
                     await notify_bot.send_message(
                         int(instructor.telegram_id),
                         f"⏳ Клиент запросил отмену записи.\n\n"
-                        f"{instructor.name}, ожидается подтверждение администратора.\n\n"
+                        f"{instructor.name}, ожидается подтверждение.\n\n"
                         f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
                         f"📍 {place_label(booking.location)}\n"
                         f"Коробка: {'Механика' if booking.transmission == 'manual' else 'Автомат'}",
@@ -1495,7 +1721,7 @@ async def cancel_booking(callback: CallbackQuery):
 async def revoke_cancel_booking(callback: CallbackQuery):
     booking_id = int(callback.data.split(":")[1])
     async with async_session() as db:
-        booking = await db.get(Booking, booking_id)
+        booking = (await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())).scalar_one_or_none()
         if not booking or booking.status != "cancellation_pending":
             await callback.answer("Заявка уже обработана", show_alert=True)
             return
@@ -1530,8 +1756,8 @@ async def start_reschedule(callback: CallbackQuery, state: FSMContext):
         ).scalar_one_or_none():
             await callback.answer("Ошибка", show_alert=True)
             return
-        if booking.status not in ("planned", "confirmed"):
-            await callback.answer("Перенос доступен только для подтверждённой записи.", show_alert=True)
+        if not _client_booking_can_change(booking):
+            await callback.answer("Перенос доступен только до начала подтверждённого занятия.", show_alert=True)
             return
         try:
             await _ensure_client_is_not_blocked(db, booking.client_id)
@@ -1601,13 +1827,18 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
     new_start = time.fromisoformat(chosen_time)
 
     async with async_session() as db:
-        result = await db.execute(select(Booking).where(Booking.id == booking_id))
+        result = await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())
         booking = result.scalar_one_or_none()
         if not booking:
             await callback.message.edit_text("Запись не найдена.")
             await state.clear()
             return
-        if not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
+        owner_id = (await db.execute(select(Client.telegram_id).where(Client.id == booking.client_id))).scalar_one_or_none()
+        if str(callback.from_user.id) != str(owner_id) or not _client_booking_can_change(booking):
+            await callback.message.edit_text("Запись уже началась, завершена или больше недоступна для переноса. Обратитесь к администратору.")
+            await state.clear()
+            return
+        if not _client_date_is_current(new_date) or not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
             await callback.message.edit_text("Этот слот уже недоступен. Выберите другое время.")
             await state.clear()
             return
@@ -1647,29 +1878,42 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
             )
             conflict = mobile_conflict_result.scalar_one_or_none()
         if conflict:
-            # У текущего инструктора занято — сообщаем клиенту
-            slots = await get_available_slots_for_instructor(
-                db, new_date, booking.service_type, booking.transmission,
-                booking.location, current_instructor_id,
-                preserve_existing_assignment=True,
-            )
-            buttons = _time_buttons(slots, "resch_time")
-            kb = _kb_with_back(buttons) if buttons else None
             await callback.message.edit_text(
-                "На это время у вашего инструктора уже есть запись. Выберите другое время:",
-                reply_markup=kb,
+                "Это время уже занято. Начните перенос заново и выберите свободный слот."
             )
+            await state.clear()
+            return
+
+        # A stale time button must still match the instructor's current schedule,
+        # capacity and working slots. The admin rechecks it on confirmation.
+        slots_now = await get_available_slots_for_instructor(
+            db, new_date, booking.service_type, booking.transmission,
+            booking.location, current_instructor_id, preserve_existing_assignment=True,
+        )
+        if new_start not in slots_now:
+            await callback.message.edit_text("Это время уже недоступно. Начните перенос заново и выберите свободный слот.")
+            await state.clear()
             return
 
         client_result = await db.execute(select(Client).where(Client.id == booking.client_id))
         client = client_result.scalar_one_or_none()
         client_name = client.name if client else "Клиент"
+        if not _client_booking_can_change(booking) or not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
+            await callback.message.edit_text("Время записи изменилось или занятие уже началось. Начните заново.")
+            await state.clear()
+            return
         try:
             client, reschedule_count = await _consume_client_reschedule_slot(db, booking.client_id)
         except ValueError as error:
             await callback.message.edit_text(
                 str(error)
             )
+            await state.clear()
+            return
+
+        if not _client_booking_can_change(booking) or not is_client_slot_start_allowed(new_date, new_start, booking.service_type):
+            await db.rollback()
+            await callback.message.edit_text("Время записи изменилось или занятие уже началось. Начните заново.")
             await state.clear()
             return
 
@@ -1699,7 +1943,7 @@ async def reschedule_choose_time(callback: CallbackQuery, state: FSMContext):
     service_label = "Обучение вождению" if booking.service_type == ServiceType.TRAINING else "Пробный экзамен"
     trans_label = "Механика" if booking.transmission == "manual" else "Автомат"
     await callback.message.edit_text(
-        f"⏳ Заявка на перенос отправлена администратору.\n\n"
+        f"⏳ Заявка на перенос получена и находится в обработке.\n\n"
         f"После подтверждения мы сообщим о новой дате и времени.\n"
         f"Запрошено: 📅 {new_date.strftime('%d.%m.%Y')} в {chosen_time}\n"
         f"📍 {place_label(booking.location)}\n"
@@ -2195,9 +2439,12 @@ async def confirm_yes(callback: CallbackQuery):
 async def confirm_no(callback: CallbackQuery):
     booking_id = int(callback.data.split(":")[1])
     async with async_session() as db:
-        result = await db.execute(select(Booking).where(Booking.id == booking_id))
+        result = await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())
         booking = result.scalar_one_or_none()
         if booking:
+            if not _client_booking_can_cancel(booking):
+                await callback.answer("Запись уже началась, завершена или недоступна для отмены.", show_alert=True)
+                return
             try:
                 await _ensure_client_is_not_blocked(db, booking.client_id)
             except ValueError as error:
@@ -2205,8 +2452,7 @@ async def confirm_no(callback: CallbackQuery):
                 return
             booking.cancellation_previous_status = booking.status
             booking.status = "cancellation_pending"
-            await db.commit()
-
+            # The request and its event commit together.
             client_result = await db.execute(select(Client).where(Client.id == booking.client_id))
             client = client_result.scalar_one_or_none()
             client_name = client.name if client else "Клиент"
@@ -2229,7 +2475,7 @@ async def confirm_no(callback: CallbackQuery):
                     await notify_bot.send_message(
                         int(instructor.telegram_id),
                         f"⏳ Клиент запросил отмену записи.\n\n"
-                        f"{instructor.name}, ожидается подтверждение администратора.\n\n"
+                        f"{instructor.name}, ожидается подтверждение.\n\n"
                         f"📅 {booking.booking_date.strftime('%d.%m.%Y')} в {booking.start_time.strftime('%H:%M')}\n"
                         f"📍 {place_label(booking.location)}\n"
                         f"Коробка: {'Механика' if booking.transmission == 'manual' else 'Автомат'}",
@@ -2277,11 +2523,19 @@ async def send_rating_requests(bot: Bot):
                 [InlineKeyboardButton(text="👎 Плохо", callback_data=f"rate:bad:{booking.id}")],
             ])
             try:
+                from app.progress_common import ProfileAccess, SITE
+                access = await db.get(ProfileAccess, client.id)
+                profile_text = (
+                    "\n\n📈 Следите за своим прогрессом в личном кабинете GREENTIME.\n\n"
+                    f"Сайт: {SITE}/\n"
+                    f"Ваш код для входа: {access.code}\n\n"
+                    "На сайте нажмите «Личный кабинет» и введите код."
+                ) if access else ""
                 await bot.send_message(
                     int(telegram_id),
                     "Оцените как прошло вождение — это очень важно для нас.\n\n"
                     "Оно полностью анонимно и ни на что не влияет.\n"
-                    "Это только для повышения качества обслуживания.",
+                    "Это только для повышения качества обслуживания." + profile_text,
                     reply_markup=kb,
                 )
                 booking.rating_sent = True
@@ -2364,7 +2618,14 @@ async def process_rating(callback: CallbackQuery):
         )
 
     labels = {"good": "👍 Хорошо", "normal": "😐 Нормально", "bad": "👎 Плохо"}
-    await callback.message.edit_text(f"Спасибо за оценку: {labels[vote_str]}!", reply_markup=None)
+    original_text = callback.message.text or ""
+    marker = "📈 Следите за своим прогрессом"
+    profile_text = marker + original_text.split(marker, 1)[1] if marker in original_text else ""
+    thanks = f"Спасибо за оценку: {labels[vote_str]}!"
+    await callback.message.edit_text(
+        f"{thanks}\n\n{profile_text}" if profile_text else thanks,
+        reply_markup=None,
+    )
 
 
 @router.message(F.text == "🎁 Пригласи друга")
@@ -2631,29 +2892,6 @@ async def check_unconfirmed_bookings(bot: Bot):
     # confirmation is not a no-show: arrival/completion are now fixed by the
     # booked slot unless the client cancels or reschedules.
     return
-
-
-@router.message(Command("test_rating"))
-async def test_rating(message: Message):
-    async with async_session() as db:
-        inst = await db.execute(select(Instructor).limit(1))
-        instructor = inst.scalar_one_or_none()
-        if not instructor:
-            await message.answer("Нет инструкторов в базе")
-            return
-
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="👍 Хорошо", callback_data=f"rate:good:0")],
-            [InlineKeyboardButton(text="😐 Нормально", callback_data=f"rate:normal:0")],
-            [InlineKeyboardButton(text="👎 Плохо", callback_data=f"rate:bad:0")],
-        ])
-        await message.answer(
-            f"🧪 Тестовый опрос (инструктор: {instructor.name}, рейтинг: {instructor.rating})\n\n"
-            "Оцените как прошло вождение — это очень важно для нас.\n\n"
-            "Оно полностью анонимно и ни на что не влияет.\n"
-            "Это только для повышения качества обслуживания.",
-            reply_markup=kb,
-        )
 
 
 @router.message()

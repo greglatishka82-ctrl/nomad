@@ -1,0 +1,20 @@
+
+.gt-next{padding:clamp(40px,6vw,80px) 0;background:#f5faf7}
+.gt-next *{box-sizing:border-box}
+.gt-next__inner{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(24px,4vw,56px);padding:clamp(24px,4.5vw,60px);border:1px solid #244b38;border-radius:28px;background:radial-gradient(ellipse at 100% 0,#264e38 0,transparent 65%),#10271e;color:#f5fff8}
+.gt-next__copy{align-self:center;min-width:0}
+.gt-next__eyebrow,.gt-next__tag{display:block;font-size:11px;line-height:1.6;font-weight:800;letter-spacing:.1em;color:#a8edaa}
+.gt-next h2{font-size:clamp(28px,3.1vw,43px);line-height:1.15;letter-spacing:-.035em;margin:20px 0}
+.gt-next h2 em{display:block;font-style:normal;color:#a8edaa}
+.gt-next p{font-size:15px;line-height:1.65;color:#c8dcd0;margin:0}
+.gt-next__link{display:inline-flex;align-items:center;justify-content:space-between;gap:24px;max-width:100%;margin-top:28px;padding:17px 22px;border-radius:12px;background:#acf09c;color:#10271e;font-size:16px;font-weight:750;text-decoration:none;transition:background .2s,transform .2s}
+.gt-next__link:hover{background:#c8ffbc;transform:translateY(-2px)}
+.gt-next__link:focus-visible{outline:3px solid white;outline-offset:5px}
+.gt-next__copy>small{display:block;font-size:12px;line-height:1.6;color:#a7c3b2;margin-top:12px}
+.gt-next__programs{display:grid;gap:16px;min-width:0}
+.gt-next__program{padding:24px;border-radius:18px;border:1px solid #b5ebc326;background:#ffffff06}
+.gt-next__program h3{font-size:22px;line-height:1.25;letter-spacing:-.02em;margin:10px 0 12px;color:#f5fff8}
+.gt-next__program p{font-size:14px}
+.gt-next .gt-next__note{font-size:12px;color:#a7c3b2;padding:0 4px}
+@media(max-width:800px){.gt-next__inner{grid-template-columns:1fr;gap:28px}.gt-next h2{max-width:600px;font-size:clamp(28px,5vw,38px)}.gt-next__programs{grid-template-columns:1fr 1fr}.gt-next__note{grid-column:1/-1}}
+@media(max-width:540px){.gt-next__inner{border-radius:22px;padding:24px 20px}.gt-next__eyebrow{font-size:10px;letter-spacing:.07em}.gt-next__programs{grid-template-columns:1fr;gap:12px}.gt-next__program{padding:20px}.gt-next__program h3{font-size:21px}.gt-next__link{width:100%;font-size:15px;padding:16px}.gt-next h2{font-size:28px;overflow-wrap:break-word}.gt-next__copy>p{font-size:14px}}

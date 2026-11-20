@@ -79,6 +79,8 @@ class Instructor(Base):
     experience_years = Column(Integer, default=0)
     rating = Column(Float, default=5.0)
     is_active = Column(Boolean, default=True)
+    accepts_new_bookings = Column(Boolean, default=True, server_default="true", nullable=False)
+    booking_unavailable_date = Column(Date, nullable=True)
     is_duty = Column(Boolean, default=False)
     is_lead = Column(Boolean, default=False, nullable=False)
     working_hours_start = Column(Time, default=time(9, 0))

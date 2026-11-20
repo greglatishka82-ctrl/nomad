@@ -4,7 +4,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
@@ -93,13 +95,16 @@ async def lifespan(app: FastAPI):
     gender_task = asyncio.create_task(_gender_analytics_loop(stop_event))
     archive_task = asyncio.create_task(_booking_archive_loop(stop_event))
     log_archive_task = asyncio.create_task(_log_archive_loop(stop_event))
+    from app.auto_booking import ensure_auto_booking_schema, auto_booking_loop
+    await ensure_auto_booking_schema()
+    auto_booking_task = asyncio.create_task(auto_booking_loop(stop_event))
     logger.info("Admin backend started")
     try:
         yield
     finally:
         stop_event.set()
         await asyncio.gather(
-            gender_task, archive_task, log_archive_task, return_exceptions=True,
+            gender_task, archive_task, log_archive_task, auto_booking_task, return_exceptions=True,
         )
         logger.info("Admin backend stopped")
 
@@ -107,12 +112,19 @@ async def lifespan(app: FastAPI):
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="GREENTIME Admin API", lifespan=lifespan)
+
+
+@app.exception_handler(IntegrityError)
+async def handle_slot_hold_integrity_error(request: Request, exc: IntegrityError):
+    if "telegram_slot_hold_conflict" in str(exc) or "temporary Telegram slot reservation" in str(exc):
+        return JSONResponse(status_code=409, content={"detail":
+            "Это время временно забронировано клиентом в Telegram. Выберите другое время."})
+    raise exc
+
 app.add_middleware(
     CORSMiddleware,
-    # Панель работает на VPS: боевой адрес админки и локальные адреса разработки.
+    # Панель работает на VPS: боевой адрес совпадает с адресом страницы. Здесь — только локальные адреса разработки.
     allow_origins=[
-        "https://admin.greentime.57-129-153-111.sslip.io",
-        "https://admin.nomad.57-129-153-111.sslip.io",
         "http://localhost:3000",
         "http://localhost:5173",
     ],
@@ -127,6 +139,10 @@ app.add_middleware(
     https_only=True
 )
 
+from app.site_traffic import router as site_traffic_router
+app.include_router(site_traffic_router)
+from app.profile_admin import router as profile_admin_router
+app.include_router(profile_admin_router)
 app.include_router(admin.router)
 app.include_router(support.router)
 app.include_router(public.router)  # Подключаем после admin, чтобы /api/admin/* обрабатывался первым

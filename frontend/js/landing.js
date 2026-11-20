@@ -275,9 +275,16 @@
         var container = document.getElementById('faq-list');
         if (!container) return;
 
-        container.innerHTML = list.slice(0, 6).map(function (item, index) {
+        list = list.map(function (item) {
+            if (/сколько стоит/i.test(item.question || '')) {
+                return { question: item.question, answer: 'Занятие с инструктором — 7 000 ₸ за час. Персональное занятие с владельцем школы — 10 000 ₸ за час как на площадке, так и в городе; время согласовывается отдельно.' };
+            }
+            return item;
+        });
+        list.splice(1, 0, { question: 'Как записаться на занятие с владельцем школы?', answer: 'Напишите нам в WhatsApp или позвоните: +7 707 881 08 48. Мы уточним доступное время и детали. Количество мест ограничено.' });
+        container.innerHTML = list.map(function (item, index) {
             return (
-                '<details class="faq__item reveal" data-delay="' + Math.min(index * 50, 200) + '">' +
+                '<details class="faq__item reveal" data-delay="' + Math.min(index * 50, 200) + '"' + (index >= 6 ? ' hidden' : '') + '>' +
                     '<summary class="faq__q">' + escapeHtml(item.question) + '</summary>' +
                     '<p class="faq__a">' + escapeHtml(item.answer) + '</p>' +
                 '</details>'
@@ -285,6 +292,22 @@
         }).join('');
 
         observeNew(container);
+        var more = document.getElementById('faq-more');
+        if (more) {
+            more.hidden = list.length <= 6;
+            more.setAttribute('aria-expanded', 'false');
+            more.onclick = function () {
+                var expanded = more.getAttribute('aria-expanded') !== 'true';
+                container.querySelectorAll('.faq__item').forEach(function (item, index) {
+                    if (index >= 6) {
+                        item.hidden = !expanded;
+                        if (!expanded) item.open = false;
+                    }
+                });
+                more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                more.querySelector('.faq__more-label').textContent = expanded ? 'Свернуть вопросы' : 'Ещё вопросы';
+            };
+        }
     }
 
     /* ── Чат ──────────────────────────────────────────────────────────────── */
@@ -355,11 +378,30 @@
             history.push({ role: 'user', content: text });
 
             var pending = addMessage('bot', 'Печатает…');
+            // Ответы о новых форматах согласуются отдельно; основные данные не меняем.
+            var previewOffers = [
+                [/(владел|основател)/i, 'Личное занятие с владельцем школы — 10 000 ₸ за час на площадке или в городе. Подойдёт и начинающим, и водителям с опытом; места ограничены.'],
+                [/(мой маршрут|сво[йеё] маршрут|маршрут дом)/i, '«Мой маршрут» — от 12 000 ₸ за час. Час занятия начинается при встрече.'],
+
+                [/(механика интенсив|интенсив.*механик)/i, '«Механика интенсив» — 7 000 ₸ за час.'],
+
+                [/(после провала)/i, '«После провала» — 3 500 ₸ за диагностику около 30 минут; первые три часа последующей практики — по 6 500 ₸.'],
+
+                [/(смотри.{0,12}как я могу|съ[её]мк|видеосъ[её]м)/i, 'Съёмка занятия оплачивается дополнительно: 5 000 ₸ за исходники или 10 000–15 000 ₸ за готовый ролик.']
+            ];
+            var matchedOffer = previewOffers.find(function (offer) { return offer[0].test(text); });
+            if (matchedOffer) {
+                pending.remove();
+                var offerReply = matchedOffer[1] + ' Условия и доступное время уточните в WhatsApp или по телефону +7 707 881 08 48.';
+                addMessage('bot', offerReply);
+                history.push({ role: 'assistant', content: offerReply });
+                return;
+            }
 
             fetch('/api/chat/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text, history: history.slice(-10) })
+                body: JSON.stringify({ message: (document.documentElement.lang === 'kk' ? 'Жауапты қазақ тілінде беріңіз. ' : document.documentElement.lang === 'en' ? 'Please reply in English. ' : '') + text, history: history.slice(-10) })
             })
                 .then(function (response) { return response.json(); })
                 .then(function (data) {
@@ -375,9 +417,72 @@
         });
     }
 
+
+
+    /* ── Маршрут до учебной площадки ─────────────────────────────────────── */
+    function initDirections() {
+        var modal = document.getElementById('directions-modal');
+        if (!modal) return;
+
+        var triggers = document.querySelectorAll('[data-open-directions]');
+        var closeButtons = modal.querySelectorAll('[data-close-directions]');
+        var video = modal.querySelector('video');
+        var activeTrigger = null;
+
+        function close() {
+            if (modal.hidden) return;
+            modal.hidden = true;
+            document.body.classList.remove('directions-open');
+            if (video) video.pause();
+            if (activeTrigger) activeTrigger.focus();
+        }
+
+        triggers.forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                activeTrigger = trigger;
+                modal.hidden = false;
+                document.body.classList.add('directions-open');
+                var closeButton = modal.querySelector('.directions-modal__close');
+                if (closeButton) closeButton.focus();
+            });
+        });
+
+        closeButtons.forEach(function (button) {
+            button.addEventListener('click', close);
+        });
+
+        modal.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                close();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            var focusable = Array.prototype.slice.call(modal.querySelectorAll('button:not([disabled]), a[href], video[controls]'))
+                .filter(function (element) { return element.getClientRects().length > 0; });
+            if (!focusable.length) return;
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+    }
+
     /* ── Старт ────────────────────────────────────────────────────────────── */
 
     document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('a[href="#offer-owner"]').forEach(function (link) {
+            link.addEventListener('click', function () {
+                var offer = document.getElementById('offer-owner');
+                if (offer) offer.open = true;
+            });
+        });
         initReveal();
         initScrollUi();
         initMenu();
@@ -385,6 +490,7 @@
         initTilt();
         initMagnetic();
         initChat();
+        initDirections();
 
         fetch('/api/faq')
             .then(function (response) { return response.ok ? response.json() : []; })

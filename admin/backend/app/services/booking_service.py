@@ -1,7 +1,7 @@
 from datetime import date, time, datetime
 from typing import Optional
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -141,6 +141,11 @@ async def get_busy_instructor_ids(db: AsyncSession, booking_date: date, start_ti
         )
     )
     busy.update(row[0] for row in mobile_result.all())
+    busy.update(row[0] for row in (await db.execute(text("""
+        SELECT instructor_id FROM telegram_slot_holds
+        WHERE booking_date=:date AND start_time < :end AND end_time > :start
+          AND expires_at > clock_timestamp()
+    """), {"date":booking_date,"start":start_time,"end":end_time})).all())
     return busy
 
 
@@ -180,6 +185,17 @@ async def _peak_booking_usage(
         intervals.extend((await db.execute(
             select(model.start_time, model.end_time).where(*conditions)
         )).all())
+    hold_sql = """SELECT start_time, end_time FROM telegram_slot_holds
+        WHERE booking_date = :date AND start_time < :end AND end_time > :start
+          AND expires_at > clock_timestamp()
+          AND (CAST(:transmission AS text) IS NULL OR transmission = :transmission)
+          AND (CAST(:location AS text) IS NULL OR location = :location)
+          AND (CAST(:service AS text) IS NULL OR service_type = :service)"""
+    intervals.extend((await db.execute(text(hold_sql), {
+        "date": booking_date, "start": start_time, "end": end_time,
+        "transmission": getattr(transmission, "value", transmission),
+        "location": location, "service": getattr(service_type, "value", service_type),
+    })).all())
     return _peak_occupancy(intervals, start_time, end_time)
 
 
@@ -323,9 +339,9 @@ async def is_instructor_available(
     service_type: Optional[str] = None,
     preserve_existing_assignment: bool = False,
 ) -> bool:
-    if not instructor.is_active or (
-        instructor.is_duty and not allow_duty and not preserve_existing_assignment
-    ):
+    if not instructor.is_active:
+        return False
+    if instructor.is_duty and not allow_duty and not preserve_existing_assignment:
         return False
     if busy_ids is not None and instructor.id in busy_ids:
         return False

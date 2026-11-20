@@ -1057,6 +1057,7 @@ a.contact:hover {
 
 .contacts__cta {
     display: flex;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 12px;
     margin-top: 34px;
@@ -1086,7 +1087,7 @@ a.contact:hover {
 }
 
 .footer__copy {
-    margin-left: auto;
+    margin-left: 0;
     font-size: 14px;
     color: var(--ink-muted);
 }

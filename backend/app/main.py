@@ -156,6 +156,7 @@ async def _run_bot_workers(
 
         tasks.append(asyncio.create_task(_scheduler_loop(bot, client_bot_polling_enabled)))
         if dp is not None:
+            tasks.append(asyncio.create_task(client_handlers.expire_slot_holds_loop(bot, dp)))
             tasks.append(asyncio.create_task(dp.start_polling(bot)))
         logger.info("Telegram bot workers started")
 

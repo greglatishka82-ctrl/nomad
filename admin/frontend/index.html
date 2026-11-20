@@ -12,7 +12,7 @@
   
   <!-- Stylesheet -->
   <link rel="stylesheet" href="./css/admin.css">
-</head>
+<link rel="stylesheet" href="./css/site-traffic.css?v=20261115h"></head>
 <body>
 
   <div id="app-loading" role="status" aria-live="polite" style="position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #f8fafc 0%, #edf2f7 50%, #e2e8f0 100%);color:#1e293b;font:600 16px Inter,Arial,sans-serif;">
@@ -305,7 +305,10 @@
           <!-- Live Today's Schedule Table -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">📌 Расписание на сегодня</div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div class="card-title">📌 Расписание на сегодня</div>
+                <span class="badge badge-info" id="dashboard-today-count" aria-live="polite">Загрузка…</span>
+              </div>
               <button class="btn btn-outline btn-sm" onclick="navigateTo('bookings')">Все записи →</button>
             </div>
             <div class="table-container">
@@ -780,7 +783,7 @@
         </div>
 
         <!-- 5. ANALYTICS PAGE -->
-        <div id="page-analytics" class="page">
+        <div id="page-analytics" class="page"><div id="site-traffic"></div>
           <!-- Финансы: выручка по периодам -->
           <div class="card" id="finance-card">
             <div class="card-header">
@@ -1270,5 +1273,5 @@
 
   <!-- Script File -->
   <script type="module" src="./js/admin.js"></script>
-</body>
+<script type="module" src="./js/site-traffic.js"></script></body>
 </html>

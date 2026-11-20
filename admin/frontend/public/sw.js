@@ -1,4 +1,4 @@
-const CACHE = 'greentime-admin-shell-v15';
+const CACHE = 'greentime-admin-shell-v16';
 const SHELL_KEY = '/__greentime-admin-shell';
 
 async function fetchAndCache(request) {

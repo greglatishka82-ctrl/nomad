@@ -679,9 +679,12 @@ async def cancel_booking(
     user: Client = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    booking = await db.get(Booking, booking_id)
+    booking = (await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())).scalar_one_or_none()
     if not booking or booking.client_id != user.id:
         raise HTTPException(status_code=404, detail="Booking not found")
+    if (booking.completed_at is not None or
+        datetime.combine(booking.booking_date, booking.start_time) <= datetime.now(TIMEZONE).replace(tzinfo=None)):
+        raise HTTPException(status_code=409, detail="Занятие уже началось или завершено. Обратитесь к администратору.")
     if booking.status not in ["planned", "confirmed"]:
         raise HTTPException(status_code=400, detail="Cannot cancel this booking")
     await _ensure_client_is_not_blocked(db, user.id)
@@ -693,6 +696,8 @@ async def cancel_booking(
             detail="Запись с сертификатом нельзя отменить. Свяжитесь с поддержкой для переноса."
         )
 
+    if datetime.combine(booking.booking_date, booking.start_time) <= datetime.now(TIMEZONE).replace(tzinfo=None):
+        raise HTTPException(status_code=409, detail="Занятие уже началось. Обратитесь к администратору.")
     booking.cancellation_previous_status = booking.status
     booking.status = "cancellation_pending"
     await db.commit()
@@ -739,7 +744,7 @@ async def revoke_cancellation_request(
     user: Client = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    booking = await db.get(Booking, booking_id)
+    booking = (await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())).scalar_one_or_none()
     if not booking or booking.client_id != user.id:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking.status != "cancellation_pending":
@@ -766,9 +771,12 @@ async def reschedule_booking(
     db: AsyncSession = Depends(get_db),
 ):
     """Клиент переносит запись на новую дату/время из доступных слотов."""
-    booking = await db.get(Booking, booking_id)
+    booking = (await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())).scalar_one_or_none()
     if not booking or booking.client_id != user.id:
         raise HTTPException(status_code=404, detail="Booking not found")
+    if (booking.completed_at is not None or
+        datetime.combine(booking.booking_date, booking.start_time) <= datetime.now(TIMEZONE).replace(tzinfo=None)):
+        raise HTTPException(status_code=409, detail="Занятие уже началось или завершено. Обратитесь к администратору.")
     if booking.status not in ["planned", "confirmed"]:
         raise HTTPException(status_code=400, detail="Cannot reschedule this booking")
 
@@ -836,6 +844,9 @@ async def reschedule_booking(
     if new_start not in available_slots:
         raise HTTPException(status_code=409, detail="Это время уже занято. Выберите другое время из доступных слотов")
 
+    if (datetime.combine(booking.booking_date, booking.start_time) <= datetime.now(TIMEZONE).replace(tzinfo=None)
+        or not is_client_slot_start_allowed(new_date, new_start, booking.service_type)):
+        raise HTTPException(status_code=409, detail="Время записи изменилось или занятие уже началось.")
     await _ensure_client_is_not_blocked(db, user.id)
     _, reschedule_count = await _consume_client_reschedule_slot(db, user.id)
 
@@ -885,9 +896,11 @@ async def confirm_booking(
     принимает администратор в админке.  Это защищает запись от случайного
     нажатия «Не приду» в приложении.
     """
-    booking = await db.get(Booking, booking_id)
+    booking = (await db.execute(select(Booking).where(Booking.id == booking_id).with_for_update())).scalar_one_or_none()
     if not booking or booking.client_id != user.id:
         raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.completed_at is not None:
+        raise HTTPException(status_code=409, detail="Занятие уже завершено.")
     if booking.status not in ["planned", "confirmed"]:
         raise HTTPException(status_code=400, detail="Нельзя изменить эту запись")
     if not body.coming:

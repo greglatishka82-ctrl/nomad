@@ -210,6 +210,7 @@ async def _run_explicit_migrations():
         # Instructor migrations
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS gender VARCHAR(50) NOT NULL DEFAULT 'any';",
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS is_lead BOOLEAN NOT NULL DEFAULT FALSE;",
+        "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS accepts_new_bookings BOOLEAN NOT NULL DEFAULT TRUE;",
         "ALTER TABLE instructors ADD COLUMN IF NOT EXISTS lesson_type VARCHAR(50) NOT NULL DEFAULT 'both';",
         "ALTER TABLE instructors ALTER COLUMN gender TYPE VARCHAR(50) USING gender::VARCHAR;",
         "ALTER TABLE instructors ALTER COLUMN transmission TYPE VARCHAR(50) USING transmission::VARCHAR;",

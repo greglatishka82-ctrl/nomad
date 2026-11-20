@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.database import async_session
 from app.models.models import (
-    AuditLog, Booking, BookingStatus, Client, Instructor, ServiceType,
+    AuditLog, Event, Booking, BookingStatus, Client, Instructor, ServiceType,
     SupportMessage, now_kz,
 )
 from app.services.phone_utils import normalize_phone
@@ -39,7 +39,8 @@ INSTRUCTOR_KEYBOARD = ReplyKeyboardMarkup(
             KeyboardButton(text="📅 Сегодня"),
             KeyboardButton(text="📆 Завтра"),
             KeyboardButton(text="🗓️ Вся неделя"),
-        ]
+        ],
+        [KeyboardButton(text="На площадке"), KeyboardButton(text="Ушел с площадки")],
     ],
     resize_keyboard=True,
 )
@@ -52,14 +53,9 @@ SHARE_PHONE_KEYBOARD = ReplyKeyboardMarkup(
 
 
 async def _log_instructor_action(instructor: Instructor, action: str, details: str) -> None:
-    """Persist instructor-bot actions in the same audit feed as admin actions."""
+    """Записывает действия инструктора в ленту событий."""
     async with async_session() as db:
-        db.add(AuditLog(
-            admin_username=f"Инструктор: {instructor.name}",
-            action=action,
-            details=details,
-            created_at=now_kz(),
-        ))
+        db.add(Event(event_type=action, source="instructor", instructor_id=instructor.id, message=f"{instructor.name}: " + (details), created_at=now_kz()))
         await db.commit()
 
 
@@ -198,6 +194,7 @@ async def _complete_booking(db, booking: Booking) -> tuple[bool, Optional[Client
     if booking.status == "completed" and booking.payment_status == "paid":
         return False, None
 
+    was_paid = booking.payment_status == "paid"
     booking.status = "completed"
     if booking.completed_at is None:
         booking.completed_at = now_kz()
@@ -206,19 +203,16 @@ async def _complete_booking(db, booking: Booking) -> tuple[bool, Optional[Client
     booking.paid_amount = booking.price
     if booking.paid_at is None:
         booking.paid_at = now_kz()
+    if not was_paid:
+        db.add(Event(event_type="payment_received", source="instructor", client_id=booking.client_id,
+                     instructor_id=booking.instructor_id, booking_id=booking.id,
+                     message=f"Оплата получена: {booking.paid_amount} ₸, запись #{booking.booking_number or booking.id}", created_at=now_kz()))
     referrer = await _apply_referral_bonus(db, booking)
     return True, referrer
 
 
 async def run_automatic_lesson_transitions() -> None:
-    """Ask once about a late client and complete confirmed lessons if needed.
-
-    No arrival is inferred automatically. Twenty minutes after a scheduled
-    start, the instructor receives one confirmation request if the booking is
-    still planned/confirmed. Completion/payment is due nine minutes after the
-    stored service end, but only for a booking the instructor marked as
-    in-progress.
-    """
+    """Ask the instructor about late clients without inferring payment."""
     now = now_kz()
     async with async_session() as db:
         result = await db.execute(
@@ -226,7 +220,7 @@ async def run_automatic_lesson_transitions() -> None:
             .options(selectinload(Booking.client))
             .where(
                 Booking.booking_date <= now.date(),
-                Booking.status.in_(["planned", "confirmed", "in_progress"]),
+                Booking.status.in_(["planned", "confirmed"]),
             )
             .with_for_update(skip_locked=True)
         )
@@ -234,7 +228,6 @@ async def run_automatic_lesson_transitions() -> None:
         for booking in result.scalars().all():
             starts_at = _scheduled_start(booking)
             arrival_check_due = starts_at + timedelta(minutes=20)
-            completion_due = _scheduled_end(booking) + timedelta(minutes=9)
             client_name = booking.client.name if booking.client else "Клиент"
 
             if (
@@ -274,18 +267,6 @@ async def run_automatic_lesson_transitions() -> None:
                             created_at=now,
                         ))
                         changed = True
-
-            if now >= completion_due and booking.status == "in_progress":
-                completed, _ = await _complete_booking(db, booking)
-                if completed:
-                    db.add(AuditLog(
-                        admin_username="Система",
-                        action="system_lesson_completed_auto",
-                        details=(f"Автоматически завершено и оплачено: клиент {client_name}, "
-                                 f"запись #{booking.id}, слот {_booking_slot(booking)}, сумма {booking.paid_amount} ₸"),
-                        created_at=now,
-                    ))
-                    changed = True
 
         if changed:
             await db.commit()
@@ -334,7 +315,9 @@ def _booking_card_text(b) -> str:
     cert_paid = b.certificate_id is not None
 
     pay_lines = []
-    if package_paid:
+    if b.source == "own_client":
+        pay_lines.append("✅ ОПЛАЧЕНО — деньги НЕ брать!")
+    elif package_paid:
         pay_lines.append("📦 ОПЛАЧЕНО ПАКЕТОМ — деньги НЕ брать!")
     elif cert_paid:
         pay_lines.append("🎟️ ОПЛАЧЕНО СЕРТИФИКАТОМ — деньги НЕ брать!")
@@ -407,11 +390,15 @@ async def _show_bookings(message, instructor, date_from: date, date_to: date, ti
             kb = InlineKeyboardMarkup(inline_keyboard=[])
             if b.status in ("planned", "confirmed"):
                 kb = _attendance_keyboard(b.id)
+                from app.progress_common import lesson_token, SITE
+                kb.inline_keyboard.append([InlineKeyboardButton(text="📋 Карточка ученика", url=f"{SITE}/lesson.html?token={lesson_token(b.id)}")])
             elif b.status == "in_progress":
-                btn_text = "✅ Занятие окончено" if (package_paid or cert_paid) else "💰 Занятие окончено (оплата получена)"
+                btn_text = "✅ Занятие окончено" if (package_paid or cert_paid or b.source == "own_client") else "💰 Занятие окончено (оплата получена)"
                 kb.inline_keyboard.append([
                     InlineKeyboardButton(text=btn_text, callback_data=f"inst_done:{b.id}")
                 ])
+                from app.progress_common import lesson_token, SITE
+                kb.inline_keyboard.append([InlineKeyboardButton(text="📊 Оценить занятие", url=f"{SITE}/lesson.html?token={lesson_token(b.id)}")])
 
             # Первой записи дня — добавляем заголовок
             card = _booking_card_text(b)
@@ -449,7 +436,7 @@ async def start(message: types.Message):
     today = now_kz().date()
     await _log_instructor_action(instructor, "instructor_bot_opened", "Инструктор открыл бот")
     await message.answer(
-        f"👋 Здравствуйте, {instructor.name}!\nВыберите период:",
+        f"👋 Здравствуйте, {instructor.name}!\nТекущий статус: {'Ушел с площадки' if not instructor.accepts_new_bookings and instructor.booking_unavailable_date == now_kz().date() else 'На площадке'}.\nВыберите период:",
         reply_markup=INSTRUCTOR_KEYBOARD,
     )
     await _show_bookings(message, instructor, today, today, _day_header(today))
@@ -481,12 +468,47 @@ async def handle_contact(message: types.Message):
             await db.commit()
 
     await message.answer(
-        f"✅ Номер подтверждён. Добро пожаловать, {instructor.name}!\nВыберите период:",
+        f"✅ Номер подтверждён. Добро пожаловать, {instructor.name}!\nТекущий статус: {'Ушел с площадки' if not instructor.accepts_new_bookings and instructor.booking_unavailable_date == now_kz().date() else 'На площадке'}.\nВыберите период:",
         reply_markup=INSTRUCTOR_KEYBOARD,
     )
     today = now_kz().date()
     await _log_instructor_action(instructor, "instructor_bot_authorized", "Инструктор подтвердил номер телефона в боте")
     await _show_bookings(message, instructor, today, today, _day_header(today))
+
+
+async def _set_bookings_availability(message: types.Message, accepting: bool):
+    instructor = await _get_instructor(message)
+    if not instructor:
+        return
+
+    async with async_session() as db:
+        result = await db.execute(
+            select(Instructor).where(Instructor.id == instructor.id).with_for_update()
+        )
+        current = result.scalar_one_or_none()
+        if not current:
+            return
+        current.accepts_new_bookings = accepting
+        current.booking_unavailable_date = None if accepting else now_kz().date()
+        await db.commit()
+
+    label = "На площадке" if accepting else "Ушел с площадки"
+    await _log_instructor_action(
+        instructor,
+        "instructor_booking_availability_changed",
+        f"Статус новых записей: {label}",
+    )
+    await message.answer(f"✅ Статус обновлён: {label}.", reply_markup=INSTRUCTOR_KEYBOARD)
+
+
+@router.message(F.text == "На площадке")
+async def instructor_accepting_bookings(message: types.Message):
+    await _set_bookings_availability(message, True)
+
+
+@router.message(F.text == "Ушел с площадки")
+async def instructor_not_accepting_bookings(message: types.Message):
+    await _set_bookings_availability(message, False)
 
 
 @router.message(F.text == "📅 Сегодня")
@@ -525,7 +547,7 @@ async def instructor_support_message(message: types.Message):
     instructor = await _get_instructor(message)
     if not instructor:
         return
-    if message.text in {"📅 Сегодня", "📆 Завтра", "🗓️ Вся неделя"}:
+    if message.text in {"📅 Сегодня", "📆 Завтра", "🗓️ Вся неделя", "На площадке", "Ушел с площадки"}:
         return
     if len(message.text) > 2000:
         await message.answer("Сообщение слишком длинное. Максимум 2000 символов.")
@@ -550,12 +572,7 @@ async def instructor_support_message(message: types.Message):
             is_admin_read=False,
             created_at=now_kz(),
         ))
-        db.add(AuditLog(
-            admin_username=f"Инструктор: {instructor.name}",
-            action="instructor_support_message",
-            details="Инструктор отправил сообщение в поддержку",
-            created_at=now_kz(),
-        ))
+        db.add(Event(event_type='instructor_support_message', source="instructor", instructor_id=instructor.id, message=f"{instructor.name}: " + ('Инструктор отправил сообщение в поддержку'), created_at=now_kz()))
         await db.commit()
     await message.answer("Сообщение передано администратору.")
 
@@ -638,26 +655,21 @@ async def _confirm_client_arrived(callback: types.CallbackQuery) -> None:
             )
             return
 
+        if booking.status not in ("planned", "confirmed"):
+            await callback.answer("По этой записи уже принято решение", show_alert=True)
+            return
         previous_status = booking.status
         if previous_status in ("planned", "confirmed"):
             booking.status = "in_progress"
-        db.add(AuditLog(
-            admin_username=f"Инструктор: {instructor.name}",
-            action="instructor_client_arrived",
-            details=(f"Инструктор нажал «Клиент пришёл»: клиент {booking.client.name if booking.client else 'Клиент'}, "
-                     f"запись #{booking.id}, слот {_booking_slot(booking)}, прежний статус: {previous_status}"),
-            created_at=now_kz(),
-        ))
+        db.add(Event(event_type='lesson_started', source="instructor", instructor_id=instructor.id, client_id=booking.client_id, booking_id=booking.id, message=f"{instructor.name}: " + (f'Инструктор нажал «Клиент пришёл»: клиент {(booking.client.name if booking.client else 'Клиент')}, запись #{booking.id}, слот {_booking_slot(booking)}, прежний статус: {previous_status}'), created_at=now_kz()))
         await db.commit()
 
     await callback.message.edit_text(
         f"{callback.message.text}\n\n✅ Клиент отмечен как пришедший",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(
-                text="✅ Занятие окончено" if (booking.package_id or booking.certificate_id) else "💰 Занятие окончено (оплата получена)",
-                callback_data=f"inst_done:{booking.id}",
-            )
-        ]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📊 Оценить занятие", url=f"https://greentime.luxe/lesson.html?token={__import__('app.progress_common', fromlist=['lesson_token']).lesson_token(booking.id)}")],
+            [InlineKeyboardButton(text="✅ Занятие окончено" if (booking.package_id or booking.certificate_id or booking.source == "own_client") else "💰 Занятие окончено (оплата получена)", callback_data=f"inst_done:{booking.id}")]
+        ]),
     )
     await callback.answer("Отметка сохранена")
 
@@ -688,13 +700,7 @@ async def _confirm_client_no_show(callback: types.CallbackQuery) -> None:
             return
 
         booking.status = "no_show"
-        db.add(AuditLog(
-            admin_username=f"Инструктор: {instructor.name}",
-            action="instructor_client_no_show",
-            details=(f"Инструктор подтвердил «Клиент не пришёл»: клиент {booking.client.name if booking.client else 'Клиент'}, "
-                     f"запись #{booking.id}, слот {_booking_slot(booking)}"),
-            created_at=now_kz(),
-        ))
+        db.add(Event(event_type='no_show', source="instructor", instructor_id=instructor.id, client_id=booking.client_id, booking_id=booking.id, message=f"{instructor.name}: " + (f'Инструктор подтвердил «Клиент не пришёл»: клиент {(booking.client.name if booking.client else 'Клиент')}, запись #{booking.id}, слот {_booking_slot(booking)}'), created_at=now_kz()))
         await db.commit()
 
     await callback.message.edit_text(
@@ -766,14 +772,8 @@ async def lesson_done(callback: types.CallbackQuery):
             return
 
         completed, referrer = await _complete_booking(db, booking)
-        db.add(AuditLog(
-            admin_username=f"Инструктор: {instructor.name}",
-            action="instructor_lesson_completed",
-            details=(f"Инструктор нажал «Занятие окончено»: клиент {booking.client.name if booking.client else 'Клиент'}, "
-                     f"запись #{booking.id}, слот {_booking_slot(booking)}, "
-                     f"{'оплата зафиксирована' if completed else 'уже было автоматически зафиксировано, дубль не создан'}"),
-            created_at=now_kz(),
-        ))
+        if completed:
+            db.add(Event(event_type='lesson_completed', source="instructor", instructor_id=instructor.id, client_id=booking.client_id, booking_id=booking.id, message=f"{instructor.name}: " + (f'Инструктор нажал «Занятие окончено»: клиент {(booking.client.name if booking.client else 'Клиент')}, запись #{booking.id}, слот {_booking_slot(booking)}, {('оплата зафиксирована' if completed else 'уже было автоматически зафиксировано, дубль не создан')}'), created_at=now_kz()))
         await db.commit()
 
     if completed and referrer and referrer.telegram_id and client_bot:
