@@ -27,7 +27,7 @@ services:
       timeout: 5s
       retries: 10
   bot-worker:
-    image: gt-events-bot:20261120
+    image: gt-events-bot:20261121-panel
     restart: unless-stopped
     env_file: .env
     environment: {START_BOTS: "true"}

@@ -2904,13 +2904,20 @@ async def relay_telegram_support_reply(message: Message):
     открытом Telegram-диалоге после перезапуска бота, когда FSM-состояние
     поддержки больше недоступно.
     """
-    if not message.text or message.text.startswith("/"):
+    if not message.text:
         return
     text = message.text.strip()
     if not text:
+        await message.answer("Меню ниже 👇", reply_markup=MAIN_KEYBOARD)
+        return
+    if message.text.startswith("/"):
+        await message.answer(
+            "Неизвестная команда. Кнопки меню — ниже 👇",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
     if len(text) > 2000:
-        await message.answer("Сообщение слишком длинное. Максимум 2000 символов.")
+        await message.answer("Сообщение слишком длинное. Максимум 2000 символов.", reply_markup=MAIN_KEYBOARD)
         return
 
     async with async_session() as db:
@@ -2919,6 +2926,10 @@ async def relay_telegram_support_reply(message: Message):
             Client.is_deleted == False,
         ))).scalar_one_or_none()
         if not client:
+            await message.answer(
+                "Здравствуйте! Чтобы записаться на занятие, нажмите «📝 Записаться» в меню ниже.",
+                reply_markup=MAIN_KEYBOARD,
+            )
             return
         if not _is_support_chat_open(client):
             await message.answer(
@@ -2929,6 +2940,6 @@ async def relay_telegram_support_reply(message: Message):
         saved = await _save_client_support_message(db, client, text)
 
     if saved:
-        await message.answer("✅ Сообщение передано администратору.")
+        await message.answer("✅ Сообщение передано администратору.", reply_markup=MAIN_KEYBOARD)
     else:
-        await message.answer("Слишком много сообщений. Подождите минуту.")
+        await message.answer("Слишком много сообщений. Подождите минуту.", reply_markup=MAIN_KEYBOARD)
