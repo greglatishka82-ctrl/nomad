@@ -163,16 +163,26 @@ CASH_PAYMENT_NOTICE = (
     "🤝 Спасибо!"
 )
 
+CLIENT_MAIN_REPLY_MARKUP = {
+    "keyboard": [
+        [{"text": "📝 Записаться"}, {"text": "📋 Мои записи"}],
+        [{"text": "ℹ️ Как записаться"}, {"text": "📚 История обучения"}],
+        [{"text": "🎁 Пригласи друга"}, {"text": "💬 Поддержка"}],
+        [{"text": "🎟️ Сертификат"}],
+    ],
+    "resize_keyboard": True,
+}
+
 
 async def _send_confirmed_booking_messages(tg_client, chat_id: str, confirmation_message: str) -> None:
     """Send the confirmation and its cash-payment notice as two ordered messages."""
     await tg_client.post(
         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": confirmation_message + '\n\n📍 <a href="https://t.me/green_time_drive_bot?start=route">Как добраться</a>', "parse_mode": "HTML"},
+        json={"chat_id": chat_id, "text": confirmation_message + '\n\n📍 <a href="https://t.me/green_time_drive_bot?start=route">Как добраться</a>', "parse_mode": "HTML", "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
     )
     await tg_client.post(
         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": CASH_PAYMENT_NOTICE, "parse_mode": "HTML"},
+        json={"chat_id": chat_id, "text": CASH_PAYMENT_NOTICE, "parse_mode": "HTML", "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
     )
 
 
@@ -2133,11 +2143,12 @@ async def create_manual_booking(
             raise HTTPException(status_code=400, detail=f"Инструктор {instructor.name} уже занят в это время")
         
         busy_ids = await get_busy_instructor_ids(db, booking_date, st, et)
-        if not await is_instructor_available(db, instructor, booking_date, st, et, transmission, busy_ids, service_type=service.value):
+        if not await is_instructor_available(db, instructor, booking_date, st, et, transmission, busy_ids, service_type=service.value, ignore_schedule=True):
             raise HTTPException(status_code=400, detail="Инструктор не ведёт этот тип урока, занят или не работает в выбранное время")
     else:
         instructor = await find_best_instructor(
             db, booking_date, st, et, transmission, service.value, gender_preference,
+            ignore_schedule=True,
         )
         if not instructor:
             gender_label = {"male": "мужчину", "female": "женщину"}.get(gender_preference)
@@ -2365,6 +2376,7 @@ async def create_manual_booking(
                             f"📦 Запись оплачена пакетом{package_counter}. "
                             "Оплачивать инструктору ничего не нужно."
                         ),
+                        "reply_markup": CLIENT_MAIN_REPLY_MARKUP,
                     },
                 )
         except Exception as e:
@@ -2521,7 +2533,7 @@ async def update_booking_status(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": ("❌ Ваша отмена записи подтверждена." if auto_action else "❌ Ваша отмена записи подтверждена администратором.")},
+                        json={"chat_id": client.telegram_id.strip(), "text": ("❌ Ваша отмена записи подтверждена." if auto_action else "❌ Ваша отмена записи подтверждена администратором."), "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                     )
             except Exception:
                 pass
@@ -2540,6 +2552,7 @@ async def update_booking_status(
                                 "chat_id": client.telegram_id.strip(),
                                 "text": warning_text,
                                 "parse_mode": "HTML",
+                                "reply_markup": CLIENT_MAIN_REPLY_MARKUP,
                             },
                         )
                 except Exception:
@@ -2734,7 +2747,7 @@ async def resolve_reschedule_request(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": f"❌ {message}"},
+                        json={"chat_id": client.telegram_id.strip(), "text": f"❌ {message}", "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                     )
             except Exception:
                 pass
@@ -2850,7 +2863,7 @@ async def resolve_reschedule_request(
             async with httpx.AsyncClient(timeout=10) as tg_client:
                 await tg_client.post(
                     f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                    json={"chat_id": client.telegram_id.strip(), "text": client_message},
+                    json={"chat_id": client.telegram_id.strip(), "text": client_message, "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                 )
         except Exception:
             pass
@@ -3053,7 +3066,7 @@ async def confirm_booking(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": msg, "parse_mode": "HTML"},
+                        json={"chat_id": client.telegram_id.strip(), "text": msg, "parse_mode": "HTML", "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                     )
             except Exception as e:
                 print(f"[reject notify] ERROR: {e}")
@@ -7727,7 +7740,7 @@ async def confirm_certificate_request(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": message},
+                        json={"chat_id": client.telegram_id.strip(), "text": message, "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                     )
             except Exception:
                 pass
@@ -8023,7 +8036,7 @@ async def resolve_disputed_booking(
                 async with httpx.AsyncClient(timeout=10) as tg_client:
                     await tg_client.post(
                         f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id": client.telegram_id.strip(), "text": msg, "parse_mode": "HTML"},
+                        json={"chat_id": client.telegram_id.strip(), "text": msg, "parse_mode": "HTML", "reply_markup": CLIENT_MAIN_REPLY_MARKUP},
                     )
             except Exception as e:
                 print(f"[dispute reject notify] ERROR: {e}")

@@ -338,6 +338,7 @@ async def is_instructor_available(
     allow_duty: bool = False,
     service_type: Optional[str] = None,
     preserve_existing_assignment: bool = False,
+    ignore_schedule: bool = False,
 ) -> bool:
     if not instructor.is_active:
         return False
@@ -354,6 +355,11 @@ async def is_instructor_available(
             return False
         if transmission == "automatic" and instructor.transmission not in ("automatic", "both"):
             return False
+    # Ручная запись администратора может быть вне графика инструктора.
+    # График ограничивает только самостоятельную запись клиента (бот и
+    # мобильное приложение), поэтому здесь его не проверяем.
+    if ignore_schedule:
+        return True
     days_off = [d.strip() for d in (instructor.days_off or "").split(",") if d.strip()]
     if _day_name(booking_date) in days_off:
         return False
@@ -369,6 +375,7 @@ async def is_instructor_available(
 async def find_best_instructor(
     db: AsyncSession, booking_date: date, start_time: time, end_time: time,
     transmission: str, service_type: str, instructor_gender: str | None = None,
+    ignore_schedule: bool = False,
 ):
     """Assign the least-loaded available instructor, optionally by gender."""
     gender = (instructor_gender or "any").lower()
@@ -384,7 +391,7 @@ async def find_best_instructor(
         ]
     suitable = []
     for instructor in instructors:
-        if await is_instructor_available(db, instructor, booking_date, start_time, end_time, transmission, busy_ids, service_type=service_type):
+        if await is_instructor_available(db, instructor, booking_date, start_time, end_time, transmission, busy_ids, service_type=service_type, ignore_schedule=ignore_schedule):
             suitable.append(instructor)
     if not suitable:
         duty_query = select(Instructor).where(
@@ -394,7 +401,7 @@ async def find_best_instructor(
             duty_query = duty_query.where(Instructor.gender == gender)
         duty_result = await db.execute(duty_query)
         duty = duty_result.scalar_one_or_none()
-        if duty and await is_instructor_available(db, duty, booking_date, start_time, end_time, transmission, busy_ids, allow_duty=True, service_type=service_type):
+        if duty and await is_instructor_available(db, duty, booking_date, start_time, end_time, transmission, busy_ids, allow_duty=True, service_type=service_type, ignore_schedule=ignore_schedule):
             return duty
         return None
 

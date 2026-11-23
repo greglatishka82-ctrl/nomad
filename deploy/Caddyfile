@@ -57,14 +57,3 @@ povod.57-129-153-111.sslip.io {
     encode zstd gzip
     reverse_proxy povod-web:8000
 }
-
-
-
-
-test.greentime.luxe {
-    encode zstd gzip
-    header X-Robots-Tag "noindex, nofollow, noarchive"
-    reverse_proxy greentime-needs-test:8000 {
-        header_up X-Greentime-Test-IP {remote_host}
-    }
-}

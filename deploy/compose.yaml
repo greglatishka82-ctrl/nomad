@@ -35,7 +35,7 @@ services:
     depends_on: {db: {condition: service_healthy}}
     volumes: [site_static:/app/app/static]
   admin-api:
-    image: gt-security-admin:20261120-v2
+    image: gt-security-admin:20261123-panel
     restart: unless-stopped
     env_file: .env
     environment: {PORT: 8001}
@@ -46,7 +46,7 @@ services:
       timeout: 5s
       retries: 10
   site-frontend:
-    image: gt-wishes-site:20261121-404-v3
+    image: gt-wishes-site:20261123-i18n-drift2
     restart: unless-stopped
     # APK раздаётся с диска сервера: файл не попадает в git (*.apk в .gitignore)
     # и не пересобирается вместе с образом.

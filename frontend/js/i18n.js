@@ -19,5 +19,5 @@
  function apply(){observer.disconnect();document.documentElement.lang=lang;walk(document.documentElement);observe()}
  observer=new MutationObserver(function(changes){if(busy)return;busy=true;observer.disconnect();changes.forEach(function(change){if(change.type==='characterData')textNode(change.target,true);else if(change.type==='attributes')element(change.target);else change.addedNodes.forEach(walk)});observe();busy=false});
  select.addEventListener('change',function(){lang=select.value;try{localStorage.setItem('greentime-preview-language',lang)}catch(e){}apply()});
- fetch('js/i18n-dictionary.json?v=channel1').then(function(r){if(!r.ok)throw Error('dictionary');return r.json()}).then(function(d){dict=d;apply()}).catch(function(){apply()});
+ fetch('/js/i18n-dictionary.json?v=contacts6').then(function(r){if(!r.ok)throw Error('dictionary');return r.json()}).then(function(d){dict=d;apply()}).catch(function(){apply()});
 })();

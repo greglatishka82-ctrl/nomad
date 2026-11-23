@@ -1063,6 +1063,46 @@ a.contact:hover {
     margin-top: 34px;
 }
 
+.contacts__hours {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 26px 0 0;
+    text-align: center;
+    font-size: 17px;
+    color: var(--ink-muted);
+}
+
+.contacts__hours span:first-child {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+}
+
+.contacts__hours span:last-child {
+    color: var(--ink);
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+}
+
+@media (max-width: 640px) {
+    .contacts__hours {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        margin-top: 22px;
+    }
+
+    .contacts__hours span:last-child {
+        font-size: 19px;
+    }
+}
+
 /* ── Подвал ───────────────────────────────────────────────────────────────── */
 
 .footer {

@@ -49,7 +49,7 @@ async def _mark_failed(db, event_id, booking_id, expected_status, reason):
             try:
                 async with admin.httpx.AsyncClient(timeout=10) as c:
                     await c.post(f"https://api.telegram.org/bot{admin.settings.BOT_TOKEN}/sendMessage",
-                        json={"chat_id":client.telegram_id.strip(),"text":"Заявка требует дополнительной проверки. Администратор рассмотрит её и сообщит вам результат."})
+                        json={"chat_id":client.telegram_id.strip(),"text":"Заявка требует дополнительной проверки. Администратор рассмотрит её и сообщит вам результат.","reply_markup":admin.CLIENT_MAIN_REPLY_MARKUP})
             except Exception:
                 logger.exception('Could not notify client of review, booking_id=%s', booking_id)
 
